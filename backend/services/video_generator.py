@@ -3,6 +3,7 @@ import re
 import json
 import asyncio
 import subprocess
+import traceback
 import urllib.request
 import urllib.parse
 import concurrent.futures
@@ -274,6 +275,71 @@ def probe_media_duration(file_path: Path) -> float:
     except Exception as e:
         print(f"[Video Generator] Probe duration error: {e}")
     return 0.0
+
+def validate_generated_video_file(file_path: Path, is_long: bool = False, min_duration: float = 5.0) -> Dict[str, Any]:
+    """
+    Validation Gate: Verifies that a generated MP4 video exists, has valid file size and duration,
+    and has uncorrupted video and audio streams before being passed to YouTube uploader.
+    """
+    format_name = "16:9 Long-Form HD" if is_long else "9:16 Shorts"
+    p = Path(file_path)
+    if not p.exists() or not p.is_file():
+        err = f"[Video Generator Validation Gate FAILED] Video file does not exist on disk at: {p}"
+        print(f"[Video Generator ERROR] {err}")
+        raise FileNotFoundError(err)
+
+    size_bytes = p.stat().st_size
+    size_mb = size_bytes / (1024 * 1024)
+    min_bytes = 500_000 if is_long else 100_000
+    if size_bytes < min_bytes:
+        err = (
+            f"[Video Generator Validation Gate FAILED] {format_name} video '{p.name}' is too small "
+            f"({size_bytes:,} bytes, {size_mb:.3f} MB). Minimum required is {min_bytes:,} bytes."
+        )
+        print(f"[Video Generator ERROR] {err}")
+        raise ValueError(err)
+
+    duration = probe_media_duration(p)
+    required_min_duration = 15.0 if is_long else min_duration
+    if duration < required_min_duration:
+        err = (
+            f"[Video Generator Validation Gate FAILED] {format_name} video '{p.name}' duration ({duration:.2f}s) "
+            f"is below required threshold of {required_min_duration:.1f}s."
+        )
+        print(f"[Video Generator ERROR] {err}")
+        raise ValueError(err)
+
+    # Stream integrity check via ffmpeg probe
+    try:
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        probe_res = subprocess.run([ffmpeg_exe, "-i", str(p)], capture_output=True, text=True, errors="replace")
+        has_video = "Video:" in probe_res.stderr
+        has_audio = "Audio:" in probe_res.stderr
+        if not has_video:
+            raise RuntimeError(f"Video stream missing or corrupt in {p.name}")
+        if not has_audio:
+            raise RuntimeError(f"Audio stream missing or corrupt in {p.name}")
+    except Exception as probe_err:
+        err = f"[Video Generator Validation Gate FAILED] Stream integrity check failed for '{p.name}': {probe_err}"
+        print(f"[Video Generator ERROR] {err}")
+        print(traceback.format_exc())
+        raise RuntimeError(err) from probe_err
+
+    print(
+        f"[Video Generator Validation Gate PASSED] Video '{p.name}' verified for YouTube upload:\n"
+        f"  Format: {format_name}\n"
+        f"  Size: {size_mb:.2f} MB ({size_bytes:,} bytes)\n"
+        f"  Duration: {duration:.2f}s\n"
+        f"  Path: {p.resolve()}"
+    )
+    return {
+        "valid": True,
+        "format": "long" if is_long else "short",
+        "file_size_bytes": size_bytes,
+        "file_size_mb": round(size_mb, 2),
+        "duration_seconds": round(duration, 2),
+        "path": str(p.resolve())
+    }
 
 def create_focal_variant(base_img: Image.Image, variant_idx: int, target_w: int, target_h: int) -> Image.Image:
     """Creates a distinct, topic-focused cropped/zoomed variant of the base image."""
@@ -1133,25 +1199,39 @@ def compose_video(
     ]
 
     fmt_label = "16:9 Widescreen HD" if is_long else "9:16 Shorts"
-    print(f"[Video Generator] Compiling {fmt_label} MP4 with FFmpeg ({len(slides)} photo scenes, {fade_duration}s fade): {output_video_path.name}...")
-    run_res = subprocess.run(cmd, capture_output=True, text=True, cwd=str(STATIC_VIDEOS_DIR), timeout=240)
-    if run_res.returncode != 0:
-        print(f"[Video Generator] FFmpeg Error: {run_res.stderr}")
-        raise RuntimeError(f"FFmpeg encoding failed for article {article_id}: {run_res.stderr[:200]}")
+    ffmpeg_timeout = 360 if is_long else 180
+    print(f"[Video Generator] Compiling {fmt_label} MP4 with FFmpeg ({len(slides)} photo scenes, {fade_duration}s fade, timeout={ffmpeg_timeout}s): {output_video_path.name}...")
+    try:
+        run_res = subprocess.run(cmd, capture_output=True, text=True, cwd=str(STATIC_VIDEOS_DIR), timeout=ffmpeg_timeout)
+        if run_res.returncode != 0:
+            print(f"[Video Generator ERROR] FFmpeg encoding failed (code {run_res.returncode}):")
+            print(run_res.stderr)
+            raise RuntimeError(f"FFmpeg encoding failed for article {article_id}: {run_res.stderr[-400:]}")
+    except subprocess.TimeoutExpired as te:
+        print(f"[Video Generator ERROR] FFmpeg timed out after {ffmpeg_timeout}s on article {article_id}")
+        print(traceback.format_exc())
+        raise RuntimeError(f"FFmpeg encoding timed out ({ffmpeg_timeout}s) for {fmt_label} video {output_video_path.name}") from te
+    except Exception as enc_err:
+        print(f"[Video Generator ERROR] Unexpected error during FFmpeg execution: {enc_err}")
+        print(traceback.format_exc())
+        raise
 
     # Step E: Validation Gate
-    if not output_video_path.exists():
-        raise RuntimeError(f"Video file was not created at: {output_video_path}")
+    try:
+        val_res = validate_generated_video_file(
+            output_video_path,
+            is_long=is_long,
+            min_duration=15.0 if is_long else 5.0
+        )
+    except Exception as val_err:
+        print(f"[Video Generator Validation Gate FAILED] Generated video {output_video_path.name} failed validation:")
+        print(traceback.format_exc())
+        raise
 
-    video_size = output_video_path.stat().st_size
-    if video_size < 100_000:
-        raise RuntimeError(f"Generated video is too small ({video_size} bytes). Minimum 100KB required.")
+    video_size = val_res["file_size_bytes"]
+    final_duration = val_res["duration_seconds"]
 
-    final_duration = probe_media_duration(output_video_path)
-    if final_duration < 5.0:
-        raise RuntimeError(f"Generated video duration ({final_duration:.2f}s) is too short. Minimum 5.0s required.")
-
-    print(f"[Video Generator] SUCCESS: Rendered {output_video_path.name} ({video_size} bytes, {final_duration:.2f}s duration)")
+    print(f"[Video Generator SUCCESS] Verified & saved {output_video_path.name} ({video_size:,} bytes, {final_duration:.2f}s duration)")
 
     # Clean up temporary concat, slide, and scene image artifacts
     concat_list_file.unlink(missing_ok=True)
@@ -1182,16 +1262,21 @@ def compose_long_video(
     image_url: Optional[str] = None
 ) -> Dict[str, Any]:
     """Helper entry point for 16:9 widescreen long-form HD video compilation."""
-    return compose_video(
-        article_id=article_id,
-        title=title,
-        category=category,
-        youtube_script=youtube_script,
-        summary=summary,
-        content=content,
-        image_url=image_url,
-        video_format="long"
-    )
+    try:
+        return compose_video(
+            article_id=article_id,
+            title=title,
+            category=category,
+            youtube_script=youtube_script,
+            summary=summary,
+            content=content,
+            image_url=image_url,
+            video_format="long"
+        )
+    except Exception as e:
+        print(f"[Video Generator Long Video ERROR] Failed composing long video for article #{article_id} ('{title}'): {e}")
+        print(traceback.format_exc())
+        raise
 
 def compose_short_video(
     article_id: int,
@@ -1207,13 +1292,18 @@ def compose_short_video(
     Main video generation entry point.
     Defaults to 16:9 long-form video, supports video_format='short' for vertical shorts.
     """
-    return compose_video(
-        article_id=article_id,
-        title=title,
-        category=category,
-        youtube_script=youtube_script,
-        summary=summary,
-        content=content,
-        image_url=image_url,
-        video_format=video_format
-    )
+    try:
+        return compose_video(
+            article_id=article_id,
+            title=title,
+            category=category,
+            youtube_script=youtube_script,
+            summary=summary,
+            content=content,
+            image_url=image_url,
+            video_format=video_format
+        )
+    except Exception as e:
+        print(f"[Video Generator ERROR] Video generation failed for article #{article_id}: {e}")
+        print(traceback.format_exc())
+        raise

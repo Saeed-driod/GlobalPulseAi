@@ -1,5 +1,6 @@
 import os
 import re
+import traceback
 from datetime import datetime, timezone
 from typing import Optional
 from contextlib import asynccontextmanager
@@ -440,6 +441,7 @@ def auto_publish_pipeline(
             print(f"[Auto Publish] Completed article #{art_id}: {art.youtube_video_id}")
         except Exception as e:
             print(f"[Auto Publish Background Error]: {e}")
+            traceback.print_exc()
         finally:
             bg_db.close()
 

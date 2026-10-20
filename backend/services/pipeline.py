@@ -1,5 +1,6 @@
 import os
 import re
+import traceback
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
@@ -164,7 +165,8 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 published_articles.append(article)
 
             except Exception as e:
-                print(f"[Master Pipeline] Error processing item: {e}")
+                print(f"[Master Pipeline ERROR] Error processing article item: {e}")
+                traceback.print_exc()
                 db.rollback()
                 continue
 

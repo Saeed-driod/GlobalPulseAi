@@ -1,10 +1,17 @@
 import os
+import re
+import sys
+import time
 import json
 import hashlib
 import threading
+import traceback
+import socket
+import http.client
 import wsgiref.simple_server
 from typing import Dict, Any, Optional, List
 from pathlib import Path
+from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import (
     InstalledAppFlow,
     _RedirectWSGIApp,
@@ -375,10 +382,13 @@ def upload_video_to_youtube(
     Enforces strict pre-upload validation gate (existence, >=100KB size, >=5s duration).
     Follows OAuth2 flow, logs progress to terminal, and returns youtube_video_id.
     Supports long-form (16:9 standard video) and short-form (9:16 Shorts) modes.
+    Includes resilient chunked upload with exponential backoff and strict exception logging for large files.
     """
     is_long = (str(video_format).lower() == "long")
-    print(f"[YouTube Upload] Preparing {'Long-Form (16:9)' if is_long else 'Short (9:16)'} video upload: '{title}'...")
-    print(f"[YouTube Upload] Video file path: {video_path}")
+    format_label = "16:9 Long-Form Widescreen HD" if is_long else "9:16 Vertical YouTube Shorts"
+    print(f"\n[YouTube Upload] Initializing {format_label} upload workflow...")
+    print(f"[YouTube Upload] Target Title: '{title}'")
+    print(f"[YouTube Upload] Provided Path: {video_path}")
 
     # Step 1: Resolve Video Path
     v_path = Path(video_path)
@@ -397,31 +407,46 @@ def upload_video_to_youtube(
                 found = True
                 break
         if not found and not v_path.exists():
-            raise FileNotFoundError(
+            err_msg = (
                 f"[YouTube Upload Validation Gate FAILED] Video file does not exist at '{video_path}'. "
-                f"Ensure the video has been properly generated first."
+                f"Searched candidates: {[str(c) for c in candidates]}. "
+                f"Ensure the video has been properly generated and saved via video_generator first."
             )
+            print(f"[YouTube Upload ERROR] {err_msg}")
+            raise FileNotFoundError(err_msg)
 
-    # Step 2: Validation Gate - File Size Check (>= 100 KB)
+    # Step 2: Validation Gate - File Size Check
     file_size = v_path.stat().st_size
-    print(f"[YouTube Upload] Validating file size: {file_size:,} bytes for '{v_path.name}'...")
+    file_size_mb = file_size / (1024 * 1024)
+    print(f"[YouTube Upload] Validating file size: {file_size:,} bytes ({file_size_mb:.2f} MB) for '{v_path.name}'...")
     if file_size < 100_000:
-        raise ValueError(
+        err_msg = (
             f"[YouTube Upload Validation Gate FAILED] Video file '{v_path.name}' is too small or incomplete "
-            f"({file_size} bytes). Minimum required size is 100,000 bytes (100 KB). Aborting upload to prevent YouTube processing failure."
+            f"({file_size:,} bytes, {file_size_mb:.3f} MB). Minimum required size is 100,000 bytes (100 KB). "
+            f"Aborting upload to prevent YouTube processing failure."
         )
+        print(f"[YouTube Upload ERROR] {err_msg}")
+        raise ValueError(err_msg)
 
-    # Step 3: Validation Gate - Duration Check (>= 5.0 seconds)
+    # Step 3: Validation Gate - Duration Check
     from .video_generator import probe_media_duration
     video_duration = probe_media_duration(v_path)
     print(f"[YouTube Upload] Validating video duration: {video_duration:.2f}s...")
-    if video_duration < 5.0:
-        raise ValueError(
+    min_required_duration = 15.0 if is_long else 5.0
+    if video_duration < min_required_duration:
+        err_msg = (
             f"[YouTube Upload Validation Gate FAILED] Video file '{v_path.name}' duration ({video_duration:.2f}s) "
-            f"is below the 5.0-second minimum. Aborting upload to prevent YouTube processing failure."
+            f"is below the {min_required_duration:.1f}-second minimum required for {format_label}. "
+            f"Aborting upload to prevent YouTube rejection."
         )
+        print(f"[YouTube Upload ERROR] {err_msg}")
+        raise ValueError(err_msg)
 
-    print(f"[YouTube Upload] Pre-upload validation PASSED ({file_size:,} bytes, {video_duration:.1f}s). Proceeding to YouTube Data API...")
+    print(
+        f"[YouTube Upload Validation PASSED] Gate verified: "
+        f"Format={format_label} | Size={file_size_mb:.2f} MB ({file_size:,} bytes) | "
+        f"Duration={video_duration:.2f}s | Path={v_path.resolve()}"
+    )
 
     from googleapiclient.http import MediaFileUpload
 
@@ -429,75 +454,159 @@ def upload_video_to_youtube(
     try:
         youtube = get_authenticated_youtube_service(interactive=interactive)
     except Exception as e:
-        print(f"[YouTube Upload] Authentication issue: {e}")
+        print(f"[YouTube Upload] Authentication issue during service acquisition: {e}")
+        print(traceback.format_exc())
 
-    # Real YouTube API Upload if authenticated
-    if youtube:
-        try:
-            if is_long:
-                # Long-Form Title: clean, high-CTR, no #shorts
-                clean_t = re.sub(r"(?i)\s*#shorts\b", "", title).strip()
-                if len(clean_t) <= 68:
-                    upload_title = f"{clean_t} | Global News & Analysis"
-                else:
-                    upload_title = clean_t[:100]
-                default_tags = ["GlobalPulse AI", "News", "Technology", "World News", "Market Analysis", "EduHub by Saeed"]
+    if not youtube:
+        err_auth = "YouTube is not authenticated. Please authorize your channel from the Admin Dashboard or visit /api/auth-youtube."
+        print(f"[YouTube Upload ERROR] {err_auth}")
+        raise RuntimeError(err_auth)
+
+    # Real YouTube API Upload
+    try:
+        if is_long:
+            # Long-Form Title: clean, high-CTR, strip any accidental #shorts tags
+            clean_t = re.sub(r"(?i)\s*#shorts\b", "", title).strip()
+            if len(clean_t) <= 68:
+                upload_title = f"{clean_t} | Global News & Analysis"
             else:
-                raw_title = f"{title.strip()} #shorts" if "#shorts" not in title.lower() else title.strip()
-                upload_title = raw_title[:100]
-                default_tags = ["GlobalPulse AI", "News", "Technology", "Shorts"]
+                upload_title = clean_t[:100]
+            default_tags = ["GlobalPulse AI", "News", "Technology", "World News", "Market Analysis", "EduHub by Saeed"]
+        else:
+            raw_title = f"{title.strip()} #shorts" if "#shorts" not in title.lower() else title.strip()
+            upload_title = raw_title[:100]
+            default_tags = ["GlobalPulse AI", "News", "Technology", "Shorts"]
 
-            body = {
-                "snippet": {
-                    "title": upload_title,
-                    "description": description,
-                    "tags": tags or default_tags,
-                    "categoryId": category_id,
-                },
-                "status": {
-                    "privacyStatus": "public",
-                    "selfDeclaredMadeForKids": False,
-                },
-            }
+        body = {
+            "snippet": {
+                "title": upload_title,
+                "description": description,
+                "tags": tags or default_tags,
+                "categoryId": category_id,
+            },
+            "status": {
+                "privacyStatus": "public",
+                "selfDeclaredMadeForKids": False,
+            },
+        }
 
-            print(f"Uploading {'long-form' if is_long else 'short'} video...")
-            media = MediaFileUpload(
-                str(v_path),
-                mimetype="video/mp4",
-                resumable=True,
-                chunksize=1024 * 1024
-            )
+        # Optimized chunk size for large videos:
+        # Use 8 MB chunks for long-form / files >= 8 MB to minimize round-trip latency and network drops,
+        # or 2 MB chunks for smaller 60-second shorts.
+        if is_long or file_size >= 8 * 1024 * 1024:
+            chunk_size = 8 * 1024 * 1024  # 8 MB
+            print(f"[YouTube Upload Large File] Long-form / large video detected ({file_size_mb:.2f} MB). Configuring 8MB chunks.")
+        else:
+            chunk_size = 2 * 1024 * 1024  # 2 MB
+            print(f"[YouTube Upload] Standard video detected ({file_size_mb:.2f} MB). Configuring 2MB chunks.")
 
-            request = youtube.videos().insert(
-                part="snippet,status",
-                body=body,
-                media_body=media
-            )
+        expected_chunks = max(1, (file_size + chunk_size - 1) // chunk_size)
+        print(f"[YouTube Upload] Media stream ready: ~{expected_chunks} chunk(s) expected. Starting upload for '{upload_title}'...")
 
-            response = None
-            while response is None:
+        media = MediaFileUpload(
+            str(v_path),
+            mimetype="video/mp4",
+            resumable=True,
+            chunksize=chunk_size
+        )
+
+        request = youtube.videos().insert(
+            part="snippet,status",
+            body=body,
+            media_body=media
+        )
+
+        response = None
+        max_chunk_retries = 5
+        retry_delay = 2.0
+        chunk_retry_count = 0
+        chunk_index = 0
+
+        # Resumable chunk upload loop with exponential backoff on retryable network / server errors
+        while response is None:
+            try:
+                chunk_index += 1
                 upload_status, response = request.next_chunk()
                 if upload_status:
                     progress_pct = int(upload_status.progress() * 100)
-                    print(f"Uploading video... {progress_pct}%")
-
-            youtube_video_id = response.get("id")
-            if youtube_video_id:
-                print(f"Upload successful! Video ID: {youtube_video_id}")
-                watch_url = f"https://www.youtube.com/watch?v={youtube_video_id}" if is_long else f"https://www.youtube.com/shorts/{youtube_video_id}"
-                return YouTubeUploadResult(
-                    youtube_video_id,
-                    success=True,
-                    youtube_url=watch_url,
-                    title=upload_title,
-                    format="long" if is_long else "short",
-                    is_simulated=False
+                    transferred_mb = upload_status.resumable_progress / (1024 * 1024)
+                    print(
+                        f"[YouTube Upload Progress] Chunk {chunk_index}/{expected_chunks}: "
+                        f"{progress_pct}% complete ({transferred_mb:.2f} MB of {file_size_mb:.2f} MB transferred)"
+                    )
+                chunk_retry_count = 0  # reset retries on successful progress
+            except HttpError as http_err:
+                if http_err.resp.status in [500, 502, 503, 504]:
+                    chunk_retry_count += 1
+                    if chunk_retry_count > max_chunk_retries:
+                        print(f"[YouTube Upload ERROR] Max retries ({max_chunk_retries}) exhausted on HTTP {http_err.resp.status} server error.")
+                        raise
+                    sleep_time = retry_delay * (2 ** (chunk_retry_count - 1))
+                    print(
+                        f"[YouTube Upload WARN] Transient YouTube server error HTTP {http_err.resp.status} ({http_err.resp.reason}). "
+                        f"Retrying in {sleep_time:.1f}s (Attempt {chunk_retry_count}/{max_chunk_retries})..."
+                    )
+                    time.sleep(sleep_time)
+                else:
+                    raw_content = http_err.content.decode('utf-8', errors='replace') if isinstance(http_err.content, bytes) else str(http_err.content)
+                    print(f"[YouTube Upload ERROR] Non-retryable HTTP {http_err.resp.status} API Error: {raw_content}")
+                    raise
+            except (socket.timeout, socket.error, http.client.RemoteDisconnected, TimeoutError, ConnectionResetError) as net_err:
+                chunk_retry_count += 1
+                if chunk_retry_count > max_chunk_retries:
+                    print(f"[YouTube Upload ERROR] Max retries ({max_chunk_retries}) exhausted on network glitch: {net_err}")
+                    raise
+                sleep_time = retry_delay * (2 ** (chunk_retry_count - 1))
+                print(
+                    f"[YouTube Upload WARN] Network timeout/glitch ({type(net_err).__name__}: {net_err}). "
+                    f"Retrying in {sleep_time:.1f}s (Attempt {chunk_retry_count}/{max_chunk_retries})..."
                 )
-        except Exception as e:
-            print(f"[YouTube Upload] Real YouTube API upload error: {e}")
-            raise RuntimeError(f"YouTube Data API upload failed: {e}")
+                time.sleep(sleep_time)
 
-    raise RuntimeError("YouTube is not authenticated. Please authorize your channel from the Admin Dashboard.")
+        youtube_video_id = response.get("id") if response else None
+        if youtube_video_id:
+            watch_url = f"https://www.youtube.com/watch?v={youtube_video_id}" if is_long else f"https://www.youtube.com/shorts/{youtube_video_id}"
+            print("=" * 75)
+            print(f"[YouTube Upload SUCCESS] Successfully published {format_label} to YouTube!")
+            print(f"  Video ID: {youtube_video_id}")
+            print(f"  Live URL: {watch_url}")
+            print(f"  Title: {upload_title}")
+            print(f"  Size: {file_size_mb:.2f} MB | Duration: {video_duration:.2f}s")
+            print("=" * 75)
+            return YouTubeUploadResult(
+                youtube_video_id,
+                success=True,
+                youtube_url=watch_url,
+                title=upload_title,
+                format="long" if is_long else "short",
+                is_simulated=False
+            )
+        else:
+            raise RuntimeError(f"YouTube API responded without a valid video id: {response}")
+
+    except Exception as e:
+        err_stack = traceback.format_exc()
+        print("\n" + "=" * 80)
+        print(f"[YouTube Upload EXCEPTION] Critical failure during {format_label} upload:")
+        print(f"  Title: '{title}'")
+        print(f"  Target File: {v_path.resolve() if v_path.exists() else video_path}")
+        print(f"  File Size: {file_size:,} bytes ({file_size_mb:.2f} MB)")
+        print(f"  Duration: {video_duration:.2f}s")
+        print(f"  Format: {video_format} (is_long={is_long})")
+        print(f"  Exception Type: {type(e).__name__}")
+        print(f"  Exception Message: {e}")
+        if isinstance(e, HttpError):
+            print(f"  API HTTP Status: {e.resp.status}")
+            print(f"  API HTTP Reason: {e.resp.reason}")
+            try:
+                content_str = e.content.decode('utf-8', errors='replace') if isinstance(e.content, bytes) else str(e.content)
+                print(f"  API Response Body: {content_str}")
+            except Exception:
+                pass
+        print("----- EXACT ERROR STACK TRACE -----")
+        print(err_stack)
+        print("=" * 80 + "\n")
+        raise RuntimeError(f"YouTube Data API upload failed: {e}\n{err_stack}") from e
 
 
 def upload_long_video_to_youtube(
@@ -511,6 +620,7 @@ def upload_long_video_to_youtube(
     """
     Uploads full-length 16:9 widescreen long-form video to YouTube with chapters,
     authoritative SEO metadata, and link to website article and YouTube partner channel.
+    Prints exact error stack trace if upload hits a timeout or API exception.
     """
     clean_summary = summary.replace("•", "-")
     website_url = f"{PUBLIC_SITE_URL}/news/{slug}"
@@ -540,26 +650,31 @@ Subscribe to EduHub by Saeed (@EduHubbySaeed) for cutting-edge AI, software engi
     tags = ["GlobalPulse AI", category, "Breaking News", "World News", "Technology", "Markets", "Documentary", "EduHub by Saeed"]
     cat_id = get_category_id(category)
 
-    result = upload_video_to_youtube(
-        video_path=video_filepath,
-        title=title,
-        description=description,
-        tags=tags,
-        category_id=cat_id,
-        video_format="long",
-        interactive=False
-    )
+    try:
+        result = upload_video_to_youtube(
+            video_path=video_filepath,
+            title=title,
+            description=description,
+            tags=tags,
+            category_id=cat_id,
+            video_format="long",
+            interactive=False
+        )
 
-    video_id = str(result)
-    return {
-        "success": True,
-        "video_id": video_id,
-        "youtube_video_id": video_id,
-        "youtube_url": f"https://www.youtube.com/watch?v={video_id}",
-        "title": getattr(result, "title", title),
-        "format": "long",
-        "is_simulated": getattr(result, "is_simulated", False) if hasattr(result, "is_simulated") else result.get("is_simulated", False)
-    }
+        video_id = str(result)
+        return {
+            "success": True,
+            "video_id": video_id,
+            "youtube_video_id": video_id,
+            "youtube_url": f"https://www.youtube.com/watch?v={video_id}",
+            "title": getattr(result, "title", title),
+            "format": "long",
+            "is_simulated": getattr(result, "is_simulated", False) if hasattr(result, "is_simulated") else result.get("is_simulated", False)
+        }
+    except Exception as e:
+        print(f"[YouTube Long Video Upload FAILED] Failed uploading long video '{title}' for slug '{slug}': {e}")
+        print(traceback.format_exc())
+        raise
 
 
 def upload_short_to_youtube(
