@@ -179,6 +179,8 @@ export default function AdminPage() {
       if (selectedArticle?.id === id && res.article) {
         setSelectedArticle(res.article);
       }
+    } else {
+      showToast(res.message || "Failed to generate video.");
     }
   };
 
@@ -192,9 +194,10 @@ export default function AdminPage() {
       if (selectedArticle?.id === id && res.article) {
         setSelectedArticle(res.article);
       }
+    } else {
+      showToast(res.message || "Failed to publish article.");
     }
   };
-
 
   const handleAutoPublish = async (id: number) => {
     setActionLoadingId(id);
@@ -206,6 +209,8 @@ export default function AdminPage() {
       if (selectedArticle?.id === id && res.article) {
         setSelectedArticle(res.article);
       }
+    } else {
+      showToast(res.message || "Failed to run automated pipeline.");
     }
   };
 
