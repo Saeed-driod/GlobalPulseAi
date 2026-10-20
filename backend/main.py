@@ -327,13 +327,35 @@ def publish_article(
         )
 
     # Execute YouTube Auto-Uploader Service
+    target_format = format
+    if not target_format:
+        target_format = "short" if ("short_article" in (article.video_path or "")) else "long"
+
     video_disk_path = article.video_path or ""
     if video_disk_path.startswith("/static/"):
         video_disk_path = os.path.join(os.path.dirname(__file__), video_disk_path.lstrip("/"))
 
-    target_format = format
-    if not target_format:
-        target_format = "short" if ("short_article" in (article.video_path or "")) else "long"
+    # Auto-generate video on demand if not present on disk (crucial for ephemeral containers like Render)
+    video_exists = bool(video_disk_path and os.path.exists(video_disk_path) and os.path.getsize(video_disk_path) >= 100_000)
+    if not video_exists:
+        print(f"[Publish] Video file missing or incomplete on disk for article #{article.id}. Auto-generating {target_format} video now...")
+        video_res = compose_video(
+            article_id=article.id,
+            title=article.title,
+            category=article.category,
+            youtube_script=article.youtube_script or article.summary,
+            summary=article.summary,
+            content=article.content,
+            image_url=article.image_url,
+            video_format=target_format
+        )
+        article.video_path = video_res.get("video_path")
+        db.commit()
+        db.refresh(article)
+
+        video_disk_path = article.video_path or ""
+        if video_disk_path.startswith("/static/"):
+            video_disk_path = os.path.join(os.path.dirname(__file__), video_disk_path.lstrip("/"))
 
     upload_result = upload_short_to_youtube(
         video_filepath=video_disk_path,
