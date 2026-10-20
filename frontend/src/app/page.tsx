@@ -8,6 +8,7 @@ import { Header, CATEGORIES } from "../components/Header";
 import { HeroFeatured } from "../components/HeroFeatured";
 import { ArticleCard } from "../components/ArticleCard";
 import { AdBanner } from "../components/AdBanner";
+import { AdsterraBanner } from "../components/AdsterraBanner";
 import { Footer } from "../components/Footer";
 import { Sparkles, TrendingUp, RefreshCw, Zap, Clock, ShieldCheck } from "../components/Icons";
 
@@ -153,6 +154,9 @@ export default function HomePage() {
             ))}
           </div>
         )}
+
+        {/* Adsterra 300x250 Monetization Banner */}
+        <AdsterraBanner label="Sponsored Intelligence" className="mt-14 mb-4" />
 
         {/* Tier-1 Executive Dossier Newsletter Banner */}
         <section className="mt-20 rounded-3xl p-8 sm:p-10 glass-panel-glow relative overflow-hidden border border-cyan-500/20">

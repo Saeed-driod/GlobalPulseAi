@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { Youtube, ExternalLink, Sparkles } from "./Icons";
+import { AdsterraBanner } from "./AdsterraBanner";
+
+export { AdsterraBanner };
 
 export type AdSlot = "header" | "in-article" | "sidebar" | "sticky-footer";
 
@@ -109,61 +112,18 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = "" }) => {
 
   if (slot === "in-article") {
     return (
-      <div className={`my-10 flex flex-col items-center ${className}`}>
-        <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-500 mb-2">
-          Recommended Channel • Official Media Partner
-        </span>
-        <div className="w-full max-w-[480px] bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 hover:border-red-500/40 rounded-2xl p-6 relative overflow-hidden group shadow-2xl transition">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-md shadow-red-600/30">
-              <Youtube className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>{channelName}</span>
-                <span className="text-[10px] font-mono text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">
-                  OFFICIAL
-                </span>
-              </div>
-              <p className="text-[11px] text-neutral-400 font-mono">youtube.com/@EduHubbySaeed</p>
-            </div>
-          </div>
-
-          <h4 className="text-base font-bold text-white leading-snug group-hover:text-red-300 transition">
-            Level Up Your Tech Career With Project-Driven Masterclasses
-          </h4>
-          <p className="text-xs text-neutral-300 mt-2.5 leading-relaxed">
-            Free premium video lessons covering Machine Learning architectures, autonomous agents, modern React & FastAPI stacks, and tech career insights.
-          </p>
-
-          <div className="mt-5 pt-4 border-t border-neutral-800 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[11px] text-neutral-400 font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>New Videos Weekly</span>
-            </div>
-            <a
-              href={channelUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md shadow-red-600/30 transition group-hover:scale-105"
-            >
-              <span>Watch & Subscribe</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </div>
+      <div className={`my-8 flex flex-col items-center ${className}`}>
+        <AdsterraBanner label="Sponsored Intelligence" />
       </div>
     );
   }
 
   if (slot === "sidebar") {
     return (
-      <div className={`flex flex-col items-center ${className}`}>
-        <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-500 mb-2">
-          Featured Channel
-        </span>
+      <div className={`flex flex-col items-center space-y-6 ${className}`}>
+        {/* Adsterra 300x250 Medium Rectangle Unit */}
+        <AdsterraBanner label="Sponsored Partner" />
+
         <div className="w-full max-w-[340px] bg-gradient-to-b from-neutral-900 via-neutral-900 to-red-950/30 border border-neutral-800 hover:border-red-500/30 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group shadow-xl transition">
           <div className="absolute top-0 right-0 w-28 h-28 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
 

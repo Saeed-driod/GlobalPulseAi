@@ -7,6 +7,7 @@ import { fetchArticleBySlug, fetchArticles, FALLBACK_ARTICLES } from "../../../l
 import { Header } from "../../../components/Header";
 import { BreakingTicker } from "../../../components/BreakingTicker";
 import { AdBanner } from "../../../components/AdBanner";
+import { AdsterraBanner } from "../../../components/AdsterraBanner";
 import { NewsletterBox } from "../../../components/NewsletterBox";
 import { Footer } from "../../../components/Footer";
 import {
@@ -581,6 +582,9 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                 </a>
               </div>
             </div>
+
+            {/* Article Detail Page Footer Adsterra Banner */}
+            <AdsterraBanner label="Sponsored Intelligence" className="my-8" />
           </div>
 
           {/* Right Sidebar */}
