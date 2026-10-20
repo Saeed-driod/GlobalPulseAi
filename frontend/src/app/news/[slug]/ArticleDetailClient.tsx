@@ -27,7 +27,7 @@ interface ArticleDetailClientProps {
 
 export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClientProps) {
   const [article, setArticle] = useState<Article | null>(initialArticle || null);
-  const [allArticles, setAllArticles] = useState<Article[]>(FALLBACK_ARTICLES);
+  const [allArticles, setAllArticles] = useState<Article[]>([]);
   const [copied, setCopied] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(!initialArticle);
 

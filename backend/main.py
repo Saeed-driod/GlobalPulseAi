@@ -43,7 +43,6 @@ from .schemas import (
     ArticleCreate,
     ArticleUpdate
 )
-from .seed import seed_database
 from .services.scraper import fetch_breaking_rss_news
 from .services.ai_service import process_raw_news
 from .services.video_generator import compose_short_video, compose_video, compose_long_video
@@ -56,9 +55,8 @@ from .services.image_resolver import refresh_missing_images
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure database schema is created and seeded on startup
+    # Ensure database schema is created on startup (never auto-insert dummy seed articles)
     Base.metadata.create_all(bind=engine)
-    seed_database()
     # Refresh missing or placeholder images on startup
     refresh_missing_images()
     # Automatically start 24/7 Background Automation Scheduler on startup
@@ -420,16 +418,6 @@ def auto_publish_pipeline(
         success=True,
         message=f"Full automation complete: Rendered {fmt_name}, uploaded to YouTube ({article.youtube_video_id}), and syndicated live on portal!",
         article=article
-    )
-
-
-@app.post("/api/seed", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
-def trigger_seed(db: Session = Depends(get_db)):
-    """Force re-seeding dummy data."""
-    seed_database()
-    return ActionResponse(
-        success=True,
-        message="Database re-seeded with realistic tier-1 global news articles."
     )
 
 

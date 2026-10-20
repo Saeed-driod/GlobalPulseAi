@@ -12,7 +12,7 @@ import { Footer } from "../components/Footer";
 import { Sparkles, TrendingUp, RefreshCw, Zap, Clock, ShieldCheck } from "../components/Icons";
 
 export default function HomePage() {
-  const [articles, setArticles] = useState<Article[]>(FALLBACK_ARTICLES);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All Stories");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -27,7 +27,7 @@ export default function HomePage() {
       search: search || undefined,
       limit: 30,
     });
-    if (res && res.items && res.items.length > 0) {
+    if (res && res.items) {
       setArticles(res.items);
     }
     setLoading(false);

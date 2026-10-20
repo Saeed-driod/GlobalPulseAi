@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, cache } from "react";
 import { Metadata } from "next";
 import { fetchArticleBySlug } from "../../../lib/api";
 import { ArticleDetailClient } from "./ArticleDetailClient";
@@ -6,6 +6,11 @@ import { ArticleDetailClient } from "./ArticleDetailClient";
 interface PageProps {
   params: Promise<{ slug: string }> | { slug: string };
 }
+
+// Request-scoped memoization to ensure GET /api/articles/{slug} view count increments exactly once per user page view
+const getCachedArticleBySlug = cache(async (slug: string) => {
+  return await fetchArticleBySlug(slug);
+});
 
 // Robust helper to extract FAQ items from article markdown content for JSON-LD FAQPage schema
 function extractFaqItems(content: string): Array<{ question: string; answer: string }> {
@@ -44,7 +49,7 @@ function extractFaqItems(content: string): Array<{ question: string; answer: str
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const article = await fetchArticleBySlug(resolvedParams.slug);
+  const article = await getCachedArticleBySlug(resolvedParams.slug);
 
   if (!article) {
     return {
@@ -111,7 +116,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function Page({ params }: PageProps) {
   const resolvedParams = await params;
-  const article = await fetchArticleBySlug(resolvedParams.slug);
+  const article = await getCachedArticleBySlug(resolvedParams.slug);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.com";
   const articleUrl = `${siteUrl}/news/${resolvedParams.slug}`;
