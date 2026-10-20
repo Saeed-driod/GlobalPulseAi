@@ -20,6 +20,7 @@ import {
   clearAdminSecret,
   verifyAdminSecret,
   API_BASE,
+  getApiBase,
 } from "../../lib/api";
 
 import {
@@ -69,7 +70,7 @@ export default function AdminPage() {
 
   const handleAuthYouTube = () => {
     showToast("Launching Google YouTube sign-in window...");
-    window.open(`${API_BASE}/api/auth-youtube`, "_blank");
+    window.open(`${getApiBase()}/api/auth-youtube`, "_blank");
   };
 
   const handleRunMasterPipeline = async () => {
@@ -866,7 +867,7 @@ export default function AdminPage() {
                         <video
                           controls
                           className="w-full max-h-60 rounded bg-black object-contain"
-                          src={selectedArticle.video_path.startsWith("http") ? selectedArticle.video_path : `${API_BASE}${selectedArticle.video_path}`}
+                          src={selectedArticle.video_path.startsWith("http") ? selectedArticle.video_path : `${getApiBase()}${selectedArticle.video_path}`}
                         />
                       </div>
                     )}
