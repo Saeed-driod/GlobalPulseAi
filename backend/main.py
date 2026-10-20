@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException, Query, Header, status
+from fastapi import FastAPI, Depends, HTTPException, Query, Header, status, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -361,11 +361,12 @@ def publish_article(
 @app.post("/api/articles/{article_id}/auto-publish", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
 def auto_publish_pipeline(
     article_id: int,
+    background_tasks: BackgroundTasks,
     format: str = Query("long", pattern="^(long|short)$"),
     db: Session = Depends(get_db)
 ):
     """
-    One-Click Full Automation Pipeline:
+    One-Click Full Automation Pipeline (Asynchronous Background Execution):
     1. Render video (16:9 Long-Form HD by default) + neural audio voiceover
     2. Upload to YouTube Data API v3
     3. Syndicate & Mark as PUBLISHED on live website portal
@@ -377,46 +378,54 @@ def auto_publish_pipeline(
             detail=f"Article with id {article_id} not found"
         )
 
-    # Step 1: Render Video
-    video_res = compose_video(
-        article_id=article.id,
-        title=article.title,
-        category=article.category,
-        youtube_script=article.youtube_script or article.summary,
-        summary=article.summary,
-        content=article.content,
-        image_url=article.image_url,
-        video_format=format
-    )
-    article.video_path = video_res.get("video_path")
-    article.status = ArticleStatus.VIDEO_READY.value
-    db.commit()
+    def _bg_publish(art_id: int, fmt: str):
+        from .database import SessionLocal
+        bg_db = SessionLocal()
+        try:
+            art = bg_db.query(Article).filter(Article.id == art_id).first()
+            if not art:
+                return
+            video_res = compose_video(
+                article_id=art.id,
+                title=art.title,
+                category=art.category,
+                youtube_script=art.youtube_script or art.summary,
+                summary=art.summary,
+                content=art.content,
+                image_url=art.image_url,
+                video_format=fmt
+            )
+            art.video_path = video_res.get("video_path")
+            art.status = ArticleStatus.VIDEO_READY.value
+            bg_db.commit()
 
-    # Step 2: Upload to YouTube
-    video_disk_path = article.video_path or ""
-    if video_disk_path.startswith("/static/"):
-        video_disk_path = os.path.join(os.path.dirname(__file__), video_disk_path.lstrip("/"))
+            video_disk_path = art.video_path or ""
+            if video_disk_path.startswith("/static/"):
+                video_disk_path = os.path.join(os.path.dirname(__file__), video_disk_path.lstrip("/"))
 
-    upload_res = upload_short_to_youtube(
-        video_filepath=video_disk_path,
-        title=article.title,
-        summary=article.summary,
-        category=article.category,
-        slug=article.slug,
-        video_format=format
-    )
+            upload_res = upload_short_to_youtube(
+                video_filepath=video_disk_path,
+                title=art.title,
+                summary=art.summary,
+                category=art.category,
+                slug=art.slug,
+                video_format=fmt
+            )
+            art.status = ArticleStatus.PUBLISHED.value
+            art.published_at = datetime.now(timezone.utc)
+            art.youtube_video_id = upload_res.get("video_id") or upload_res.get("youtube_video_id") or "dQw4w9WgXcQ"
+            bg_db.commit()
+            print(f"[Auto Publish] Completed article #{art_id}: {art.youtube_video_id}")
+        except Exception as e:
+            print(f"[Auto Publish Background Error]: {e}")
+        finally:
+            bg_db.close()
 
-    # Step 3: Publish Live
-    article.status = ArticleStatus.PUBLISHED.value
-    article.published_at = datetime.now(timezone.utc)
-    article.youtube_video_id = upload_res.get("video_id") or upload_res.get("youtube_video_id") or "dQw4w9WgXcQ"
-    db.commit()
-    db.refresh(article)
-
+    background_tasks.add_task(_bg_publish, article_id, format)
     fmt_name = "16:9 Long-Form HD Video" if format == "long" else "9:16 YouTube Short"
     return ActionResponse(
         success=True,
-        message=f"Full automation complete: Rendered {fmt_name}, uploaded to YouTube ({article.youtube_video_id}), and syndicated live on portal!",
+        message=f"Rendering {fmt_name} and uploading to YouTube in background. Article will automatically publish!",
         article=article
     )
 
@@ -448,19 +457,32 @@ def auth_youtube_status():
 
 @app.post("/api/pipeline/run", dependencies=[Depends(verify_admin_secret)])
 def trigger_master_pipeline(
+    background_tasks: BackgroundTasks,
     limit: int = Query(1, ge=1, le=5, description="Number of stories to fetch, render, and publish"),
     format: str = Query("long", pattern="^(long|short)$", description="Video format: long (16:9 1080p HD) or short (9:16)"),
-    db: Session = Depends(get_db)
 ):
     """
-    Master Full Automation Pipeline:
-    1. Fetch latest raw news from RSS feeds.
-    2. Synthesize via Gemini AI (headline, TL;DR, markdown, narration script).
-    3. Generate 16:9 widescreen HD video (or 9:16 short) + neural voiceover.
-    4. Upload MP4 directly to YouTube (EduHub by Saeed).
-    5. Update article to PUBLISHED and syndicate live to portal.
+    Master Full Automation Pipeline (Asynchronous Background Execution):
+    Returns HTTP 200 immediately to prevent Cloudflare/Render 60s gateway timeouts.
+    Executes RSS fetch, Gemini AI synthesis, FFmpeg video generation, and YouTube upload in background.
     """
-    return run_full_automation_pipeline(limit=limit, db=db, video_format=format)
+    def _execute_pipeline():
+        from .database import SessionLocal
+        bg_db = SessionLocal()
+        try:
+            run_full_automation_pipeline(limit=limit, db=bg_db, video_format=format)
+        except Exception as e:
+            print(f"[Master Pipeline Background Error]: {e}")
+        finally:
+            bg_db.close()
+
+    background_tasks.add_task(_execute_pipeline)
+    fmt_label = "16:9 Long-Form HD" if format == "long" else "9:16 Shorts"
+    return {
+        "success": True,
+        "message": f"Autonomous pipeline initiated for {limit} story in {fmt_label} format. Processing video and YouTube upload in background!",
+        "processed_count": limit
+    }
 
 
 
