@@ -158,41 +158,17 @@ export async function triggerFetchNow(): Promise<ActionResponse> {
     if (res.ok) {
       return await res.json();
     }
-    if (res.status === 401) {
-      return {
-        success: false,
-        message: "Unauthorized: Invalid Admin Secret Key. Please enter passkey.",
-      };
-    }
-  } catch (err) {
-    console.error("Failed to trigger fetch-now:", err);
+    const err = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: err.detail || `Server returned error (${res.status})`,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || "Failed to contact backend API. Check your internet or server status.",
+    };
   }
-
-  // Simulated client response if backend offline
-  const newId = Date.now();
-  const mockArticle: Article = {
-    id: newId,
-    title: `Autonomous Super-Agents Coordinate High-Frequency Supply Logistics (#${Math.floor(Math.random() * 900 + 100)})`,
-    slug: `autonomous-super-agents-supply-logistics-${newId}`,
-    category: "AI & Tech",
-    summary: `• Enterprise deployment of autonomous agent swarms cuts trans-Pacific cargo bottleneck times by 38%.
-• Multi-modal reasoning models optimize fuel allocations in real-time across tier-1 maritime shipping fleets.
-• Major freight operators in London and Singapore announce joint AI protocol standardization.`,
-    content: `### Automated Supply Chain Optimization at Scale\n\nGlobal maritime shipping networks have integrated multi-agent algorithmic decision engines across 140 major ports.`,
-    status: "DRAFT",
-    views: 0,
-    created_at: new Date().toISOString(),
-    image_url: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80",
-    youtube_script: `[00:00 - 00:05] HOOK: Massive AI agent swarms just took control of global shipping ports.\n[00:05 - 00:25] NARRATION: Satellite telemetry meets edge neural compute to slash cargo delays by 38% worldwide.`,
-  };
-
-  FALLBACK_ARTICLES.unshift(mockArticle);
-
-  return {
-    success: true,
-    message: "Fetched and synthesized breaking news story into Draft queue.",
-    article: mockArticle,
-  };
 }
 
 export async function generateVideo(
@@ -209,21 +185,17 @@ export async function generateVideo(
     if (res.ok) {
       return await res.json();
     }
-  } catch (err) {
-    console.error("Failed to generate video:", err);
+    const err = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: err.detail || `Video generation failed (${res.status})`,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || "Network error while generating video.",
+    };
   }
-
-  const target = FALLBACK_ARTICLES.find((a) => a.id === articleId);
-  if (target) {
-    target.status = "VIDEO_READY";
-    target.video_path = `/static/videos/${format === "long" ? "long" : "short"}_article_${target.id}.mp4`;
-  }
-
-  return {
-    success: true,
-    message: `Simulated ${format === "long" ? "16:9 Long-Form HD" : "9:16 Short"} video rendered successfully.`,
-    article: target,
-  };
 }
 
 export async function publishArticle(
@@ -240,22 +212,17 @@ export async function publishArticle(
     if (res.ok) {
       return await res.json();
     }
-  } catch (err) {
-    console.error("Failed to publish article:", err);
+    const err = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: err.detail || `Publish failed (${res.status})`,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || "Network error while publishing article.",
+    };
   }
-
-  const target = FALLBACK_ARTICLES.find((a) => a.id === articleId);
-  if (target) {
-    target.status = "PUBLISHED";
-    target.published_at = new Date().toISOString();
-    target.youtube_video_id = target.youtube_video_id || "dQw4w9WgXcQ";
-  }
-
-  return {
-    success: true,
-    message: `Article published to portal and YouTube (${format === "long" ? "16:9 Long-Form" : "Shorts"}).`,
-    article: target,
-  };
 }
 
 export async function autoPublishArticle(
@@ -272,23 +239,17 @@ export async function autoPublishArticle(
     if (res.ok) {
       return await res.json();
     }
-  } catch (err) {
-    console.error("Failed to auto-publish article:", err);
+    const err = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: err.detail || `Auto-publish failed (${res.status})`,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || "Network error while running auto-publish.",
+    };
   }
-
-  const target = FALLBACK_ARTICLES.find((a) => a.id === articleId);
-  if (target) {
-    target.status = "PUBLISHED";
-    target.video_path = `/static/videos/${format === "long" ? "long" : "short"}_article_${target.id}.mp4`;
-    target.youtube_video_id = target.youtube_video_id || "bHQqvYy5KYo";
-    target.published_at = new Date().toISOString();
-  }
-
-  return {
-    success: true,
-    message: `Full automation complete: Rendered ${format === "long" ? "16:9 Long-Form HD" : "9:16 Short"} video, uploaded to YouTube, and published live!`,
-    article: target,
-  };
 }
 
 export async function checkOrAuthorizeYouTube(): Promise<{
