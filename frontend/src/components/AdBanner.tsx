@@ -63,49 +63,8 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = "" }) => {
   if (slot === "header") {
     return (
       <div className={`w-full my-6 flex flex-col items-center ${className}`}>
-        <div className="w-full flex items-center justify-between max-w-[840px] px-1 mb-1">
-          <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-500">
-            Sponsored Partner • Video Intelligence
-          </span>
-          <span className="text-[10px] text-red-400 font-mono flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            FREE LEARNING CHANNEL
-          </span>
-        </div>
-
-        <a
-          href={channelUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="w-full max-w-[840px] bg-gradient-to-r from-neutral-900 via-neutral-900 to-red-950/40 border border-neutral-800 hover:border-red-500/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 group transition-all duration-300 shadow-xl shadow-black/40 hover:shadow-red-950/20"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-red-600 to-rose-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-600/30 group-hover:scale-105 transition">
-              <Youtube className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-red-400">
-                  {channelName}
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/10 text-white font-semibold">
-                  @EduHubbySaeed
-                </span>
-              </div>
-              <h3 className="text-sm sm:text-base font-bold text-white mt-1 group-hover:text-red-200 transition">
-                Master Next-Gen AI, Full-Stack Engineering & Autonomous Systems
-              </h3>
-              <p className="text-xs text-neutral-400 hidden sm:block mt-0.5">
-                Daily in-depth coding masterclasses, real-world AI projects & tech tutorials.
-              </p>
-            </div>
-          </div>
-
-          <div className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 transition group-hover:scale-105">
-            <span>Subscribe Free</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </div>
-        </a>
+        {/* Adsterra 728x90 Leaderboard Unit */}
+        <AdsterraBanner size="728x90" label="Sponsored Leaderboard" />
       </div>
     );
   }
