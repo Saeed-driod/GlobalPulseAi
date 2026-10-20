@@ -25,16 +25,22 @@ def sync_render_credentials():
       - YOUTUBE_CLIENT_SECRET_JSON: Raw JSON string of Google OAuth client secrets
       - YOUTUBE_TOKEN_JSON: Raw JSON string of the authorized token
     This function detects those environment variables and automatically writes them to
-    client_secret.json and token.json on startup so YouTube uploads work on Render.
+    token.json and client_secret.json on startup so YouTube uploads work on Render.
     """
     secret_env = os.getenv("YOUTUBE_CLIENT_SECRET_JSON")
     if secret_env and secret_env.strip():
         try:
             raw_text = secret_env.strip()
-            if not CLIENT_SECRETS_FILE.exists() or CLIENT_SECRETS_FILE.stat().st_size == 0:
-                with open(CLIENT_SECRETS_FILE, "w", encoding="utf-8") as f:
-                    f.write(raw_text)
-                print("[YouTube Auth] Materialized client_secret.json from YOUTUBE_CLIENT_SECRET_JSON environment variable.")
+            target_paths = [CLIENT_SECRETS_FILE]
+            if BASE_DIR.parent != BASE_DIR:
+                target_paths.append(BASE_DIR.parent / "client_secret.json")
+            for target_path in target_paths:
+                try:
+                    with open(target_path, "w", encoding="utf-8") as f:
+                        f.write(raw_text)
+                except Exception:
+                    pass
+            print("[YouTube Auth] Materialized client_secret.json from YOUTUBE_CLIENT_SECRET_JSON environment variable.")
         except Exception as e:
             print(f"[YouTube Auth] Warning: Failed writing YOUTUBE_CLIENT_SECRET_JSON: {e}")
 
@@ -42,10 +48,16 @@ def sync_render_credentials():
     if token_env and token_env.strip():
         try:
             raw_text = token_env.strip()
-            if not TOKEN_FILE.exists() or TOKEN_FILE.stat().st_size == 0:
-                with open(TOKEN_FILE, "w", encoding="utf-8") as f:
-                    f.write(raw_text)
-                print("[YouTube Auth] Materialized token.json from YOUTUBE_TOKEN_JSON environment variable.")
+            target_paths = [TOKEN_FILE]
+            if BASE_DIR.parent != BASE_DIR:
+                target_paths.append(BASE_DIR.parent / "token.json")
+            for target_path in target_paths:
+                try:
+                    with open(target_path, "w", encoding="utf-8") as f:
+                        f.write(raw_text)
+                except Exception:
+                    pass
+            print("[YouTube Auth] Materialized token.json from YOUTUBE_TOKEN_JSON environment variable.")
         except Exception as e:
             print(f"[YouTube Auth] Warning: Failed writing YOUTUBE_TOKEN_JSON: {e}")
 
