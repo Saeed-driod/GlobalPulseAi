@@ -9,7 +9,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://globlepluse.onrender.com"),
   title: {
     default: "GlobalPulse AI | Tier-1 Global Newsroom & Video Intelligence",
     template: "%s | GlobalPulse AI",
@@ -25,13 +25,13 @@ export const metadata: Metadata = {
     "Automated Journalism",
     "YouTube Shorts Intelligence",
   ],
-  authors: [{ name: "GlobalPulse AI Editorial Bureau", url: "https://globalpulseai.com" }],
+  authors: [{ name: "GlobalPulse AI Editorial Bureau", url: "https://globlepluse.onrender.com" }],
   creator: "GlobalPulse AI Media Network Inc.",
   publisher: "GlobalPulse AI",
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://globalpulseai.com",
+    url: "https://globlepluse.onrender.com",
     siteName: "GlobalPulse AI",
     title: "GlobalPulse AI | Tier-1 Global Newsroom & Video Intelligence",
     description: "Automated AI-powered global news, geopolitical telemetry, and 60-second video briefings for decision makers.",

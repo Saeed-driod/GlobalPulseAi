@@ -1,5 +1,5 @@
 # GlobalPulse AI Robots.txt
-# https://globalpulseai.com
+# https://globlepluse.onrender.com
 
 User-agent: *
 Allow: /
@@ -10,4 +10,4 @@ User-agent: Googlebot-News
 Allow: /
 Disallow: /admin
 
-Sitemap: https://globalpulseai.com/sitemap.xml
+Sitemap: https://globlepluse.onrender.com/sitemap.xml

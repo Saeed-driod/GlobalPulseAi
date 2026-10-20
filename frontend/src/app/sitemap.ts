@@ -1,37 +1,39 @@
 import { MetadataRoute } from "next";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.com";
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const BASE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://globlepluse.onrender.com").replace(/\/$/, "");
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+
+  const nowIso = new Date().toISOString();
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
-      url: `${siteUrl}`,
-      lastModified: new Date(),
+      url: `${BASE_URL}`,
+      lastModified: nowIso,
       changeFrequency: "hourly",
       priority: 1.0,
     },
     {
-      url: `${siteUrl}/about`,
-      lastModified: new Date(),
+      url: `${BASE_URL}/about`,
+      lastModified: nowIso,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: `${siteUrl}/privacy-policy`,
-      lastModified: new Date(),
+      url: `${BASE_URL}/privacy-policy`,
+      lastModified: nowIso,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
-      url: `${siteUrl}/terms`,
-      lastModified: new Date(),
+      url: `${BASE_URL}/terms`,
+      lastModified: nowIso,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
-      url: `${siteUrl}/contact`,
-      lastModified: new Date(),
+      url: `${BASE_URL}/contact`,
+      lastModified: nowIso,
       changeFrequency: "monthly",
       priority: 0.8,
     },
@@ -48,8 +50,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const data = await res.json();
       const articles = data.items || [];
       articleRoutes = articles.map((article: any) => ({
-        url: `${siteUrl}/news/${article.slug}`,
-        lastModified: article.published_at ? new Date(article.published_at) : new Date(),
+        url: `${BASE_URL}/news/${article.slug}`,
+        lastModified: article.published_at ? new Date(article.published_at).toISOString() : nowIso,
         changeFrequency: "hourly" as const,
         priority: 0.9,
       }));

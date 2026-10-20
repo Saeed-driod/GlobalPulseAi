@@ -62,7 +62,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.com";
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globlepluse.onrender.com").replace(/\/$/, "");
   const cleanSummary = article.summary.replace(/^[•▸*-\s]+/gm, " ").trim().slice(0, 160);
   const articleUrl = `${siteUrl}/news/${article.slug}`;
   const imageUrl = article.image_url || `${siteUrl}/default-thumbnail.jpg`;
@@ -118,7 +118,7 @@ export default async function Page({ params }: PageProps) {
   const resolvedParams = await params;
   const article = await getCachedArticleBySlug(resolvedParams.slug);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.com";
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globlepluse.onrender.com").replace(/\/$/, "");
   const articleUrl = `${siteUrl}/news/${resolvedParams.slug}`;
   const cleanSummary = article?.summary.replace(/^[•▸*-\s]+/gm, " ").trim() || "";
 
