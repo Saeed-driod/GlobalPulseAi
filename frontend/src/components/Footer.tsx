@@ -57,13 +57,15 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li className="pt-2">
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-1.5 text-cyan-400 font-bold hover:text-cyan-300 font-mono text-[11px]"
+                <a
+                  href="https://www.youtube.com/@EduHubbySaeed"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-red-400 font-bold hover:text-red-300 font-mono text-[11px]"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Admin Automation Center →
-                </Link>
+                  <Sparkles className="w-3.5 h-3.5 text-red-400" />
+                  EduHub Video Intelligence →
+                </a>
               </li>
             </ul>
           </div>

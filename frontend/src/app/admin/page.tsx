@@ -121,16 +121,7 @@ export default function AdminPage() {
           setIsAuthenticated(false);
         }
       } else {
-        // In local development, check default passkey seamlessly
-        const devPass = "saeed-admin-2026";
-        const res = await verifyAdminSecret(devPass);
-        if (res.success) {
-          setAdminSecret(devPass);
-          setIsAuthenticated(true);
-          await loadDashboardData();
-        } else {
-          setIsAuthenticated(false);
-        }
+        setIsAuthenticated(false);
       }
       setAuthChecking(false);
     };

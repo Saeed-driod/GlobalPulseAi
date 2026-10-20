@@ -54,13 +54,15 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
 
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-1.5 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 hover:from-purple-500/30 hover:to-cyan-500/30 text-cyan-300 border border-cyan-500/40 px-3 py-0.5 rounded-full text-[11px] font-bold shadow-[0_0_12px_rgba(6,182,212,0.15)] transition"
+            <a
+              href="https://www.youtube.com/@EduHubbySaeed"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 bg-red-600/15 hover:bg-red-600/25 text-red-400 border border-red-500/30 px-3 py-0.5 rounded-full text-[11px] font-bold shadow-[0_0_12px_rgba(239,68,68,0.15)] transition"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              Admin Center
-            </Link>
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              EduHub by Saeed
+            </a>
           </div>
         </div>
       </div>
