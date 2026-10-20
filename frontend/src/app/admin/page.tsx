@@ -9,6 +9,7 @@ import {
   triggerFetchNow,
   generateVideo,
   publishArticle,
+  publishInstantArticle,
   autoPublishArticle,
   checkOrAuthorizeYouTube,
   checkYouTubeAuthStatus,
@@ -201,12 +202,35 @@ export default function AdminPage() {
     }
   };
 
+  const handleInstantPublish = async (id: number) => {
+    setActionLoadingId(id);
+    const res = await publishInstantArticle(id);
+    setActionLoadingId(null);
+    if (res.success) {
+      showToast(res.message);
+      // Optimistically update article status to PUBLISHED immediately
+      setArticles((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: "PUBLISHED" } : a))
+      );
+      await loadDashboardData();
+      if (selectedArticle?.id === id && res.article) {
+        setSelectedArticle(res.article);
+      }
+    } else {
+      showToast(res.message || "Failed to publish article instantly.");
+    }
+  };
+
   const handleAutoPublish = async (id: number) => {
     setActionLoadingId(id);
     const res = await autoPublishArticle(id, videoFormatMode);
     setActionLoadingId(null);
     if (res.success) {
       showToast(res.message);
+      // Optimistically mark as PUBLISHED because backend now publishes article immediately!
+      setArticles((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: "PUBLISHED" } : a))
+      );
       await loadDashboardData();
       if (selectedArticle?.id === id && res.article) {
         setSelectedArticle(res.article);
@@ -721,6 +745,19 @@ export default function AdminPage() {
                           </button>
 
 
+                          {/* Dedicated Instant Publish (Publish Article Only) */}
+                          {art.status !== "PUBLISHED" && (
+                            <button
+                              onClick={() => handleInstantPublish(art.id)}
+                              disabled={isLoading}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
+                              title="Instant Publish: Go live immediately on portal without waiting for video generation"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {isLoading ? "Publishing..." : "Publish Article Only (Instant)"}
+                            </button>
+                          )}
+
                           {/* 1-Click Automated Pipeline: Generate Video & Publish to YouTube */}
                           {art.status === "DRAFT" && (
                             <button
@@ -955,6 +992,16 @@ export default function AdminPage() {
               </span>
 
               <div className="flex items-center gap-2">
+                {selectedArticle.status !== "PUBLISHED" && (
+                  <button
+                    onClick={() => handleInstantPublish(selectedArticle.id)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition"
+                    title="Instant Publish: Go live immediately on portal without waiting for video generation"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Publish Article Only (Instant)
+                  </button>
+                )}
+
                 {selectedArticle.status === "DRAFT" && (
                   <button
                     onClick={() => handleAutoPublish(selectedArticle.id)}

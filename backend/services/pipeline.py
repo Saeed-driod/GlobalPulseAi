@@ -97,7 +97,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     slug = f"{base_slug}-{counter}"
                     counter += 1
 
-                # Save initial DRAFT in DB
+                # Save initial article as IMMEDIATELY PUBLISHED in DB so it goes live on website first!
                 article = Article(
                     title=ai_data["title"],
                     slug=slug,
@@ -109,63 +109,69 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     image_url=ai_data.get("image_url"),
                     youtube_script=ai_data.get("youtube_script"),
                     author_name=ai_data.get("author_name", "Muhammad Saeed (Chief Editor, GlobalPulse AI)"),
-                    status=ArticleStatus.DRAFT.value,
+                    status=ArticleStatus.PUBLISHED.value,
+                    published_at=datetime.now(timezone.utc),
                     views=0,
                     created_at=datetime.now(timezone.utc)
                 )
                 db.add(article)
                 db.commit()
                 db.refresh(article)
-                print(f"[Master Pipeline] Created article #{article.id} in DRAFT state (slug: {slug})")
-
-                # Step 3: Render MP4 Video (16:9 Long-Form HD by default)
-                print(f"\n[Step 3/5] Rendering {fmt_str} MP4 video with neural voiceover...")
-                video_res = compose_video(
-                    article_id=article.id,
-                    title=article.title,
-                    category=article.category,
-                    youtube_script=article.youtube_script or article.summary,
-                    summary=article.summary,
-                    content=article.content,
-                    image_url=article.image_url,
-                    video_format=video_format
-                )
-                article.video_path = video_res.get("video_path")
-                article.status = ArticleStatus.VIDEO_READY.value
-                db.commit()
-                db.refresh(article)
-                print(f"[Master Pipeline] Video rendered successfully: {article.video_path} ({video_res.get('resolution')})")
-
-                # Step 4: Upload to YouTube (EduHubbySaeed channel)
-                print(f"\n[Step 4/5] Uploading {fmt_str} video to YouTube Data API v3 (channel: EduHubbySaeed)...")
-                video_disk_path = article.video_path or ""
-                if video_disk_path.startswith("/static/"):
-                    backend_dir = Path(__file__).resolve().parent.parent
-                    video_disk_path = str(backend_dir / video_disk_path.lstrip("/"))
-
-                upload_res = upload_short_to_youtube(
-                    video_filepath=video_disk_path,
-                    title=article.title,
-                    summary=article.summary,
-                    category=article.category,
-                    slug=article.slug,
-                    video_format=video_format
-                )
-
-                # Step 5: Finalize Article as PUBLISHED
-                print(f"\n[Step 5/5] Finalizing syndication and marking PUBLISHED live on portal...")
-                video_id = upload_res.get("video_id") or upload_res.get("youtube_video_id") or "dQw4w9WgXcQ"
-                article.youtube_video_id = video_id
-                article.status = ArticleStatus.PUBLISHED.value
-                article.published_at = datetime.now(timezone.utc)
-                db.commit()
-                db.refresh(article)
-
-                print(f"[Master Pipeline] Article #{article.id} successfully published with YouTube Video ID: {video_id}")
                 published_articles.append(article)
+                print(f"[Master Pipeline] Article #{article.id} PUBLISHED live on portal (slug: {slug})")
+
+                # Step 3 & 4: Render MP4 Video and Upload to YouTube
+                try:
+                    print(f"\n[Step 3/5] Rendering {fmt_str} MP4 video with neural voiceover...")
+                    video_res = compose_video(
+                        article_id=article.id,
+                        title=article.title,
+                        category=article.category,
+                        youtube_script=article.youtube_script or article.summary,
+                        summary=article.summary,
+                        content=article.content,
+                        image_url=article.image_url,
+                        video_format=video_format
+                    )
+                    article.video_path = video_res.get("video_path")
+                    db.commit()
+                    db.refresh(article)
+                    print(f"[Master Pipeline] Video rendered successfully: {article.video_path} ({video_res.get('resolution')})")
+
+                    # Step 4: Upload to YouTube (EduHubbySaeed channel)
+                    print(f"\n[Step 4/5] Uploading {fmt_str} video to YouTube Data API v3 (channel: EduHubbySaeed)...")
+                    video_disk_path = article.video_path or ""
+                    if video_disk_path.startswith("/static/"):
+                        backend_dir = Path(__file__).resolve().parent.parent
+                        video_disk_path = str(backend_dir / video_disk_path.lstrip("/"))
+
+                    upload_res = upload_short_to_youtube(
+                        video_filepath=video_disk_path,
+                        title=article.title,
+                        summary=article.summary,
+                        category=article.category,
+                        slug=article.slug,
+                        video_format=video_format
+                    )
+
+                    # Step 5: Attach YouTube video ID
+                    video_id = upload_res.get("video_id") or upload_res.get("youtube_video_id") or "dQw4w9WgXcQ"
+                    article.youtube_video_id = video_id
+                    db.commit()
+                    db.refresh(article)
+                    print(f"[Master Pipeline] Article #{article.id} successfully attached YouTube Video ID: {video_id}")
+                except Exception as vid_err:
+                    print(f"[Master Pipeline WARNING] Video rendering/upload issue for article #{article.id}: {vid_err}")
+                    traceback.print_exc()
+                    try:
+                        from ..main import record_error
+                        record_error("pipeline_video_upload", vid_err, article_id=article.id)
+                    except Exception:
+                        pass
+                    # Article remains PUBLISHED live on the portal!
 
             except Exception as e:
-                print(f"[Master Pipeline ERROR] Error processing article item: {e}")
+                print(f"[Master Pipeline ERROR] Error synthesizing article item: {e}")
                 traceback.print_exc()
                 db.rollback()
                 continue

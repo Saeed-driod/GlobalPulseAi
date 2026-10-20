@@ -252,6 +252,44 @@ export async function autoPublishArticle(
   }
 }
 
+export async function publishInstantArticle(
+  articleId: number
+): Promise<ActionResponse> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/articles/${articleId}/publish-instant`, {
+      method: "POST",
+      headers: {
+        "X-Admin-Secret": getAdminSecret(),
+      },
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    const err = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: err.detail || `Instant publish failed (${res.status})`,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || "Network error while publishing article instantly.",
+    };
+  }
+}
+
+export async function getLastError(): Promise<any> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/debug/last-error`);
+    if (res.ok) {
+      return await res.json();
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function checkOrAuthorizeYouTube(): Promise<{
   success: boolean;
   authenticated: boolean;

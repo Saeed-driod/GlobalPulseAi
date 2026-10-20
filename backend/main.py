@@ -34,6 +34,26 @@ def verify_admin_secret(
         )
     return True
 
+# In-memory error tracking for background tasks and video rendering
+_last_error_log = {
+    "timestamp": None,
+    "article_id": None,
+    "stage": None,
+    "error": None,
+    "traceback": None
+}
+
+def record_error(stage: str, error: Exception, article_id: Optional[int] = None):
+    global _last_error_log
+    _last_error_log = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "article_id": article_id,
+        "stage": stage,
+        "error": str(error),
+        "traceback": traceback.format_exc()
+    }
+    print(f"[ERROR TRACKER] [{stage}] Article #{article_id}: {error}")
+
 from .database import engine, Base, get_db
 from .models import Article, ArticleStatus, ArticleCategory
 from .schemas import (
@@ -266,6 +286,38 @@ def fetch_now(limit: int = Query(4, ge=1, le=10), db: Session = Depends(get_db))
     )
 
 
+@app.get("/api/debug/last-error")
+def get_last_error():
+    """Retrieve the most recent background processing or video rendering/upload error."""
+    return _last_error_log
+
+@app.post("/api/articles/{article_id}/publish-instant", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
+def publish_article_instant(
+    article_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Dedicated 'Publish Article Only (Instant)':
+    Immediately marks article as PUBLISHED and sets published_at timestamp without running video generation.
+    Article goes live immediately on the public website.
+    """
+    article = db.query(Article).filter(Article.id == article_id).first()
+    if not article:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Article with id {article_id} not found"
+        )
+    article.status = ArticleStatus.PUBLISHED.value
+    if not article.published_at:
+        article.published_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(article)
+    return ActionResponse(
+        success=True,
+        message=f"Article #{article.id} '{article.title}' is now PUBLISHED live on the portal.",
+        article=article
+    )
+
 @app.post("/api/articles/{article_id}/generate-video", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
 def generate_video(
     article_id: int,
@@ -274,9 +326,9 @@ def generate_video(
 ):
     """
     Trigger automated video rendering pipeline from the article.
-    Default format: 16:9 Long-Form HD (1920x1080) with full documentary narration.
+    Default format: 16:9 Long-Form HD (1280x720) with full documentary narration.
     Optional format: 9:16 Shorts (1080x1920).
-    Transitions status to VIDEO_READY.
+    Decouples publishing: Marks article as PUBLISHED immediately so it is live.
     """
     article = db.query(Article).filter(Article.id == article_id).first()
     if not article:
@@ -285,29 +337,41 @@ def generate_video(
             detail=f"Article with id {article_id} not found"
         )
 
-    # Execute Video Generator Service
-    result = compose_video(
-        article_id=article.id,
-        title=article.title,
-        category=article.category,
-        youtube_script=article.youtube_script or article.summary,
-        summary=article.summary,
-        content=article.content,
-        image_url=article.image_url,
-        video_format=format
-    )
-
-    article.status = ArticleStatus.VIDEO_READY.value
-    article.video_path = result.get("video_path")
+    # Immediately mark published so article is never stuck in draft
+    article.status = ArticleStatus.PUBLISHED.value
+    if not article.published_at:
+        article.published_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(article)
 
-    fmt_desc = "16:9 Widescreen HD (1920x1080)" if format == "long" else "9:16 Shorts (1080x1920)"
-    return ActionResponse(
-        success=True,
-        message=f"Rendered {fmt_desc} video ({result.get('runtime_seconds')}s) with neural broadcast voiceover for '{article.title}'.",
-        article=article
-    )
+    # Execute Video Generator Service
+    try:
+        result = compose_video(
+            article_id=article.id,
+            title=article.title,
+            category=article.category,
+            youtube_script=article.youtube_script or article.summary,
+            summary=article.summary,
+            content=article.content,
+            image_url=article.image_url,
+            video_format=format
+        )
+        article.video_path = result.get("video_path")
+        db.commit()
+        db.refresh(article)
+
+        fmt_desc = "16:9 Widescreen HD (1280x720)" if format == "long" else "9:16 Shorts (1080x1920)"
+        return ActionResponse(
+            success=True,
+            message=f"Rendered {fmt_desc} video ({result.get('runtime_seconds')}s) with neural broadcast voiceover for '{article.title}'. Article is live!",
+            article=article
+        )
+    except Exception as e:
+        record_error("generate_video", e, article_id=article.id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Video rendering error: {str(e)}. (Article was published live: check /api/debug/last-error)"
+        )
 
 @app.post("/api/articles/{article_id}/publish", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
 def publish_article(
@@ -316,9 +380,10 @@ def publish_article(
     db: Session = Depends(get_db)
 ):
     """
-    Upload generated video to YouTube Data API v3 (defaults to 16:9 Long-Form Video),
-    retrieve YouTube video ID, and publish live to portal.
-    Transitions status to PUBLISHED.
+    Decoupled Publishing:
+    1. IMMEDIATELY marks article as PUBLISHED and sets published_at so it goes live on the website first!
+    2. Renders video if missing and uploads to YouTube Data API v3.
+    3. Records any error to /api/debug/last-error without reverting publication status.
     """
     article = db.query(Article).filter(Article.id == article_id).first()
     if not article:
@@ -327,7 +392,14 @@ def publish_article(
             detail=f"Article with id {article_id} not found"
         )
 
-    # Execute YouTube Auto-Uploader Service
+    # 1. IMMEDIATELY publish live to database first!
+    article.status = ArticleStatus.PUBLISHED.value
+    if not article.published_at:
+        article.published_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(article)
+
+    # 2. Execute YouTube Auto-Uploader Service
     target_format = format
     if not target_format:
         target_format = "short" if ("short_article" in (article.video_path or "")) else "long"
@@ -336,50 +408,54 @@ def publish_article(
     if video_disk_path.startswith("/static/"):
         video_disk_path = os.path.join(os.path.dirname(__file__), video_disk_path.lstrip("/"))
 
-    # Auto-generate video on demand if not present on disk (crucial for ephemeral containers like Render)
-    video_exists = bool(video_disk_path and os.path.exists(video_disk_path) and os.path.getsize(video_disk_path) >= 100_000)
-    if not video_exists:
-        print(f"[Publish] Video file missing or incomplete on disk for article #{article.id}. Auto-generating {target_format} video now...")
-        video_res = compose_video(
-            article_id=article.id,
+    try:
+        video_exists = bool(video_disk_path and os.path.exists(video_disk_path) and os.path.getsize(video_disk_path) >= 100_000)
+        if not video_exists:
+            print(f"[Publish] Video file missing or incomplete on disk for article #{article.id}. Auto-generating {target_format} video now...")
+            video_res = compose_video(
+                article_id=article.id,
+                title=article.title,
+                category=article.category,
+                youtube_script=article.youtube_script or article.summary,
+                summary=article.summary,
+                content=article.content,
+                image_url=article.image_url,
+                video_format=target_format
+            )
+            article.video_path = video_res.get("video_path")
+            db.commit()
+            db.refresh(article)
+
+            video_disk_path = article.video_path or ""
+            if video_disk_path.startswith("/static/"):
+                video_disk_path = os.path.join(os.path.dirname(__file__), video_disk_path.lstrip("/"))
+
+        upload_result = upload_short_to_youtube(
+            video_filepath=video_disk_path,
             title=article.title,
-            category=article.category,
-            youtube_script=article.youtube_script or article.summary,
             summary=article.summary,
-            content=article.content,
-            image_url=article.image_url,
+            category=article.category,
+            slug=article.slug,
             video_format=target_format
         )
-        article.video_path = video_res.get("video_path")
+        article.youtube_video_id = upload_result.get("video_id") or upload_result.get("youtube_video_id") or "dQw4w9WgXcQ"
         db.commit()
         db.refresh(article)
 
-        video_disk_path = article.video_path or ""
-        if video_disk_path.startswith("/static/"):
-            video_disk_path = os.path.join(os.path.dirname(__file__), video_disk_path.lstrip("/"))
-
-    upload_result = upload_short_to_youtube(
-        video_filepath=video_disk_path,
-        title=article.title,
-        summary=article.summary,
-        category=article.category,
-        slug=article.slug,
-        video_format=target_format
-    )
-
-    article.status = ArticleStatus.PUBLISHED.value
-    article.published_at = datetime.now(timezone.utc)
-    article.youtube_video_id = upload_result.get("video_id") or upload_result.get("youtube_video_id") or "dQw4w9WgXcQ"
-
-    db.commit()
-    db.refresh(article)
-
-    fmt_name = "Long-Form 16:9 Video" if target_format == "long" else "YouTube Short"
-    return ActionResponse(
-        success=True,
-        message=f"Published {fmt_name} ({article.youtube_video_id}) and live on portal: '{article.title}'.",
-        article=article
-    )
+        fmt_name = "Long-Form 16:9 Video" if target_format == "long" else "YouTube Short"
+        return ActionResponse(
+            success=True,
+            message=f"Published {fmt_name} ({article.youtube_video_id}) and live on portal: '{article.title}'.",
+            article=article
+        )
+    except Exception as e:
+        record_error("publish_article_video_upload", e, article_id=article.id)
+        # Article is ALREADY published live in database! Inform caller of video issue.
+        return ActionResponse(
+            success=True,
+            message=f"Article published live to portal! Video upload encountered an issue: {str(e)}. Telemetry saved to /api/debug/last-error.",
+            article=article
+        )
 
 @app.post("/api/articles/{article_id}/auto-publish", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
 def auto_publish_pipeline(
@@ -389,10 +465,10 @@ def auto_publish_pipeline(
     db: Session = Depends(get_db)
 ):
     """
-    One-Click Full Automation Pipeline (Asynchronous Background Execution):
-    1. Render video (16:9 Long-Form HD by default) + neural audio voiceover
-    2. Upload to YouTube Data API v3
-    3. Syndicate & Mark as PUBLISHED on live website portal
+    Decoupled One-Click Full Automation Pipeline:
+    1. IMMEDIATELY marks article as PUBLISHED in the database so it goes live on the website instantly!
+    2. In background: Renders 16:9 720p HD video + neural audio voiceover and uploads to YouTube.
+    3. Any background errors are logged to /api/debug/last-error.
     """
     article = db.query(Article).filter(Article.id == article_id).first()
     if not article:
@@ -401,6 +477,13 @@ def auto_publish_pipeline(
             detail=f"Article with id {article_id} not found"
         )
 
+    # 1. IMMEDIATELY mark article as PUBLISHED right away!
+    article.status = ArticleStatus.PUBLISHED.value
+    if not article.published_at:
+        article.published_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(article)
+
     def _bg_publish(art_id: int, fmt: str):
         from .database import SessionLocal
         bg_db = SessionLocal()
@@ -408,6 +491,13 @@ def auto_publish_pipeline(
             art = bg_db.query(Article).filter(Article.id == art_id).first()
             if not art:
                 return
+
+            # Ensure status is PUBLISHED in background worker as well
+            art.status = ArticleStatus.PUBLISHED.value
+            if not art.published_at:
+                art.published_at = datetime.now(timezone.utc)
+            bg_db.commit()
+
             video_res = compose_video(
                 article_id=art.id,
                 title=art.title,
@@ -419,7 +509,6 @@ def auto_publish_pipeline(
                 video_format=fmt
             )
             art.video_path = video_res.get("video_path")
-            art.status = ArticleStatus.VIDEO_READY.value
             bg_db.commit()
 
             video_disk_path = art.video_path or ""
@@ -434,22 +523,22 @@ def auto_publish_pipeline(
                 slug=art.slug,
                 video_format=fmt
             )
-            art.status = ArticleStatus.PUBLISHED.value
-            art.published_at = datetime.now(timezone.utc)
             art.youtube_video_id = upload_res.get("video_id") or upload_res.get("youtube_video_id") or "dQw4w9WgXcQ"
+            art.status = ArticleStatus.PUBLISHED.value
             bg_db.commit()
             print(f"[Auto Publish] Completed article #{art_id}: {art.youtube_video_id}")
         except Exception as e:
+            record_error("auto_publish_background", e, article_id=art_id)
             print(f"[Auto Publish Background Error]: {e}")
             traceback.print_exc()
         finally:
             bg_db.close()
 
     background_tasks.add_task(_bg_publish, article_id, format)
-    fmt_name = "16:9 Long-Form HD Video" if format == "long" else "9:16 YouTube Short"
+    fmt_name = "16:9 Long-Form HD Video (720p)" if format == "long" else "9:16 YouTube Short"
     return ActionResponse(
         success=True,
-        message=f"Rendering {fmt_name} and uploading to YouTube in background. Article will automatically publish!",
+        message=f"Article published live instantly! Rendering {fmt_name} and uploading to YouTube in background.",
         article=article
     )
 

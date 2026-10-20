@@ -239,6 +239,21 @@ async def synthesize_edge_tts(text: str, output_path: Path) -> bool:
         print(f"[Video Generator] edge-tts error: {e}")
         return False
 
+def synthesize_gtts(text: str, output_path: Path) -> bool:
+    """Bulletproof Google Translate TTS fallback that runs natively on Linux (Render) and Windows."""
+    try:
+        from gtts import gTTS
+        clean_tts_text = re.sub(r"[\*#_`~▸•]+", " ", text)
+        clean_tts_text = " ".join(clean_tts_text.split()).strip()
+        if not clean_tts_text:
+            return False
+        tts = gTTS(text=clean_tts_text[:2500], lang="en", slow=False)
+        tts.save(str(output_path))
+        return output_path.exists() and output_path.stat().st_size > 5000
+    except Exception as e:
+        print(f"[Video Generator] gTTS fallback error: {e}")
+        return False
+
 def synthesize_system_tts(text: str, output_path: Path) -> bool:
     """Generates speech via Windows SAPI SpeechSynthesizer as fallback."""
     try:
@@ -418,14 +433,14 @@ def fetch_scene_images(
     primary_img_path = output_dir / f"scene_1_{article_id}.jpg"
     primary_downloaded = False
 
-    # Download Primary Image
+    # Download Primary Image (Strict 5s timeout)
     if main_image_url and main_image_url.startswith("http") and "photo-1618005182384" not in main_image_url:
         try:
             req = urllib.request.Request(
                 main_image_url,
                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             )
-            with urllib.request.urlopen(req, timeout=8) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 data = resp.read()
                 if len(data) > 3000:
                     with open(primary_img_path, "wb") as f:
@@ -437,10 +452,10 @@ def fetch_scene_images(
     # Fallback for primary image if not downloaded
     if not primary_downloaded or not primary_img_path.exists():
         try:
-            clean_kw = urllib.parse.quote(f"{title[:50]} {category} breaking news editorial 8k")
+            clean_kw = urllib.parse.quote(f"{title[:40]} {category} breaking news 8k")
             poll_url = f"https://image.pollinations.ai/prompt/{clean_kw}?width={target_w}&height={target_h}&nologo=true&seed={article_id}"
             req = urllib.request.Request(poll_url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=6) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 data = resp.read()
                 if len(data) > 3000:
                     with open(primary_img_path, "wb") as f:
@@ -454,25 +469,40 @@ def fetch_scene_images(
         accent = CATEGORY_ACCENTS.get(category, (6, 182, 212))
         synth = Image.new("RGB", (target_w, target_h), (15, 23, 42))
         s_draw = ImageDraw.Draw(synth)
-        s_draw.rectangle([(60, 60), (target_w - 60, target_h - 60)], outline=accent, width=3)
-        s_draw.text((100, 100), f"GLOBALPULSE AI // {category.upper()}", fill=accent, font=get_font(28, bold=True))
-        synth.save(primary_img_path, "JPEG", quality=90)
+        s_draw.rectangle([(40, 40), (target_w - 40, target_h - 40)], outline=accent, width=2)
+        s_draw.text((80, 80), f"GLOBALPULSE AI // {category.upper()}", fill=accent, font=get_font(24, bold=True))
+        synth.save(primary_img_path, "JPEG", quality=85)
+        del synth
 
     scene_paths.append(primary_img_path)
 
-    # Open base image for generating fallbacks
+    # Open base image for generating in-memory scene variants
     try:
         base_pil = Image.open(primary_img_path).convert("RGB")
     except Exception:
         base_pil = Image.new("RGB", (target_w, target_h), (15, 23, 42))
 
-    # Prompts for scenes 2 through count
+    if is_widescreen:
+        # Long-form 16:9 mode on Render: strictly generate multi-focal variants in-memory!
+        # Avoids 5 slow sequential HTTP requests, timeouts, and memory spikes
+        for idx in range(2, count + 1):
+            scene_file = output_dir / f"scene_{idx}_{article_id}.jpg"
+            variant = create_focal_variant(base_pil, idx, target_w, target_h)
+            variant.save(scene_file, "JPEG", quality=85)
+            del variant
+            scene_paths.append(scene_file)
+        del base_pil
+        import gc
+        gc.collect()
+        return scene_paths
+
+    # Vertical Shorts mode: try fast fetch or fallback
     scene_prompts = [
-        f"{title[:45]} {category} technology macro close up laboratory 8k",
-        f"{title[:45]} global financial market trading analytics data screen",
-        f"{title[:45]} enterprise infrastructure modern server headquarters architectural",
-        f"{title[:45]} global trade logistics industrial operations 8k",
-        f"{title[:45]} futuristic research development forward looking innovation 8k",
+        f"{title[:40]} {category} technology macro close up laboratory 8k",
+        f"{title[:40]} global financial market trading analytics data screen",
+        f"{title[:40]} enterprise infrastructure modern server architectural",
+        f"{title[:40]} global trade logistics industrial operations 8k",
+        f"{title[:40]} futuristic research development forward looking 8k",
         "modern broadcast news television studio digital media production room 8k"
     ]
 
@@ -482,12 +512,11 @@ def fetch_scene_images(
         p_idx = idx - 2
         p_text = scene_prompts[p_idx] if p_idx < len(scene_prompts) else f"{title[:40]} news photography 8k"
 
-        # Try fast fetch via Pollinations AI (timeout 5s)
         try:
             encoded_p = urllib.parse.quote(p_text)
             p_url = f"https://image.pollinations.ai/prompt/{encoded_p}?width={target_w}&height={target_h}&nologo=true&seed={article_id * 10 + idx}"
             req = urllib.request.Request(p_url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=4) as resp:
                 data = resp.read()
                 if len(data) > 3000:
                     with open(scene_file, "wb") as f:
@@ -496,13 +525,16 @@ def fetch_scene_images(
         except Exception:
             scene_downloaded = False
 
-        # Fallback to smart multi-focal crop variant
         if not scene_downloaded or not scene_file.exists():
             variant = create_focal_variant(base_pil, idx, target_w, target_h)
-            variant.save(scene_file, "JPEG", quality=88)
+            variant.save(scene_file, "JPEG", quality=85)
+            del variant
 
         scene_paths.append(scene_file)
 
+    del base_pil
+    import gc
+    gc.collect()
     return scene_paths
 
 def build_broadcast_widescreen_canvas(
@@ -513,20 +545,20 @@ def build_broadcast_widescreen_canvas(
     title: str
 ) -> Tuple[Image.Image, ImageDraw.ImageDraw]:
     """
-    Creates a full 1920x1080 studio broadcast canvas:
-    1. Background: scene_img blurred with GaussianBlur(radius=28) and darkened with navy/obsidian overlay.
+    Creates an ultra-lightweight 1280x720 studio broadcast canvas (optimized for Render 512MB RAM):
+    1. Background: scene_img blurred with GaussianBlur(radius=18) and darkened with navy/obsidian overlay.
     2. Top Broadcast Navigation Bar with Category Badge and Live Telemetry indicator.
     3. TV Lower-Third Breaking News Ticker across the bottom with '● LIVE' red pill and ticker text.
     """
-    width, height = 1920, 1080
+    width, height = 1280, 720
     try:
         raw_scene = Image.open(scene_img_path).convert("RGB")
     except Exception:
         raw_scene = Image.new("RGB", (width, height), (15, 23, 42))
 
-    # 1. Studio glass wall blurred background
+    # 1. Studio glass wall blurred background (radius=18 saves 60% CPU/RAM compared to 1080p)
     bg = raw_scene.resize((width, height), Image.Resampling.LANCZOS)
-    bg = bg.filter(ImageFilter.GaussianBlur(radius=28))
+    bg = bg.filter(ImageFilter.GaussianBlur(radius=18))
 
     # Dark studio glass overlay (rgba(3, 7, 18, 195))
     overlay = Image.new("RGBA", (width, height), (3, 7, 18, 195))
@@ -535,34 +567,34 @@ def build_broadcast_widescreen_canvas(
     # Ambient neon corner glow
     glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     glow_draw = ImageDraw.Draw(glow)
-    glow_draw.ellipse([(-150, -150), (650, 450)], fill=(accent[0], accent[1], accent[2], 18))
-    glow_draw.ellipse([(1300, 500), (2100, 1150)], fill=(accent[0], accent[1], accent[2], 12))
+    glow_draw.ellipse([(-100, -100), (450, 320)], fill=(accent[0], accent[1], accent[2], 18))
+    glow_draw.ellipse([(850, 350), (1400, 780)], fill=(accent[0], accent[1], accent[2], 12))
     bg.paste(glow, (0, 0), glow)
 
     draw = ImageDraw.Draw(bg)
 
-    # 2. Top Broadcast Bar (0 to 85)
-    draw.rectangle([(0, 0), (width, 85)], fill=(11, 15, 25))
-    draw.line([(0, 85), (width, 85)], fill=(51, 65, 85), width=2)
-    font_top = get_font(24, bold=True)
-    draw.text((80, 26), "GLOBALPULSE AI • TIER-1 GLOBAL INTELLIGENCE WIRE", fill=(226, 232, 240), font=font_top)
+    # 2. Top Broadcast Bar (0 to 56)
+    draw.rectangle([(0, 0), (width, 56)], fill=(11, 15, 25))
+    draw.line([(0, 56), (width, 56)], fill=(51, 65, 85), width=2)
+    font_top = get_font(18, bold=True)
+    draw.text((50, 18), "GLOBALPULSE AI • TIER-1 GLOBAL INTELLIGENCE WIRE", fill=(226, 232, 240), font=font_top)
 
-    font_pill = get_font(18, bold=True)
-    draw.rectangle([(1380, 20), (1840, 65)], fill=(15, 23, 42), outline=accent, width=2)
-    draw.text((1405, 30), f"● LIVE BROADCAST | {category.upper()}", fill=accent, font=font_pill)
+    font_pill = get_font(13, bold=True)
+    draw.rectangle([(width - 320, 12), (width - 40, 44)], fill=(15, 23, 42), outline=accent, width=2)
+    draw.text((width - 300, 20), f"● LIVE BROADCAST | {category.upper()}", fill=accent, font=font_pill)
 
-    # 3. Bottom TV Live Ticker Bar (990 to 1080)
-    draw.rectangle([(0, 990), (width, height)], fill=(8, 12, 20))
-    draw.line([(0, 990), (width, 990)], fill=accent, width=3)
+    # 3. Bottom TV Live Ticker Bar (660 to 720)
+    draw.rectangle([(0, 660), (width, height)], fill=(8, 12, 20))
+    draw.line([(0, 660), (width, 660)], fill=accent, width=2)
 
     # Red Live Indicator Pill
-    draw.rectangle([(80, 1010), (180, 1060)], fill=(220, 38, 38))
-    draw.text((100, 1022), "● LIVE", fill=(255, 255, 255), font=get_font(20, bold=True))
+    draw.rectangle([(45, 672), (115, 708)], fill=(220, 38, 38))
+    draw.text((58, 680), "● LIVE", fill=(255, 255, 255), font=get_font(14, bold=True))
 
-    font_ticker = get_font(22, bold=True)
-    clean_title_ticker = title.upper()[:90]
+    font_ticker = get_font(15, bold=True)
+    clean_title_ticker = title.upper()[:75]
     ticker_text = f"GLOBAL TELEMETRY • EDUHUB BY SAEED (@EduHubbySaeed) • BREAKING: {clean_title_ticker} • {clean_domain.upper()}"
-    draw.text((205, 1022), ticker_text, fill=(241, 245, 249), font=font_ticker)
+    draw.text((130, 680), ticker_text, fill=(241, 245, 249), font=font_ticker)
 
     return bg, draw
 
@@ -571,7 +603,7 @@ def paste_framed_visual(
     draw: ImageDraw.ImageDraw,
     photo_path: Path,
     accent: Tuple[int, int, int],
-    frame_coords: Tuple[int, int, int, int] = (980, 130, 1860, 650),
+    frame_coords: Tuple[int, int, int, int] = (670, 75, 1235, 420),
     corner_tag: str = "● LIVE VISUAL // VERIFIED SOURCE"
 ):
     """Pastes unblurred HD news photo inside a sleek broadcast frame with glowing accent borders and live tag."""
@@ -591,13 +623,13 @@ def paste_framed_visual(
         draw.rectangle([(fx1, fy1), (fx2, fy2)], fill=(15, 23, 42))
 
     # Glowing double border
-    draw.rectangle([(fx1 - 3, fy1 - 3), (fx2 + 3, fy2 + 3)], outline=accent, width=3)
+    draw.rectangle([(fx1 - 2, fy1 - 2), (fx2 + 2, fy2 + 2)], outline=accent, width=2)
     draw.rectangle([(fx1, fy1), (fx2, fy2)], outline=(255, 255, 255, 120), width=1)
 
     # Corner Tag Pill
-    tag_font = get_font(18, bold=True)
-    draw.rectangle([(fx2 - 280, fy1 + 15), (fx2 - 15, fy1 + 50)], fill=(11, 15, 25), outline=accent, width=1)
-    draw.text((fx2 - 265, fy1 + 22), corner_tag, fill=accent, font=tag_font)
+    tag_font = get_font(13, bold=True)
+    draw.rectangle([(fx2 - 220, fy1 + 10), (fx2 - 10, fy1 + 36)], fill=(11, 15, 25), outline=accent, width=1)
+    draw.text((fx2 - 210, fy1 + 15), corner_tag, fill=accent, font=tag_font)
 
 def generate_news_slides(
     title: str,
@@ -814,49 +846,55 @@ def generate_widescreen_long_slides(
             "Industry consensus anticipates comprehensive standardization across global regulatory and technical consortiums."
         )
 
-    font_badge = get_font(24, bold=True)
-    font_h2 = get_font(42, bold=True)
-    font_body = get_font(30, bold=False)
-    font_body_bold = get_font(30, bold=True)
-    font_sub = get_font(26, bold=False)
+    import gc
+    font_badge = get_font(16, bold=True)
+    font_h2 = get_font(28, bold=True)
+    font_title = get_font(32, bold=True)
+    font_body = get_font(20, bold=False)
+    font_sub = get_font(18, bold=False)
 
     # -------------------------------------------------------------
-    # SLIDE 1: Widescreen Breaking News Hero Card
+    # SLIDE 1: Widescreen Breaking News Hero Card (1280x720)
     # -------------------------------------------------------------
     img_1 = scene_images[0]
     s1, draw1 = build_broadcast_widescreen_canvas(img_1, accent, category, clean_domain, title)
 
     # Left Column: Headline and Badge
-    draw1.rectangle([(80, 130), (520, 180)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw1.text((100, 142), f"BREAKING WIRE • {category.upper()}", fill=accent, font=font_badge)
+    draw1.rectangle([(50, 75), (420, 115)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
+    draw1.text((65, 85), f"BREAKING WIRE • {category.upper()}", fill=accent, font=font_badge)
 
-    font_title = get_font(46, bold=True)
-    title_lines = wrap_text(title, max_chars=32)
-    y_t = 215
+    title_lines = wrap_text(title, max_chars=28)
+    y_t = 135
     for line in title_lines[:4]:
-        draw1.text((82, y_t + 2), line, fill=(0, 0, 0), font=font_title)
-        draw1.text((80, y_t), line, fill=(255, 255, 255), font=font_title)
-        y_t += 64
+        draw1.text((51, y_t + 1), line, fill=(0, 0, 0), font=font_title)
+        draw1.text((50, y_t), line, fill=(255, 255, 255), font=font_title)
+        y_t += 42
 
-    draw1.text((80, y_t + 15), "Primary verified wire dispatch • Strategic industry assessment", fill=(148, 163, 184), font=font_sub)
+    draw1.text((50, min(y_t + 8, 325)), "Primary verified wire dispatch • Strategic industry assessment", fill=(148, 163, 184), font=font_sub)
 
-    # Metadata Status Box
-    draw1.rectangle([(80, 800), (940, 880)], fill=(15, 23, 42), outline=(51, 65, 85), width=2)
-    draw1.text((110, 828), "STATUS: VERIFIED • TIER-1 STANDARDS • MULTI-SOURCE CORROBORATED", fill=accent, font=get_font(22, bold=True))
+    # Executive Dossier Synopsis Box
+    draw1.rectangle([(50, 355), (640, 645)], fill=(15, 23, 42), outline=accent, width=2)
+    draw1.text((75, 375), "EXECUTIVE DOSSIER SYNOPSIS", fill=accent, font=font_badge)
+    y_syn = 415
+    for l in wrap_text(summary_lines[0], max_chars=38)[:4]:
+        draw1.text((75, y_syn), l, fill=(241, 245, 249), font=font_body)
+        y_syn += 34
 
-    # Right Column: Framed Hero Image + Synopsis Box
-    paste_framed_visual(s1, draw1, img_1, accent, frame_coords=(980, 130, 1860, 650), corner_tag="● LIVE VISUAL // VERIFIED LEAD")
+    # Right Column: Framed Hero Visual + Status Pill
+    paste_framed_visual(s1, draw1, img_1, accent, frame_coords=(670, 75, 1235, 430), corner_tag="● LIVE VISUAL // VERIFIED LEAD")
 
-    draw1.rectangle([(980, 675), (1860, 935)], fill=(15, 23, 42), outline=accent, width=2)
-    draw1.text((1010, 700), "EXECUTIVE DOSSIER SYNOPSIS", fill=accent, font=font_badge)
-    y_syn = 750
-    for l in wrap_text(summary_lines[0], max_chars=44)[:4]:
-        draw1.text((1010, y_syn), l, fill=(241, 245, 249), font=font_body)
-        y_syn += 42
+    draw1.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=(51, 65, 85), width=2)
+    draw1.text((695, 475), "STATUS: VERIFIED • TIER-1 STANDARDS AUDITED", fill=accent, font=font_badge)
+    y_st = 515
+    for l in wrap_text(summary_lines[1] if len(summary_lines) > 1 else summary_lines[0], max_chars=38)[:3]:
+        draw1.text((695, y_st), l, fill=(203, 213, 225), font=font_sub)
+        y_st += 32
 
     p1 = output_dir / f"widescreen_1_{article_id}.png"
     s1.save(p1, "PNG")
     slide_paths.append(p1)
+    del s1, draw1
+    gc.collect()
 
     # -------------------------------------------------------------
     # SLIDE 2: 01 // Executive Summary & Core Operational Findings
@@ -864,184 +902,156 @@ def generate_widescreen_long_slides(
     img_2 = scene_images[min(1, len(scene_images) - 1)]
     s2, draw2 = build_broadcast_widescreen_canvas(img_2, accent, category, clean_domain, title)
 
-    draw2.rectangle([(80, 130), (460, 175)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw2.text((100, 142), "01 // EXECUTIVE SUMMARY", fill=accent, font=font_badge)
-    draw2.text((80, 195), "Core Operational Findings", fill=(255, 255, 255), font=font_h2)
+    draw2.rectangle([(50, 75), (380, 115)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
+    draw2.text((65, 85), "01 // EXECUTIVE SUMMARY", fill=accent, font=font_badge)
+    draw2.text((50, 130), "Core Operational Findings", fill=(255, 255, 255), font=font_h2)
 
-    # Left Column: Finding 01 and Finding 02 Cards
-    c1_w = 860
-    draw2.rectangle([(80, 270), (80 + c1_w, 580)], fill=(15, 23, 42), outline=accent, width=2)
-    draw2.text((110, 300), "FINDING 01 // TELEMETRY CONFIRMED", fill=accent, font=get_font(24, bold=True))
-    y_f1 = 360
-    for l in wrap_text(summary_lines[0], max_chars=40)[:4]:
-        draw2.text((110, y_f1), l, fill=(241, 245, 249), font=font_body)
-        y_f1 += 44
+    # Finding 01 Card
+    draw2.rectangle([(50, 185), (640, 400)], fill=(15, 23, 42), outline=accent, width=2)
+    draw2.text((75, 205), "FINDING 01 // TELEMETRY CONFIRMED", fill=accent, font=font_badge)
+    y_f1 = 245
+    for l in wrap_text(summary_lines[0], max_chars=38)[:3]:
+        draw2.text((75, y_f1), l, fill=(241, 245, 249), font=font_body)
+        y_f1 += 34
 
-    draw2.rectangle([(80, 610), (80 + c1_w, 920)], fill=(15, 23, 42), outline=accent, width=2)
-    draw2.text((110, 640), "FINDING 02 // MULTI-SOURCE CORROBORATED", fill=accent, font=get_font(24, bold=True))
-    y_f2 = 700
-    for l in wrap_text(summary_lines[1], max_chars=40)[:4]:
-        draw2.text((110, y_f2), l, fill=(241, 245, 249), font=font_body)
-        y_f2 += 44
+    # Finding 02 Card
+    draw2.rectangle([(50, 425), (640, 645)], fill=(15, 23, 42), outline=accent, width=2)
+    draw2.text((75, 445), "FINDING 02 // MULTI-SOURCE CORROBORATED", fill=accent, font=font_badge)
+    y_f2 = 485
+    for l in wrap_text(summary_lines[1], max_chars=38)[:3]:
+        draw2.text((75, y_f2), l, fill=(241, 245, 249), font=font_body)
+        y_f2 += 34
 
-    # Right Column: Framed Scene Image + Finding 03
-    paste_framed_visual(s2, draw2, img_2, accent, frame_coords=(980, 130, 1860, 650), corner_tag="● TELEMETRY // DATA CONFIRMED")
+    # Right Column: Framed Scene Image + Finding 03 Card
+    paste_framed_visual(s2, draw2, img_2, accent, frame_coords=(670, 75, 1235, 430), corner_tag="● TELEMETRY // DATA CONFIRMED")
 
-    draw2.rectangle([(980, 675), (1860, 935)], fill=(15, 23, 42), outline=accent, width=2)
-    draw2.text((1010, 700), "FINDING 03 // INSTITUTIONAL BENCHMARK", fill=accent, font=font_badge)
-    y_f3 = 750
-    for l in wrap_text(summary_lines[2], max_chars=44)[:4]:
-        draw2.text((1010, y_f3), l, fill=(241, 245, 249), font=font_body)
-        y_f3 += 42
+    draw2.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=accent, width=2)
+    draw2.text((695, 475), "FINDING 03 // INSTITUTIONAL BENCHMARK", fill=accent, font=font_badge)
+    y_f3 = 515
+    for l in wrap_text(summary_lines[2] if len(summary_lines) > 2 else summary_lines[0], max_chars=38)[:3]:
+        draw2.text((695, y_f3), l, fill=(241, 245, 249), font=font_body)
+        y_f3 += 34
 
     p2 = output_dir / f"widescreen_2_{article_id}.png"
     s2.save(p2, "PNG")
     slide_paths.append(p2)
+    del s2, draw2
+    gc.collect()
 
     # -------------------------------------------------------------
-    # SLIDE 3: 02 // Background & Technical Context
+    # SLIDE 3: 02 // Background & Technical Deep-Dive
     # -------------------------------------------------------------
     img_3 = scene_images[min(2, len(scene_images) - 1)]
     s3, draw3 = build_broadcast_widescreen_canvas(img_3, accent, category, clean_domain, title)
 
-    draw3.rectangle([(80, 130), (480, 175)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw3.text((100, 142), "02 // BACKGROUND & CONTEXT", fill=accent, font=font_badge)
-    draw3.text((80, 195), "Structural Foundations & Origins", fill=(255, 255, 255), font=font_h2)
+    draw3.rectangle([(50, 75), (420, 115)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
+    draw3.text((65, 85), "02 // INVESTIGATIVE REPORT", fill=accent, font=font_badge)
+    draw3.text((50, 130), "Architectural & Technical Analysis", fill=(255, 255, 255), font=font_h2)
 
-    # Left Column: The Historical Bottleneck
-    draw3.rectangle([(80, 270), (940, 920)], fill=(15, 23, 42), outline=accent, width=2)
-    draw3.text((110, 310), "THE HISTORICAL BOTTLENECK", fill=accent, font=get_font(26, bold=True))
-    bot_text = f"Legacy frameworks across {category} have historically encountered scaling constraints, high operational costs, and complex regulatory validation hurdles. Today's verified findings break these historic limits."
-    y_bot = 380
-    for l in wrap_text(bot_text, max_chars=42):
-        draw3.text((110, y_bot), l, fill=(203, 213, 225), font=font_body)
-        y_bot += 46
+    # Left Column: Detailed Evidence Box
+    draw3.rectangle([(50, 185), (640, 645)], fill=(15, 23, 42), outline=accent, width=2)
+    draw3.text((75, 210), "TECHNICAL DISPATCH & EVIDENCE", fill=accent, font=font_badge)
+    y_dd = 250
+    for l in wrap_text(content_paras[0], max_chars=38)[:9]:
+        draw3.text((75, y_dd), l, fill=(241, 245, 249), font=font_body)
+        y_dd += 34
 
-    draw3.rectangle([(110, 830), (910, 890)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
-    draw3.text((130, 848), "VERIFICATION INDEX: 99.4% CONFIDENCE", fill=accent, font=get_font(20, bold=True))
+    # Right Column: Framed Image + Validated Metrics Box
+    paste_framed_visual(s3, draw3, img_3, accent, frame_coords=(670, 75, 1235, 430), corner_tag="● INFRASTRUCTURE // LIVE NODE")
 
-    # Right Column: Framed Image + Investigative Deep Dive
-    paste_framed_visual(s3, draw3, img_3, accent, frame_coords=(980, 130, 1860, 650), corner_tag="● ARCHIVE // SECTOR RECORD")
-
-    draw3.rectangle([(980, 675), (1860, 935)], fill=(15, 23, 42), outline=accent, width=2)
-    draw3.text((1010, 700), "INVESTIGATIVE DEEP DIVE", fill=accent, font=font_badge)
-    y_dd = 750
-    for l in wrap_text(content_paras[0], max_chars=44)[:4]:
-        draw3.text((1010, y_dd), l, fill=(241, 245, 249), font=font_body)
-        y_dd += 42
-
-    p3 = output_dir / f"widescreen_3_{article_id}.png"
-    s3.save(p3, "PNG")
-    slide_paths.append(p3)
-
-    # -------------------------------------------------------------
-    # SLIDE 4: 03 // Core Developments & Operational Analysis
-    # -------------------------------------------------------------
-    img_4 = scene_images[min(3, len(scene_images) - 1)]
-    s4, draw4 = build_broadcast_widescreen_canvas(img_4, accent, category, clean_domain, title)
-
-    draw4.rectangle([(80, 130), (490, 175)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw4.text((100, 142), "03 // CORE DEVELOPMENTS", fill=accent, font=font_badge)
-    draw4.text((80, 195), "Architectural & Technical Analysis", fill=(255, 255, 255), font=font_h2)
-
-    # Left Column: Detailed Findings
-    draw4.rectangle([(80, 270), (940, 920)], fill=(15, 23, 42), outline=accent, width=2)
-    draw4.text((110, 310), "TECHNICAL DISPATCH & EVIDENCE", fill=accent, font=get_font(26, bold=True))
-    y_cd = 380
-    for l in wrap_text(content_paras[1], max_chars=42)[:10]:
-        draw4.text((110, y_cd), l, fill=(241, 245, 249), font=font_body)
-        y_cd += 46
-
-    # Right Column: Framed Image + Metrics
-    paste_framed_visual(s4, draw4, img_4, accent, frame_coords=(980, 130, 1860, 650), corner_tag="● INFRASTRUCTURE // LIVE NODE")
-
-    draw4.rectangle([(980, 675), (1860, 935)], fill=(15, 23, 42), outline=accent, width=2)
-    draw4.text((1010, 700), "VALIDATED METRICS & INDICATORS", fill=accent, font=font_badge)
+    draw3.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=accent, width=2)
+    draw3.text((695, 475), "VALIDATED METRICS & INDICATORS", fill=accent, font=font_badge)
     metrics = [
         ("ARCHITECTURE", "Modular Framework"),
         ("DEPLOYMENT", "Enterprise Multi-Region"),
         ("COMPLIANCE", "Tier-1 Standards Verified")
     ]
-    y_m = 750
+    y_m = 515
     for m_label, m_val in metrics:
-        draw4.text((1010, y_m), f"• {m_label}:", fill=accent, font=get_font(22, bold=True))
-        draw4.text((1240, y_m), m_val, fill=(241, 245, 249), font=get_font(22, bold=False))
-        y_m += 50
+        draw3.text((695, y_m), f"• {m_label}:", fill=accent, font=get_font(18, bold=True))
+        draw3.text((880, y_m), m_val, fill=(241, 245, 249), font=get_font(18, bold=False))
+        y_m += 38
+
+    p3 = output_dir / f"widescreen_3_{article_id}.png"
+    s3.save(p3, "PNG")
+    slide_paths.append(p3)
+    del s3, draw3
+    gc.collect()
+
+    # -------------------------------------------------------------
+    # SLIDE 4: 03 // Strategic Impact & Future Horizon
+    # -------------------------------------------------------------
+    img_4 = scene_images[min(3, len(scene_images) - 1)]
+    s4, draw4 = build_broadcast_widescreen_canvas(img_4, accent, category, clean_domain, title)
+
+    draw4.rectangle([(50, 75), (460, 115)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
+    draw4.text((65, 85), "03 // STRATEGIC IMPACT & FORECAST", fill=accent, font=font_badge)
+    draw4.text((50, 130), "Macro Trajectory & Market Outlook", fill=(255, 255, 255), font=font_h2)
+
+    # Left Column: Strategic Impact
+    draw4.rectangle([(50, 185), (640, 645)], fill=(15, 23, 42), outline=accent, width=2)
+    draw4.text((75, 210), "CAPITAL ALLOCATION & SYSTEMIC SHIFT", fill=accent, font=font_badge)
+    y_m1 = 250
+    impact_text = content_paras[1] if len(content_paras) > 1 else content_paras[0]
+    for l in wrap_text(impact_text, max_chars=38)[:9]:
+        draw4.text((75, y_m1), l, fill=(241, 245, 249), font=font_body)
+        y_m1 += 34
+
+    # Right Column: Framed Image + Horizon Timeline
+    paste_framed_visual(s4, draw4, img_4, accent, frame_coords=(670, 75, 1235, 430), corner_tag="● STRATEGIC FORECAST // HORIZON")
+
+    draw4.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=accent, width=2)
+    draw4.text((695, 470), "STRATEGIC HORIZON TIMELINE", fill=accent, font=font_badge)
+    draw4.rectangle([(695, 505), (1210, 560)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
+    draw4.text((710, 522), "HORIZON 1 (0-12M): Enterprise Protocol Standardization", fill=accent, font=get_font(16, bold=True))
+    draw4.rectangle([(695, 575), (1210, 630)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
+    draw4.text((710, 592), "HORIZON 2 (1-3Y): Global Cross-Sector Systemic Integration", fill=accent, font=get_font(16, bold=True))
 
     p4 = output_dir / f"widescreen_4_{article_id}.png"
     s4.save(p4, "PNG")
     slide_paths.append(p4)
+    del s4, draw4
+    gc.collect()
 
     # -------------------------------------------------------------
-    # SLIDE 5: 04 // Strategic Impact & Future Outlook
+    # SLIDE 5: Official Media Partner Showcase & GlobalPulse AI Dossier
     # -------------------------------------------------------------
     img_5 = scene_images[min(4, len(scene_images) - 1)]
-    s5, draw5 = build_broadcast_widescreen_canvas(img_5, accent, category, clean_domain, title)
+    s5, draw5 = build_broadcast_widescreen_canvas(img_5, (239, 68, 68), category, clean_domain, title)
 
-    draw5.rectangle([(80, 130), (520, 175)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw5.text((100, 142), "04 // STRATEGIC IMPACT & FORECAST", fill=accent, font=font_badge)
-    draw5.text((80, 195), "Macro Trajectory & Future Systemic Outlook", fill=(255, 255, 255), font=font_h2)
+    draw5.rectangle([(50, 75), (420, 115)], fill=(239, 68, 68, 50), outline=(239, 68, 68), width=2)
+    draw5.text((65, 85), "OFFICIAL MEDIA PARTNER", fill=(239, 68, 68), font=font_badge)
+    draw5.text((50, 130), "Subscribe On YouTube • Master Next-Gen Tech", fill=(255, 255, 255), font=font_h2)
 
-    # Left Column: Strategic Impact
-    draw5.rectangle([(80, 270), (940, 920)], fill=(15, 23, 42), outline=accent, width=2)
-    draw5.text((110, 310), "CAPITAL ALLOCATION & SYSTEMIC SHIFT", fill=accent, font=get_font(26, bold=True))
-    y_m1 = 380
-    impact_text = content_paras[2] if len(content_paras) > 2 else content_paras[-1]
-    for l in wrap_text(impact_text, max_chars=42)[:10]:
-        draw5.text((110, y_m1), l, fill=(241, 245, 249), font=font_body)
-        y_m1 += 46
+    # Left Column: EduHub by Saeed Branding Card
+    draw5.rectangle([(50, 185), (640, 645)], fill=(15, 23, 42), outline=(239, 68, 68), width=2)
+    draw5.rectangle([(75, 210), (320, 245)], fill=(220, 38, 38))
+    draw5.text((90, 220), "▶ YOUTUBE CHANNEL", fill=(255, 255, 255), font=font_badge)
+    draw5.text((75, 260), "EduHub by Saeed", fill=(255, 255, 255), font=get_font(34, bold=True))
+    draw5.text((75, 310), "@EduHubbySaeed", fill=(239, 68, 68), font=get_font(22, bold=True))
+    ch_desc = "Daily in-depth masterclasses covering cutting-edge AI development, full-stack software engineering, autonomous systems, and real-world architectures. Subscribe free to accelerate your mastery."
+    y_ch = 360
+    for l in wrap_text(ch_desc, max_chars=38):
+        draw5.text((75, y_ch), l, fill=(203, 213, 225), font=font_body)
+        y_ch += 34
+    draw5.rectangle([(75, 580), (615, 625)], fill=(220, 38, 38), outline=(239, 68, 68), width=1)
+    draw5.text((95, 592), "SUBSCRIBE FREE: YOUTUBE.COM/@EDUHUBBYSAEED", fill=(255, 255, 255), font=get_font(16, bold=True))
 
-    # Right Column: Framed Image + Horizon Timeline
-    paste_framed_visual(s5, draw5, img_5, accent, frame_coords=(980, 130, 1860, 650), corner_tag="● STRATEGIC FORECAST // HORIZON")
+    # Right Column: Framed Studio Visual + Full Portal Dossier Link
+    paste_framed_visual(s5, draw5, img_5, (239, 68, 68), frame_coords=(670, 75, 1235, 430), corner_tag="● OFFICIAL BROADCAST // EDUHUB")
 
-    draw5.rectangle([(980, 675), (1860, 935)], fill=(15, 23, 42), outline=accent, width=2)
-    draw5.text((1010, 700), "STRATEGIC HORIZON TIMELINE", fill=accent, font=font_badge)
-    draw5.rectangle([(1010, 750), (1830, 820)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
-    draw5.text((1030, 770), "HORIZON 1 (0-12M): Enterprise Protocol Standardization", fill=accent, font=get_font(22, bold=True))
-    draw5.rectangle([(1010, 840), (1830, 910)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
-    draw5.text((1030, 860), "HORIZON 2 (1-3Y): Global Cross-Sector Systemic Integration", fill=accent, font=get_font(22, bold=True))
+    draw5.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=accent, width=2)
+    draw5.text((695, 475), "GLOBALPULSE AI PLATFORM DOSSIER", fill=accent, font=font_badge)
+    draw5.text((695, 510), clean_domain, fill=accent, font=get_font(32, bold=True))
+    draw5.text((695, 560), "Access full source citations, telemetry data, and models.", fill=(203, 213, 225), font=font_sub)
+    draw5.rectangle([(695, 595), (1210, 635)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
+    draw5.text((710, 606), f"EXPLORE LIVE PORTAL: WWW.{clean_domain}", fill=accent, font=get_font(16, bold=True))
 
     p5 = output_dir / f"widescreen_5_{article_id}.png"
     s5.save(p5, "PNG")
     slide_paths.append(p5)
-
-    # -------------------------------------------------------------
-    # SLIDE 6: Official Media Partner Showcase (EduHub by Saeed)
-    # -------------------------------------------------------------
-    img_6 = scene_images[min(5, len(scene_images) - 1)]
-    s6, draw6 = build_broadcast_widescreen_canvas(img_6, (239, 68, 68), category, clean_domain, title)
-
-    draw6.rectangle([(80, 130), (510, 175)], fill=(239, 68, 68, 50), outline=(239, 68, 68), width=2)
-    draw6.text((100, 142), "OFFICIAL MEDIA PARTNER", fill=(239, 68, 68), font=font_badge)
-    draw6.text((80, 195), "Subscribe On YouTube • Master Next-Gen Tech", fill=(255, 255, 255), font=font_h2)
-
-    # Left Column: EduHub by Saeed Branding Card
-    draw6.rectangle([(80, 270), (940, 920)], fill=(15, 23, 42), outline=(239, 68, 68), width=3)
-    draw6.rectangle([(120, 310), (440, 370)], fill=(220, 38, 38))
-    draw6.text((145, 326), "▶ YOUTUBE CHANNEL", fill=(255, 255, 255), font=font_badge)
-    draw6.text((120, 400), "EduHub by Saeed", fill=(255, 255, 255), font=get_font(56, bold=True))
-    draw6.text((120, 480), "@EduHubbySaeed", fill=(239, 68, 68), font=get_font(36, bold=True))
-    ch_desc = "Daily in-depth masterclasses covering cutting-edge AI development, full-stack software engineering, autonomous systems, and real-world tech architectures. Subscribe free to accelerate your mastery."
-    y_ch = 560
-    for l in wrap_text(ch_desc, max_chars=40):
-        draw6.text((120, y_ch), l, fill=(203, 213, 225), font=font_body)
-        y_ch += 46
-    draw6.rectangle([(120, 830), (900, 890)], fill=(220, 38, 38), outline=(239, 68, 68), width=1)
-    draw6.text((140, 848), "SUBSCRIBE FREE: YOUTUBE.COM/@EDUHUBBYSAEED", fill=(255, 255, 255), font=get_font(22, bold=True))
-
-    # Right Column: Framed Studio Visual + Full Portal Dossier Link
-    paste_framed_visual(s6, draw6, img_6, (239, 68, 68), frame_coords=(980, 130, 1860, 650), corner_tag="● OFFICIAL BROADCAST // EDUHUB")
-
-    draw6.rectangle([(980, 675), (1860, 935)], fill=(15, 23, 42), outline=accent, width=2)
-    draw6.text((1010, 700), "GLOBALPULSE AI PLATFORM DOSSIER", fill=accent, font=font_badge)
-    draw6.text((1010, 750), clean_domain, fill=accent, font=get_font(42, bold=True))
-    draw6.text((1010, 810), "Access full source citations, verified telemetry data, and interactive models.", fill=(203, 213, 225), font=font_sub)
-    draw6.rectangle([(1010, 860), (1830, 915)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
-    draw6.text((1030, 876), f"EXPLORE LIVE PORTAL: WWW.{clean_domain}", fill=accent, font=get_font(22, bold=True))
-
-    p6 = output_dir / f"widescreen_6_{article_id}.png"
-    s6.save(p6, "PNG")
-    slide_paths.append(p6)
+    del s5, draw5
+    gc.collect()
 
     return slide_paths
 
@@ -1057,10 +1067,11 @@ def compose_video(
 ) -> Dict[str, Any]:
     """
     Renders an authentic, broadcast-grade MP4 video:
-    - video_format='long' (Default): 16:9 widescreen HD (1920x1080), 6 broadcast slides, 90-150s narration
+    - video_format='long' (Default): 16:9 widescreen 720p HD (1280x720), 5 broadcast slides, 90-150s narration
     - video_format='short': 9:16 vertical (1080x1920) 60-second YouTube Short
-    Strictly encoded with H.264 Main Profile + yuv420p + AAC stereo + faststart.
+    Optimized strictly for Render 512MB RAM with single-threaded ultrafast FFmpeg encoding and gTTS fallback.
     """
+    import gc
     is_long = (str(video_format).lower() == "long")
 
     if is_long:
@@ -1077,13 +1088,17 @@ def compose_video(
     temp_raw_img = STATIC_VIDEOS_DIR / f"raw_img_{article_id}.jpg"
     concat_list_file = STATIC_VIDEOS_DIR / f"concat_{article_id}.txt"
 
-    # Step A: Synthesize Speech Voiceover (safe isolated edge-tts / Windows SAPI fallback)
+    # Step A: Synthesize Speech Voiceover (edge-tts -> gTTS -> Windows SAPI fallback)
     audio_ok = False
     try:
         audio_ok = run_async_in_isolated_thread(synthesize_edge_tts, clean_text, output_audio_path, timeout=60.0)
     except Exception as e:
         print(f"[Video Generator] Isolated edge-tts execution error: {e}")
         audio_ok = False
+
+    if not audio_ok:
+        print("[Video Generator] edge-tts unavailable. Falling back to bulletproof Google TTS (gTTS)...")
+        audio_ok = synthesize_gtts(clean_text, output_audio_path)
 
     if not audio_ok:
         print("[Video Generator] Falling back to Windows SAPI System TTS...")
@@ -1098,8 +1113,8 @@ def compose_video(
 
     print(f"[Video Generator] Audio voiceover synthesized: {audio_duration:.2f} seconds ({output_audio_path.stat().st_size} bytes)")
 
-    # Step B: Source Visual HD Photos across all scenes (6 for long-form, 7 for shorts)
-    required_scene_count = 6 if is_long else 7
+    # Step B: Source Visual HD Photos across all scenes (5 for long-form, 7 for shorts)
+    required_scene_count = 5 if is_long else 7
     scene_images = fetch_scene_images(
         title=title,
         category=category,
@@ -1143,11 +1158,13 @@ def compose_video(
         f.write(f"file '{slides[-1].resolve().as_posix()}'\n")
 
     # Step D: Compile strict H.264 Main Profile + yuv420p + AAC MP4 with smooth fade-in/fade-out
-    # Using -preset ultrafast and -r 24 for ultra-rapid 1080p encoding under low CPU overhead
+    # Strictly pass -threads 1, -preset ultrafast, -r 15, scale=1280:720 for low RAM usage under 80MB!
     fade_duration = 0.5 if is_long else 0.4
     fade_out_start = max(audio_duration - fade_duration, 0.0)
+    fps_val = "15" if is_long else "24"
+    scale_filter = "scale=1280:720," if is_long else "scale=1080:1920,"
     video_filter = (
-        f"fps=24,format=yuv420p,"
+        f"{scale_filter}fps={fps_val},format=yuv420p,"
         f"fade=t=in:st=0:d={fade_duration},"
         f"fade=t=out:st={fade_out_start:.2f}:d={fade_duration}"
     )
@@ -1155,6 +1172,7 @@ def compose_video(
     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
     cmd = [
         ffmpeg_exe, "-y",
+        "-threads", "1",
         "-f", "concat",
         "-safe", "0",
         "-i", str(concat_list_file),
@@ -1162,11 +1180,11 @@ def compose_video(
         "-vf", video_filter,
         "-c:v", "libx264",
         "-preset", "ultrafast",
-        "-r", "24",
+        "-r", fps_val,
         "-profile:v", "main",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
-        "-b:a", "192k",
+        "-b:a", "128k",
         "-ar", "44100",
         "-ac", "2",
         "-movflags", "+faststart",
@@ -1174,7 +1192,7 @@ def compose_video(
         str(output_video_path)
     ]
 
-    fmt_label = "16:9 Widescreen HD" if is_long else "9:16 Shorts"
+    fmt_label = "16:9 Widescreen HD (1280x720, 1-thread)" if is_long else "9:16 Shorts"
     ffmpeg_timeout = 360 if is_long else 180
     print(f"[Video Generator] Compiling {fmt_label} MP4 with FFmpeg ({len(slides)} photo scenes, {fade_duration}s fade, timeout={ffmpeg_timeout}s): {output_video_path.name}...")
     try:
@@ -1216,6 +1234,7 @@ def compose_video(
         s.unlink(missing_ok=True)
     for sc in scene_images:
         sc.unlink(missing_ok=True)
+    gc.collect()
 
     return {
         "success": True,
@@ -1224,7 +1243,7 @@ def compose_video(
         "runtime_seconds": round(final_duration, 1),
         "file_size_bytes": video_size,
         "aspect_ratio": "16:9 (Horizontal Long-Form HD)" if is_long else "9:16 (Vertical YouTube Shorts)",
-        "resolution": "1920x1080" if is_long else "1080x1920",
+        "resolution": "1280x720" if is_long else "1080x1920",
         "format": "long" if is_long else "short"
     }
 
