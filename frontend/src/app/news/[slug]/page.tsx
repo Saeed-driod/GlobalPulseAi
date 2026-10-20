@@ -70,15 +70,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       index: true,
       follow: true,
       nocache: false,
-      maxVideoPreview: -1,
-      maxImagePreview: "large",
-      maxSnippet: -1,
       googleBot: {
         index: true,
         follow: true,
-        maxVideoPreview: -1,
-        maxImagePreview: "large",
-        maxSnippet: -1,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
       },
     },
     alternates: {
