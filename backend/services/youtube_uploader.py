@@ -193,8 +193,13 @@ def get_oauth_authorization_url(preferred_port: int = 8088) -> str:
     """
     global _active_auth_server, _active_auth_thread
 
+    sync_render_credentials()
+
     if not CLIENT_SECRETS_FILE.exists():
-        raise FileNotFoundError(f"client_secret.json not found in {BASE_DIR}")
+        raise FileNotFoundError(
+            f"client_secret.json not found in {BASE_DIR}. "
+            "If deployed on Render, please add the 'YOUTUBE_CLIENT_SECRET_JSON' environment variable."
+        )
 
     # Close previous server instance if still hanging
     if _active_auth_server is not None:
