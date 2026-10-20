@@ -1,0 +1,13 @@
+# GlobalPulse AI Robots.txt
+# https://globalpulseai.com
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+User-agent: Googlebot-News
+Allow: /
+Disallow: /admin
+
+Sitemap: https://globalpulseai.com/sitemap.xml

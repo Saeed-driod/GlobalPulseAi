@@ -1,0 +1,52 @@
+services:
+  # ---------------------------------------------
+  # Backend API Service (FastAPI + Uvicorn)
+  # ---------------------------------------------
+  - type: web
+    name: globalpulse-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PEXELS_API_KEY
+        sync: false
+      - key: YOUTUBE_CLIENT_SECRET_JSON
+        sync: false
+      - key: YOUTUBE_TOKEN_JSON
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: PUBLIC_SITE_URL
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.8
+
+  # ---------------------------------------------
+  # Frontend Web Service (Next.js SSR)
+  # ---------------------------------------------
+  - type: web
+    name: globalpulse-frontend
+    runtime: node
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: NEXT_PUBLIC_ADSENSE_CLIENT_ID
+        sync: false
+      - key: NEXT_PUBLIC_YOUTUBE_CHANNEL_URL
+        value: "https://www.youtube.com/@EduHubbySaeed"
+      - key: NEXT_PUBLIC_YOUTUBE_CHANNEL_NAME
+        value: "EduHub by Saeed"
+      - key: NODE_VERSION
+        value: 20.11.0
