@@ -609,7 +609,7 @@ def generate_news_slides(
         draw.rectangle([(60, 770), (1020, 1750)], fill=(15, 23, 42), outline=accent, width=2)
 
         if idx == 1:
-            draw.rectangle([(100, 810), (450, 860)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
+            draw.rectangle([(100, 810), (520, 860)], fill=(18, 30, 49), outline=accent, width=2)
             draw.text((120, 822), f"BREAKING WIRE • {category.upper()}", fill=accent, font=font_badge)
             font_title = get_font(46, bold=True)
             y_t = 890
@@ -617,7 +617,7 @@ def generate_news_slides(
                 draw.text((100, y_t), line, fill=(255, 255, 255), font=font_title)
                 y_t += 62
             draw.text((100, y_t + 20), "Strategic verified dispatch • Multi-source telemetry", fill=(148, 163, 184), font=font_sub)
-            draw.rectangle([(100, 1560), (980, 1680)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
+            draw.rectangle([(100, 1560), (980, 1680)], fill=(18, 30, 49), outline=accent, width=1)
             draw.text((120, 1600), "STATUS: VERIFIED TIER-1 TELEMETRY", fill=accent, font=get_font(24, bold=True))
 
         elif idx in (2, 3, 4, 5):
@@ -627,7 +627,7 @@ def generate_news_slides(
                 4: "03 // CRITICAL CONTEXT",
                 5: "04 // STRATEGIC IMPACT"
             }
-            draw.rectangle([(100, 810), (500, 860)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
+            draw.rectangle([(100, 810), (520, 860)], fill=(18, 30, 49), outline=accent, width=2)
             draw.text((120, 822), badge_map[idx], fill=accent, font=font_badge)
             sub_title_map = {
                 2: "Primary Operational Findings",
@@ -643,7 +643,7 @@ def generate_news_slides(
                 y_b += 52
 
         elif idx == 6:
-            draw.rectangle([(100, 810), (490, 860)], fill=(239, 68, 68, 50), outline=(239, 68, 68), width=2)
+            draw.rectangle([(100, 810), (520, 860)], fill=(45, 15, 20), outline=(239, 68, 68), width=2)
             draw.text((120, 822), "OFFICIAL MEDIA PARTNER", fill=(239, 68, 68), font=font_badge)
             draw.text((100, 890), "Subscribe On YouTube", fill=(255, 255, 255), font=font_h2)
             draw.text((100, 970), "EduHub by Saeed", fill=(255, 255, 255), font=get_font(52, bold=True))
@@ -652,11 +652,11 @@ def generate_news_slides(
             for l in wrap_text("Daily cutting-edge tutorials, real-world coding builds, and breaking technology briefings. Subscribe free.", max_chars=30):
                 draw.text((100, y_ed), l, fill=(203, 213, 225), font=font_card_text)
                 y_ed += 50
-            draw.rectangle([(100, 1560), (980, 1680)], fill=(220, 38, 38), outline=(239, 68, 68), width=1)
+            draw.rectangle([(100, 1560), (980, 1680)], fill=(185, 28, 28), outline=(239, 68, 68), width=1)
             draw.text((130, 1600), "SUBSCRIBE FREE: YOUTUBE.COM/@EDUHUBBYSAEED", fill=(255, 255, 255), font=get_font(22, bold=True))
 
         else:
-            draw.rectangle([(100, 810), (480, 860)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
+            draw.rectangle([(100, 810), (520, 860)], fill=(18, 30, 49), outline=accent, width=2)
             draw.text((120, 822), "FULL INVESTIGATION", fill=accent, font=font_badge)
             draw.text((100, 890), "Read Complete Dossier", fill=(255, 255, 255), font=font_h2)
             draw.text((100, 980), clean_domain, fill=accent, font=get_font(48, bold=True))
@@ -664,7 +664,7 @@ def generate_news_slides(
             for l in wrap_text("Access full citations, interactive market data, and verified sources on our news platform.", max_chars=30):
                 draw.text((100, y_cl), l, fill=(226, 232, 240), font=font_card_text)
                 y_cl += 50
-            draw.rectangle([(100, 1560), (980, 1680)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
+            draw.rectangle([(100, 1560), (980, 1680)], fill=(18, 30, 49), outline=accent, width=1)
             draw.text((140, 1600), f"VISIT: WWW.{clean_domain}", fill=accent, font=get_font(24, bold=True))
 
         # Bottom TV Ticker Bar (1800 to 1920)
