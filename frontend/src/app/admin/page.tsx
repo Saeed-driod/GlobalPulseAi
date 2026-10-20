@@ -39,6 +39,7 @@ import {
   Lock,
   Unlock,
   ShieldCheck,
+  Trophy,
 } from "../../components/Icons";
 
 export default function AdminPage() {
@@ -57,6 +58,7 @@ export default function AdminPage() {
   });
   const [articles, setArticles] = useState<Article[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [filterCategory, setFilterCategory] = useState<string>("ALL");
   const [fetchingNews, setFetchingNews] = useState<boolean>(false);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
@@ -216,8 +218,9 @@ export default function AdminPage() {
 
 
   const filteredArticles = articles.filter((a) => {
-    if (filterStatus === "ALL") return true;
-    return a.status === filterStatus;
+    const matchesStatus = filterStatus === "ALL" || a.status === filterStatus;
+    const matchesCategory = filterCategory === "ALL" || a.category === filterCategory;
+    return matchesStatus && matchesCategory;
   });
 
   const getStatusBadge = (status: string) => {
@@ -513,7 +516,7 @@ export default function AdminPage() {
             <div className="text-3xl font-black text-white mt-2 font-mono">
               {stats.total_articles}
             </div>
-            <div className="text-[10px] text-neutral-500 mt-1 font-mono">Monitored Across 4 Categories</div>
+            <div className="text-[10px] text-neutral-500 mt-1 font-mono">Monitored Across 5 Categories</div>
           </div>
 
           <div className="p-6 rounded-2xl glass-panel hover:border-amber-500/30 transition-all duration-300 group">
@@ -565,31 +568,65 @@ export default function AdminPage() {
         {/* WORKFLOW QUEUE & TABLE */}
         <section className="glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
           {/* Table Header & Tabs */}
-          <div className="p-5 sm:p-6 border-b border-white/10 bg-slate-950/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-base font-bold text-white font-serif">
-                Autonomous Editorial & Video Queue
-              </h2>
-              <p className="text-xs text-neutral-400 font-mono mt-0.5">
-                Review synthesized articles, generate 60-second shorts videos, and syndicate.
-              </p>
+          <div className="p-5 sm:p-6 border-b border-white/10 bg-slate-950/60 flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-bold text-white font-serif">
+                  Autonomous Editorial & Video Queue
+                </h2>
+                <p className="text-xs text-neutral-400 font-mono mt-0.5">
+                  Review synthesized articles, generate 16:9 Long or 9:16 Shorts videos, and syndicate.
+                </p>
+              </div>
+
+              {/* Status Filter Tabs */}
+              <div className="flex items-center gap-1.5 bg-neutral-950 p-1 rounded-lg border border-neutral-800 text-xs font-mono">
+                {["ALL", "DRAFT", "VIDEO_READY", "PUBLISHED"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setFilterStatus(tab)}
+                    className={`px-3 py-1 rounded-md transition ${
+                      filterStatus === tab
+                        ? "bg-neutral-800 text-white font-bold"
+                        : "text-neutral-400 hover:text-white"
+                    }`}
+                  >
+                    {tab === "ALL" ? "All Statuses" : tab.replace("_", " ")}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1.5 bg-neutral-950 p-1 rounded-lg border border-neutral-800 text-xs font-mono">
-              {["ALL", "DRAFT", "VIDEO_READY", "PUBLISHED"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setFilterStatus(tab)}
-                  className={`px-3 py-1 rounded-md transition ${
-                    filterStatus === tab
-                      ? "bg-neutral-800 text-white font-bold"
-                      : "text-neutral-400 hover:text-white"
-                  }`}
-                >
-                  {tab === "ALL" ? "All Stories" : tab.replace("_", " ")}
-                </button>
-              ))}
+            {/* Category Filter Tabs Bar */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-t border-white/5 pt-3">
+              <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-wider mr-1">Category:</span>
+              {[
+                { name: "ALL", label: "All Categories" },
+                { name: "AI & Tech", label: "AI & Tech" },
+                { name: "Global Markets", label: "Global Markets" },
+                { name: "Geopolitics", label: "Geopolitics" },
+                { name: "Future Science", label: "Future Science" },
+                { name: "Global Sports", label: "Global Sports", icon: Trophy },
+              ].map((c) => {
+                const Icon = c.icon;
+                const isSelected = filterCategory === c.name;
+                return (
+                  <button
+                    key={c.name}
+                    onClick={() => setFilterCategory(c.name)}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono whitespace-nowrap transition ${
+                      isSelected
+                        ? c.name === "Global Sports"
+                          ? "bg-red-500/20 text-red-300 border border-red-500/40 font-bold"
+                          : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold"
+                        : "bg-neutral-900/60 text-neutral-400 hover:text-white border border-neutral-800 hover:border-neutral-700"
+                    }`}
+                  >
+                    {Icon && <Icon className="w-3.5 h-3.5 text-red-400" />}
+                    {c.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -627,7 +664,20 @@ export default function AdminPage() {
 
                       {/* Category */}
                       <td className="py-4 px-4 whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-neutral-800 text-neutral-300 font-mono border border-neutral-700">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold font-mono border ${
+                          art.category === "Global Sports"
+                            ? "bg-red-500/15 text-red-300 border-red-500/30"
+                            : art.category === "AI & Tech"
+                            ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/30"
+                            : art.category === "Global Markets"
+                            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                            : art.category === "Geopolitics"
+                            ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                            : art.category === "Future Science"
+                            ? "bg-purple-500/15 text-purple-300 border-purple-500/30"
+                            : "bg-neutral-800 text-neutral-300 border-neutral-700"
+                        }`}>
+                          {art.category === "Global Sports" && "🏆 "}
                           {art.category}
                         </span>
                       </td>

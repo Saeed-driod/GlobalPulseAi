@@ -13,6 +13,7 @@ class ArticleCategory(str, enum.Enum):
     GLOBAL_MARKETS = "Global Markets"
     GEOPOLITICS = "Geopolitics"
     FUTURE_SCIENCE = "Future Science"
+    GLOBAL_SPORTS = "Global Sports"
 
 class Article(Base):
     __tablename__ = "articles"

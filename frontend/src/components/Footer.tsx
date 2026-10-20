@@ -56,6 +56,11 @@ export const Footer: React.FC = () => {
                   Future Science & Fusion Energy
                 </Link>
               </li>
+              <li>
+                <Link href="/" className="hover:text-red-400 transition-colors">
+                  Global Sports & Championship Telemetry
+                </Link>
+              </li>
               <li className="pt-2">
                 <a
                   href="https://www.youtube.com/@EduHubbySaeed"

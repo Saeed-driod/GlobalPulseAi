@@ -76,6 +76,11 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
           badge: "bg-purple-500/15 text-purple-300 border-purple-400/40 shadow-[0_0_12px_rgba(168,85,247,0.25)]",
           accent: "text-purple-400",
         };
+      case "Global Sports":
+        return {
+          badge: "bg-red-500/15 text-red-300 border-red-400/40 shadow-[0_0_12px_rgba(239,68,68,0.25)]",
+          accent: "text-red-400",
+        };
       default:
         return {
           badge: "bg-neutral-800 text-neutral-300 border-neutral-700",

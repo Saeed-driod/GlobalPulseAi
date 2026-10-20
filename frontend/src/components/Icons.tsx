@@ -427,4 +427,26 @@ export const Unlock = ({ className = "w-5 h-5", size, ...props }: IconProps) => 
   </svg>
 );
 
+export const Trophy = ({ className = "w-5 h-5", size, ...props }: IconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size || 24}
+    height={size || 24}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+    <path d="M4 22h16" />
+    <path d="M10 14.66V17c0 .55-.45 1-1 1H8c-.55 0-1 .45-1 1v1h10v-1c0-.55-.45-1-1-1h-1c-.55 0-1-.45-1-1v-2.34" />
+    <path d="M6 4h12a2 2 0 0 1 2 2v3a6 6 0 0 1-6 6h0a6 6 0 0 1-6-6V6a2 2 0 0 1 2-2Z" />
+  </svg>
+);
+
 

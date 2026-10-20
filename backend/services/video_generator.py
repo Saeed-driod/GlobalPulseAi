@@ -74,6 +74,7 @@ CATEGORY_ACCENTS: Dict[str, Tuple[int, int, int]] = {
     "Global Markets": (16, 185, 129),    # Neon Emerald
     "Geopolitics": (245, 158, 11),       # Amber Gold
     "Future Science": (168, 85, 247),    # Neon Purple
+    "Global Sports": (239, 68, 68),      # Stadium Crimson Red
 }
 
 def get_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
@@ -161,8 +162,12 @@ def build_long_form_narration(
         return " ".join(t.split()).strip()
 
     # Section 1: Breaking Hook & Headline Intro
-    intro_lead = f"Breaking intelligence dispatch in {category}. {clean_title}."
-    intro_body = "Welcome to GlobalPulse AI, delivering verified global news reporting, strategic industry intelligence, and deep-dive technical briefings."
+    if category == "Global Sports":
+        intro_lead = f"Breaking sports dispatch in {category}. {clean_title}."
+        intro_body = "Welcome to GlobalPulse AI, bringing you high-octane match analytics, tactical breakdowns, and championship reporting."
+    else:
+        intro_lead = f"Breaking intelligence dispatch in {category}. {clean_title}."
+        intro_body = "Welcome to GlobalPulse AI, delivering verified global news reporting, strategic industry intelligence, and deep-dive technical briefings."
 
     # Section 2: Core Facts & Executive Summary
     summary_bullets = [
@@ -174,17 +179,17 @@ def build_long_form_narration(
         summary_sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", summary) if len(s.strip()) > 15]
         summary_bullets = summary_sentences
 
-    exec_summary_text = "Here are the primary operational findings."
+    exec_summary_text = "Here are the primary operational findings." if category != "Global Sports" else "Examining the key turning points and match dynamics:"
     if summary_bullets:
         bullet_phrases = []
         transitions = ["First", "Second", "Furthermore", "In addition"]
-        for i, b in enumerate(summary_bullets[:4]):
+        for i, b in enumerate(summary_bullets[:3]):
             trans = transitions[i] if i < len(transitions) else "Additionally"
             b_clean = b.rstrip(".")
             bullet_phrases.append(f"{trans}, {b_clean}.")
         exec_summary_text += " " + " ".join(bullet_phrases)
 
-    # Section 3: Deep-Dive Investigation Paragraphs
+    # Section 3: Deep-Dive Investigation / Tactical Breakdown Paragraphs
     content_clean_paras = []
     if content:
         for p in content.split("\n\n"):
@@ -192,31 +197,31 @@ def build_long_form_narration(
             if len(p_clean) > 55 and not p.strip().startswith("|") and not p_clean.startswith("###"):
                 content_clean_paras.append(p_clean)
 
-    if len(content_clean_paras) >= 2:
-        deep_dive_text = "Diving into the full investigative details: " + " ".join(content_clean_paras[:3])
+    if category == "Global Sports":
+        if content_clean_paras:
+            deep_dive_text = "Tactical match breakdown: " + " ".join(content_clean_paras[:2])
+        else:
+            deep_dive_text = "Tactical match breakdown: High-tempo transitional play and clinical finishing separated the sides in this high-stakes contest."
+        implications_text = "Championship standings and qualification pathways are directly impacted by this result, setting up high-stakes upcoming fixtures."
     else:
-        deep_dive_text = (
-            f"Diving into the full investigative details: Independent analysts and technical teams have verified "
-            f"that this milestone in {category} represents a significant operational transition. Industry benchmarks "
-            "indicate that legacy constraints are being rapidly superseded by scalable next-generation architectures. "
-            "Leading technical consortiums and enterprise operators across North America and Europe are aligning deployment "
-            "protocols to capitalize on sustained efficiency gains."
+        if len(content_clean_paras) >= 2:
+            deep_dive_text = "Diving into the full investigative details: " + " ".join(content_clean_paras[:2])
+        else:
+            deep_dive_text = (
+                f"Diving into the full investigative details: Independent analysts and technical teams have verified "
+                f"that this milestone in {category} represents a significant operational transition. Industry benchmarks "
+                "indicate that legacy constraints are being rapidly superseded by scalable next-generation architectures."
+            )
+        implications_text = (
+            f"Examining the strategic and global market implications: The developments unfolding in {category} "
+            "are actively recalibrating institutional capital flows and long-term enterprise technology roadmaps worldwide."
         )
-
-    # Section 4: Global Market & Strategic Implications
-    implications_text = (
-        f"Examining the strategic and global market implications: The developments unfolding in {category} "
-        "are actively recalibrating institutional capital flows and long-term enterprise technology roadmaps worldwide. "
-        "Sovereign procurement bodies, major venture institutions, and infrastructure leaders are reallocating capital "
-        "to ensure supply resilience, technological sovereignty, and sustained competitive advantage."
-    )
 
     # Section 5: Outro & Call-to-Action (EduHub by Saeed & GlobalPulse AI)
     outro_text = (
-        "For daily technical masterclasses, real-world coding implementations, and cutting-edge software architecture tutorials, "
+        "For daily technical masterclasses, real-world implementations, and cutting-edge tutorials, "
         "make sure to subscribe to our official media partner, EduHub by Saeed, on YouTube at handle EduHub by Saeed. "
-        f"And to inspect the complete investigative dossier, interactive financial telemetry, and primary source documents, "
-        f"visit GlobalPulse AI at {clean_domain}. Thank you for watching, and stay ahead of the global wire."
+        f"And to inspect the complete dossier and verified data, visit GlobalPulse AI at {clean_domain}. Thank you for watching."
     )
 
     full_narration = f"{intro_lead} {intro_body} {exec_summary_text} {deep_dive_text} {implications_text} {outro_text}"
@@ -968,107 +973,75 @@ def generate_widescreen_long_slides(
     slide_paths.append(p4)
 
     # -------------------------------------------------------------
-    # SLIDE 5: 04 // Market & Strategic Ripple Effects
+    # SLIDE 5: 04 // Strategic Impact & Future Outlook
     # -------------------------------------------------------------
     img_5 = scene_images[min(4, len(scene_images) - 1)]
     s5, draw5 = build_broadcast_widescreen_canvas(img_5, accent, category, clean_domain, title)
 
-    draw5.rectangle([(80, 130), (470, 175)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw5.text((100, 142), "04 // STRATEGIC IMPACT", fill=accent, font=font_badge)
-    draw5.text((80, 195), "Global Macro & Industry Implications", fill=(255, 255, 255), font=font_h2)
+    draw5.rectangle([(80, 130), (520, 175)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
+    draw5.text((100, 142), "04 // STRATEGIC IMPACT & FORECAST", fill=accent, font=font_badge)
+    draw5.text((80, 195), "Macro Trajectory & Future Systemic Outlook", fill=(255, 255, 255), font=font_h2)
 
-    # Left Column: Capital Allocation
+    # Left Column: Strategic Impact
     draw5.rectangle([(80, 270), (940, 920)], fill=(15, 23, 42), outline=accent, width=2)
-    draw5.text((110, 310), "CAPITAL ALLOCATION & INDUSTRY SHIFT", fill=accent, font=get_font(26, bold=True))
+    draw5.text((110, 310), "CAPITAL ALLOCATION & SYSTEMIC SHIFT", fill=accent, font=get_font(26, bold=True))
     y_m1 = 380
-    for l in wrap_text(content_paras[2], max_chars=42)[:10]:
+    impact_text = content_paras[2] if len(content_paras) > 2 else content_paras[-1]
+    for l in wrap_text(impact_text, max_chars=42)[:10]:
         draw5.text((110, y_m1), l, fill=(241, 245, 249), font=font_body)
         y_m1 += 46
 
-    # Right Column: Framed Image + Ripple Effects
-    paste_framed_visual(s5, draw5, img_5, accent, frame_coords=(980, 130, 1860, 650), corner_tag="● MACRO TELEMETRY // GLOBAL FLOWS")
+    # Right Column: Framed Image + Horizon Timeline
+    paste_framed_visual(s5, draw5, img_5, accent, frame_coords=(980, 130, 1860, 650), corner_tag="● STRATEGIC FORECAST // HORIZON")
 
     draw5.rectangle([(980, 675), (1860, 935)], fill=(15, 23, 42), outline=accent, width=2)
-    draw5.text((1010, 700), "CROSS-SECTOR RIPPLE EFFECTS", fill=accent, font=font_badge)
-    y_m2 = 750
-    m2_text = "Enterprise supply networks and capital allocators are aligning long-term procurement frameworks to secure structural advantages."
-    for l in wrap_text(m2_text, max_chars=44)[:4]:
-        draw5.text((1010, y_m2), l, fill=(241, 245, 249), font=font_body)
-        y_m2 += 42
+    draw5.text((1010, 700), "STRATEGIC HORIZON TIMELINE", fill=accent, font=font_badge)
+    draw5.rectangle([(1010, 750), (1830, 820)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
+    draw5.text((1030, 770), "HORIZON 1 (0-12M): Enterprise Protocol Standardization", fill=accent, font=get_font(22, bold=True))
+    draw5.rectangle([(1010, 840), (1830, 910)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
+    draw5.text((1030, 860), "HORIZON 2 (1-3Y): Global Cross-Sector Systemic Integration", fill=accent, font=get_font(22, bold=True))
 
     p5 = output_dir / f"widescreen_5_{article_id}.png"
     s5.save(p5, "PNG")
     slide_paths.append(p5)
 
     # -------------------------------------------------------------
-    # SLIDE 6: 05 // Strategic Forecast & Future Outlook
+    # SLIDE 6: Official Media Partner Showcase (EduHub by Saeed)
     # -------------------------------------------------------------
     img_6 = scene_images[min(5, len(scene_images) - 1)]
-    s6, draw6 = build_broadcast_widescreen_canvas(img_6, accent, category, clean_domain, title)
+    s6, draw6 = build_broadcast_widescreen_canvas(img_6, (239, 68, 68), category, clean_domain, title)
 
-    draw6.rectangle([(80, 130), (490, 175)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw6.text((100, 142), "05 // STRATEGIC FORECAST", fill=accent, font=font_badge)
-    draw6.text((80, 195), "Future Trajectory & 2026-2030 Outlook", fill=(255, 255, 255), font=font_h2)
+    draw6.rectangle([(80, 130), (510, 175)], fill=(239, 68, 68, 50), outline=(239, 68, 68), width=2)
+    draw6.text((100, 142), "OFFICIAL MEDIA PARTNER", fill=(239, 68, 68), font=font_badge)
+    draw6.text((80, 195), "Subscribe On YouTube • Master Next-Gen Tech", fill=(255, 255, 255), font=font_h2)
 
-    # Left Column: Forward Looking Assessment
-    draw6.rectangle([(80, 270), (940, 920)], fill=(15, 23, 42), outline=accent, width=2)
-    draw6.text((110, 310), "FORWARD-LOOKING EXECUTIVE ASSESSMENT", fill=accent, font=get_font(26, bold=True))
-    y_f = 380
-    for l in wrap_text(content_paras[3], max_chars=42)[:10]:
-        draw6.text((110, y_f), l, fill=(241, 245, 249), font=font_body)
-        y_f += 46
+    # Left Column: EduHub by Saeed Branding Card
+    draw6.rectangle([(80, 270), (940, 920)], fill=(15, 23, 42), outline=(239, 68, 68), width=3)
+    draw6.rectangle([(120, 310), (440, 370)], fill=(220, 38, 38))
+    draw6.text((145, 326), "▶ YOUTUBE CHANNEL", fill=(255, 255, 255), font=font_badge)
+    draw6.text((120, 400), "EduHub by Saeed", fill=(255, 255, 255), font=get_font(56, bold=True))
+    draw6.text((120, 480), "@EduHubbySaeed", fill=(239, 68, 68), font=get_font(36, bold=True))
+    ch_desc = "Daily in-depth masterclasses covering cutting-edge AI development, full-stack software engineering, autonomous systems, and real-world tech architectures. Subscribe free to accelerate your mastery."
+    y_ch = 560
+    for l in wrap_text(ch_desc, max_chars=40):
+        draw6.text((120, y_ch), l, fill=(203, 213, 225), font=font_body)
+        y_ch += 46
+    draw6.rectangle([(120, 830), (900, 890)], fill=(220, 38, 38), outline=(239, 68, 68), width=1)
+    draw6.text((140, 848), "SUBSCRIBE FREE: YOUTUBE.COM/@EDUHUBBYSAEED", fill=(255, 255, 255), font=get_font(22, bold=True))
 
-    # Right Column: Framed Image + Horizon Pills
-    paste_framed_visual(s6, draw6, img_6, accent, frame_coords=(980, 130, 1860, 650), corner_tag="● STRATEGIC FORECAST // HORIZON")
+    # Right Column: Framed Studio Visual + Full Portal Dossier Link
+    paste_framed_visual(s6, draw6, img_6, (239, 68, 68), frame_coords=(980, 130, 1860, 650), corner_tag="● OFFICIAL BROADCAST // EDUHUB")
 
     draw6.rectangle([(980, 675), (1860, 935)], fill=(15, 23, 42), outline=accent, width=2)
-    draw6.text((1010, 700), "STRATEGIC HORIZON TIMELINE", fill=accent, font=font_badge)
-    draw6.rectangle([(1010, 750), (1830, 820)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
-    draw6.text((1030, 770), "HORIZON 1 (0-12M): Enterprise Protocol Standardization", fill=accent, font=get_font(22, bold=True))
-    draw6.rectangle([(1010, 840), (1830, 910)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
-    draw6.text((1030, 860), "HORIZON 2 (1-3Y): Global Cross-Sector Systemic Integration", fill=accent, font=get_font(22, bold=True))
+    draw6.text((1010, 700), "GLOBALPULSE AI PLATFORM DOSSIER", fill=accent, font=font_badge)
+    draw6.text((1010, 750), clean_domain, fill=accent, font=get_font(42, bold=True))
+    draw6.text((1010, 810), "Access full source citations, verified telemetry data, and interactive models.", fill=(203, 213, 225), font=font_sub)
+    draw6.rectangle([(1010, 860), (1830, 915)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
+    draw6.text((1030, 876), f"EXPLORE LIVE PORTAL: WWW.{clean_domain}", fill=accent, font=get_font(22, bold=True))
 
     p6 = output_dir / f"widescreen_6_{article_id}.png"
     s6.save(p6, "PNG")
     slide_paths.append(p6)
-
-    # -------------------------------------------------------------
-    # SLIDE 7: Official Media Partner Showcase (EduHub by Saeed)
-    # -------------------------------------------------------------
-    img_7 = scene_images[min(6, len(scene_images) - 1)]
-    s7, draw7 = build_broadcast_widescreen_canvas(img_7, (239, 68, 68), category, clean_domain, title)
-
-    draw7.rectangle([(80, 130), (510, 175)], fill=(239, 68, 68, 50), outline=(239, 68, 68), width=2)
-    draw7.text((100, 142), "OFFICIAL MEDIA PARTNER", fill=(239, 68, 68), font=font_badge)
-    draw7.text((80, 195), "Subscribe On YouTube • Master Next-Gen Tech", fill=(255, 255, 255), font=font_h2)
-
-    # Left Column: EduHub by Saeed Branding Card
-    draw7.rectangle([(80, 270), (940, 920)], fill=(15, 23, 42), outline=(239, 68, 68), width=3)
-    draw7.rectangle([(120, 310), (440, 370)], fill=(220, 38, 38))
-    draw7.text((145, 326), "▶ YOUTUBE CHANNEL", fill=(255, 255, 255), font=font_badge)
-    draw7.text((120, 400), "EduHub by Saeed", fill=(255, 255, 255), font=get_font(56, bold=True))
-    draw7.text((120, 480), "@EduHubbySaeed", fill=(239, 68, 68), font=get_font(36, bold=True))
-    ch_desc = "Daily in-depth masterclasses covering cutting-edge AI development, full-stack software engineering, autonomous systems, and real-world tech architectures. Subscribe free to accelerate your mastery."
-    y_ch = 560
-    for l in wrap_text(ch_desc, max_chars=40):
-        draw7.text((120, y_ch), l, fill=(203, 213, 225), font=font_body)
-        y_ch += 46
-    draw7.rectangle([(120, 830), (900, 890)], fill=(220, 38, 38), outline=(239, 68, 68), width=1)
-    draw7.text((140, 848), "SUBSCRIBE FREE: YOUTUBE.COM/@EDUHUBBYSAEED", fill=(255, 255, 255), font=get_font(22, bold=True))
-
-    # Right Column: Framed Studio Visual + Full Portal Dossier Link
-    paste_framed_visual(s7, draw7, img_7, (239, 68, 68), frame_coords=(980, 130, 1860, 650), corner_tag="● OFFICIAL BROADCAST // EDUHUB")
-
-    draw7.rectangle([(980, 675), (1860, 935)], fill=(15, 23, 42), outline=accent, width=2)
-    draw7.text((1010, 700), "GLOBALPULSE AI PLATFORM DOSSIER", fill=accent, font=font_badge)
-    draw7.text((1010, 750), clean_domain, fill=accent, font=get_font(42, bold=True))
-    draw7.text((1010, 810), "Access full source citations, verified telemetry data, and interactive models.", fill=(203, 213, 225), font=font_sub)
-    draw7.rectangle([(1010, 860), (1830, 915)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
-    draw7.text((1030, 876), f"EXPLORE LIVE PORTAL: WWW.{clean_domain}", fill=accent, font=get_font(22, bold=True))
-
-    p7 = output_dir / f"widescreen_7_{article_id}.png"
-    s7.save(p7, "PNG")
-    slide_paths.append(p7)
 
     return slide_paths
 
@@ -1084,7 +1057,7 @@ def compose_video(
 ) -> Dict[str, Any]:
     """
     Renders an authentic, broadcast-grade MP4 video:
-    - video_format='long' (Default): 16:9 widescreen HD (1920x1080), 2 to 3.5 minutes broadcast narration
+    - video_format='long' (Default): 16:9 widescreen HD (1920x1080), 6 broadcast slides, 90-150s narration
     - video_format='short': 9:16 vertical (1080x1920) 60-second YouTube Short
     Strictly encoded with H.264 Main Profile + yuv420p + AAC stereo + faststart.
     """
@@ -1125,7 +1098,8 @@ def compose_video(
 
     print(f"[Video Generator] Audio voiceover synthesized: {audio_duration:.2f} seconds ({output_audio_path.stat().st_size} bytes)")
 
-    # Step B: Source Visual HD Photos across all scenes
+    # Step B: Source Visual HD Photos across all scenes (6 for long-form, 7 for shorts)
+    required_scene_count = 6 if is_long else 7
     scene_images = fetch_scene_images(
         title=title,
         category=category,
@@ -1133,7 +1107,7 @@ def compose_video(
         main_image_url=image_url,
         article_id=article_id,
         output_dir=STATIC_VIDEOS_DIR,
-        count=7,
+        count=required_scene_count,
         is_widescreen=is_long
     )
 
@@ -1169,6 +1143,7 @@ def compose_video(
         f.write(f"file '{slides[-1].resolve().as_posix()}'\n")
 
     # Step D: Compile strict H.264 Main Profile + yuv420p + AAC MP4 with smooth fade-in/fade-out
+    # Using -preset ultrafast and -r 24 for ultra-rapid 1080p encoding under low CPU overhead
     fade_duration = 0.5 if is_long else 0.4
     fade_out_start = max(audio_duration - fade_duration, 0.0)
     video_filter = (
@@ -1186,7 +1161,8 @@ def compose_video(
         "-i", str(output_audio_path),
         "-vf", video_filter,
         "-c:v", "libx264",
-        "-preset", "veryfast",
+        "-preset", "ultrafast",
+        "-r", "24",
         "-profile:v", "main",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",

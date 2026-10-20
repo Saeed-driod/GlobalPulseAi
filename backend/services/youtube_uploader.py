@@ -363,7 +363,10 @@ def get_authenticated_youtube_service(interactive: bool = False):
 
 def get_category_id(category_name: str) -> str:
     """Map news categories to standard YouTube Video Category IDs."""
-    if "tech" in category_name.lower() or "science" in category_name.lower():
+    c = str(category_name).lower()
+    if "sport" in c:
+        return "17"  # Sports
+    if "tech" in c or "science" in c:
         return "28"  # Science & Technology
     return "25"      # News & Politics
 
@@ -465,13 +468,13 @@ def upload_video_to_youtube(
     # Real YouTube API Upload
     try:
         if is_long:
-            # Long-Form Title: clean, high-CTR, strip any accidental #shorts tags
+            # Long-Form Title: DO NOT append #shorts! Use title[:95]
             clean_t = re.sub(r"(?i)\s*#shorts\b", "", title).strip()
-            if len(clean_t) <= 68:
-                upload_title = f"{clean_t} | Global News & Analysis"
+            upload_title = clean_t[:95]
+            if category_id == "17":
+                default_tags = ["GlobalPulse AI", "Global Sports", "Sports", "Match Analysis", "Highlights", "EduHub by Saeed"]
             else:
-                upload_title = clean_t[:100]
-            default_tags = ["GlobalPulse AI", "News", "Technology", "World News", "Market Analysis", "EduHub by Saeed"]
+                default_tags = ["GlobalPulse AI", "News", "Technology", "World News", "Market Analysis", "EduHub by Saeed"]
         else:
             raw_title = f"{title.strip()} #shorts" if "#shorts" not in title.lower() else title.strip()
             upload_title = raw_title[:100]
@@ -490,15 +493,9 @@ def upload_video_to_youtube(
             },
         }
 
-        # Optimized chunk size for large videos:
-        # Use 8 MB chunks for long-form / files >= 8 MB to minimize round-trip latency and network drops,
-        # or 2 MB chunks for smaller 60-second shorts.
-        if is_long or file_size >= 8 * 1024 * 1024:
-            chunk_size = 8 * 1024 * 1024  # 8 MB
-            print(f"[YouTube Upload Large File] Long-form / large video detected ({file_size_mb:.2f} MB). Configuring 8MB chunks.")
-        else:
-            chunk_size = 2 * 1024 * 1024  # 2 MB
-            print(f"[YouTube Upload] Standard video detected ({file_size_mb:.2f} MB). Configuring 2MB chunks.")
+        # MediaFileUpload chunksize: 4MB with explicit retry handling for HttpError and socket timeouts
+        chunk_size = 4 * 1024 * 1024  # 4 MB
+        print(f"[YouTube Upload] Configuring {chunk_size / (1024*1024):.0f}MB resumable chunks for {'16:9 Long-Form' if is_long else 'Shorts'} video ({file_size_mb:.2f} MB total).")
 
         expected_chunks = max(1, (file_size + chunk_size - 1) // chunk_size)
         print(f"[YouTube Upload] Media stream ready: ~{expected_chunks} chunk(s) expected. Starting upload for '{upload_title}'...")

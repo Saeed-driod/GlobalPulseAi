@@ -34,6 +34,12 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
           hoverBorder: "hover:border-purple-500/40 hover:shadow-purple-500/10",
           hoverTitle: "group-hover:text-purple-300",
         };
+      case "Global Sports":
+        return {
+          badge: "bg-red-500/15 text-red-300 border-red-400/40 shadow-[0_0_10px_rgba(239,68,68,0.2)]",
+          hoverBorder: "hover:border-red-500/40 hover:shadow-red-500/10",
+          hoverTitle: "group-hover:text-red-300",
+        };
       default:
         return {
           badge: "bg-neutral-800 text-neutral-300 border-neutral-700",

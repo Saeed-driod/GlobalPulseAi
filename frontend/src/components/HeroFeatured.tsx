@@ -39,6 +39,12 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
           glow: "from-purple-500/20 via-transparent to-transparent",
           hoverText: "group-hover:text-purple-300",
         };
+      case "Global Sports":
+        return {
+          badge: "bg-red-500/15 text-red-300 border-red-400/40 shadow-[0_0_12px_rgba(239,68,68,0.25)]",
+          glow: "from-red-500/20 via-transparent to-transparent",
+          hoverText: "group-hover:text-red-300",
+        };
       default:
         return {
           badge: "bg-neutral-800 text-neutral-300 border-neutral-700",

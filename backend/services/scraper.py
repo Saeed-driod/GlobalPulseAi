@@ -59,6 +59,29 @@ RSS_FEEDS = [
         "name": "Phys.org",
         "url": "https://phys.org/rss-feed/",
     },
+    # Global Sports
+    {
+        "category": "Global Sports",
+        "name": "BBC Sport",
+        "url": "http://feeds.bbci.co.uk/sport/rss.xml",
+    },
+    {
+        "category": "Global Sports",
+        "name": "ESPN Top Headlines",
+        "url": "https://www.espn.com/espn/rss/news",
+    },
+    {
+        "category": "Global Sports",
+        "name": "ESPN Cricinfo",
+        "url": "https://www.espncricinfo.com/rss/content/story/feeds/0.xml",
+    },
+]
+
+SPORTS_KEYWORDS = [
+    "cricket", "football", "premier league", "champions league", "fifa", "icc",
+    "nba", "f1", "formula 1", "ufc", "tennis", "match", "tournament",
+    "transfer", "championship", "world cup", "bundesliga", "la liga", "serie a",
+    "ipl", "t20", "grand slam", "ballon d'or"
 ]
 
 def clean_html(raw_html: str) -> str:
@@ -103,6 +126,13 @@ def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
                 if any(item["raw_title"].lower() == title.lower() for item in extracted_items):
                     continue
 
+                # Sports keyword matching for dynamic re-classification
+                combined_text = f"{title.lower()} {summary.lower()}"
+                if category != "Global Sports" and any(re.search(rf"\b{re.escape(kw)}\b", combined_text) for kw in SPORTS_KEYWORDS):
+                    item_category = "Global Sports"
+                else:
+                    item_category = category
+
                 from backend.services.image_resolver import resolve_article_image
 
                 # Tier 1 & 2 image resolution from RSS entry or URL
@@ -110,7 +140,7 @@ def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
                     entry=entry,
                     title=title,
                     source_url=link,
-                    category=category
+                    category=item_category
                 )
 
                 extracted_items.append({
@@ -118,7 +148,7 @@ def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
                     "raw_summary": summary[:400] if summary else title,
                     "source_name": source_name,
                     "source_url": link,
-                    "suggested_category": category,
+                    "suggested_category": item_category,
                     "raw_image_url": resolved_img,
                 })
 
@@ -159,6 +189,13 @@ def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
                 "source_name": "ScienceDaily",
                 "source_url": "https://sciencedaily.com",
                 "suggested_category": "Future Science",
+            },
+            {
+                "raw_title": "Champions League Blockbuster: Tactical Breakdown and Player Performance Matrix",
+                "raw_summary": "High-intensity counter-pressing and fluid wide rotations dictate the definitive European knockout clash as title contenders lock down aggregate advantages.",
+                "source_name": "BBC Sport",
+                "source_url": "https://bbc.co.uk/sport",
+                "suggested_category": "Global Sports",
             },
         ]
 
