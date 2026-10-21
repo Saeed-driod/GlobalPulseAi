@@ -1,19 +1,5 @@
-# GlobalPulse AI Robots.txt
-# https://globlepluse.onrender.com
-
 User-agent: *
 Allow: /
-Disallow: /admin
-Disallow: /admin/
-
-User-agent: Googlebot
-Allow: /
-Disallow: /admin
-Disallow: /admin/
-
-User-agent: Googlebot-News
-Allow: /
-Disallow: /admin
 Disallow: /admin/
 
 Sitemap: https://globlepluse.onrender.com/sitemap.xml
