@@ -231,13 +231,17 @@ def verify_admin_key(is_valid: bool = Depends(verify_admin_secret)):
 
 @app.post("/api/articles/fetch-now", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
 @app.post("/api/fetch-now", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
-def fetch_now(limit: int = Query(4, ge=1, le=10), db: Session = Depends(get_db)):
+def fetch_now(
+    limit: int = Query(4, ge=1, le=10),
+    category: Optional[str] = Query(None, description="Optional target category: Global Sports, AI & Tech, etc."),
+    db: Session = Depends(get_db)
+):
     """
     Fetch breaking stories from Tier-1 global RSS feeds, synthesize with
     Gemini AI (generating headline, TL;DR, markdown article, and 60-sec Shorts script),
-    and save into the DRAFT editorial queue.
+    and save into the DRAFT editorial queue. Supports category targeting.
     """
-    raw_news_items = fetch_breaking_rss_news(limit=limit)
+    raw_news_items = fetch_breaking_rss_news(limit=limit, target_category=category)
     if not raw_news_items:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -391,6 +395,16 @@ def generate_video(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Video rendering error: {str(e)}. (Article was published live: check /api/debug/last-error)"
         )
+
+@app.post("/api/articles/{article_id}/compose-long", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
+def compose_long_endpoint(article_id: int, db: Session = Depends(get_db)):
+    """Convenience endpoint to render a 16:9 Long-Form HD Video for an article."""
+    return generate_video(article_id=article_id, format="long", db=db)
+
+@app.post("/api/articles/{article_id}/compose-short", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
+def compose_short_endpoint(article_id: int, db: Session = Depends(get_db)):
+    """Convenience endpoint to render a 9:16 Shorts Video for an article."""
+    return generate_video(article_id=article_id, format="short", db=db)
 
 @app.post("/api/articles/{article_id}/publish", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
 def publish_article(
@@ -620,5 +634,60 @@ def get_scheduler_telemetry():
     Telemetry and heartbeat status for the 24/7 APScheduler background worker.
     """
     return get_scheduler_status()
+
+
+@app.get("/api/worker/pending")
+def get_pending_worker_articles(
+    category: Optional[str] = Query(None, description="Filter by category (e.g. 'Global Sports')"),
+    missing: str = Query("video", pattern="^(video|youtube|any)$", description="Type of pending work"),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """
+    Offloading / Worker API:
+    Queries articles in the database that are pending video rendering or YouTube upload.
+    Enables local PC workers to pick up tasks without consuming Render's 512MB RAM.
+    """
+    query = db.query(Article)
+    if category:
+        query = query.filter(Article.category.ilike(f"%{category}%"))
+
+    if missing == "video":
+        query = query.filter((Article.video_path == None) | (Article.video_path == ""))
+    elif missing == "youtube":
+        query = query.filter(
+            (Article.youtube_video_id == None) | 
+            (Article.youtube_video_id == "") | 
+            (Article.youtube_video_id == "dQw4w9WgXcQ")
+        )
+    elif missing == "any":
+        query = query.filter(
+            (Article.video_path == None) | (Article.video_path == "") |
+            (Article.youtube_video_id == None) | (Article.youtube_video_id == "") |
+            (Article.youtube_video_id == "dQw4w9WgXcQ")
+        )
+
+    articles = query.order_by(desc(Article.id)).limit(limit).all()
+
+    return {
+        "count": len(articles),
+        "articles": [
+            {
+                "id": a.id,
+                "title": a.title,
+                "category": a.category,
+                "status": a.status,
+                "video_path": a.video_path,
+                "youtube_video_id": a.youtube_video_id,
+                "has_video": bool(a.video_path),
+                "has_youtube": bool(a.youtube_video_id and a.youtube_video_id != "dQw4w9WgXcQ"),
+                "image_url": a.image_url,
+                "published_at": a.published_at.isoformat() if a.published_at else None,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in articles
+        ]
+    }
+
 
 

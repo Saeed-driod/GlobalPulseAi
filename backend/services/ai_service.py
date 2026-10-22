@@ -149,13 +149,15 @@ Return ONLY a valid JSON object with the following keys:
         refined_title = refined_title.replace(" - ", ": ")
 
     if category == "Global Sports":
-        summary = f"""• High-stakes sports coverage from {source_name} breaks down championship implications and decisive tactical shifts.
-• Key individual performances and tactical adjustments dictate aggregate advantage on the world stage.
-• Tournament standings and upcoming qualification pathways recalibrated following landmark performance."""
+        summary = f"""• High-stakes sports dispatch from {source_name}: {refined_title}.
+• Decisive tactical adjustments and individual brilliance dictate the aggregate momentum on the world stage.
+• Tournament standings and qualification pathways recalibrate following this high-octane encounter."""
 
         content = f"""### Match & Event Analysis (The Headline Story)
 
-In breaking sports journalism confirmed by **{source_name}**, the premier fixture in **Global Sports** has concluded with high tactical drama. Both squads deployed contrasting strategic systems, but sharp execution in transitional moments and defensive discipline ultimately decided the encounter.
+In breaking sports journalism confirmed by **{source_name}**, the marquee fixture in **Global Sports** has delivered landmark drama: **{refined_title}**.
+
+{raw_summary if raw_summary else "Both squads deployed high-tempo strategic systems, but sharp execution in transitional moments and disciplined defensive shape ultimately decided the outcome."}
 
 Key performers seized the initiative early, capitalizing on tactical overloads and executing sharp counter-pressing traps that neutralized opposition scoring threats while establishing decisive offensive momentum.
 
@@ -169,14 +171,14 @@ Key performers seized the initiative early, capitalizing on tactical overloads a
 
 | Key Performer / Unit | Tactical Role | Match Rating | Key Performance Metrics | Strategic Impact |
 | :--- | :--- | :--- | :--- | :--- |
-| **Lead Playmaker** | Attacking Orchestration | 9.3 / 10 | 88% pass completion, 4 key chances created | Dictated tempo across the central third |
-| **Defensive Anchor** | Transition Stopper | 8.9 / 10 | 7 critical interventions, 100% aerial duels won | Neutralized primary attacking threats |
-| **High-Pressing Frontline** | Wide Overload & Press | 9.1 / 10 | 18 defensive pressures, 2 direct score contributions | Forced opponent turnovers in high danger zones |
-| **Goalkeeping Unit** | Shot Stopping & Build-up | 8.8 / 10 | 5 crucial stops, 92% accurate long distributions | Maintained lead during opponent momentum peaks |
+| **Lead Playmaker** | Attacking Orchestration | 9.4 / 10 | 89% pass completion, 5 key chances created | Dictated tempo across the central third |
+| **Defensive Anchor** | Transition Stopper | 9.0 / 10 | 8 critical interventions, 100% aerial duels won | Neutralized primary counter-attacking threats |
+| **High-Pressing Frontline** | Wide Overload & Press | 9.2 / 10 | 19 defensive pressures, 2 direct score contributions | Forced opponent turnovers in high danger zones |
+| **Goalkeeping / Final Unit** | Shot Stopping & Build-up | 8.8 / 10 | 6 crucial stops, 94% accurate long distributions | Maintained lead during opponent momentum peaks |
 
 ### Upcoming Fixture & Championship Implications
 
-This landmark performance immediately impacts the title race and tournament bracket. The winning side secures vital momentum ahead of next week's high-stakes qualification clash, while the defeated unit must swiftly recalibrate defensive structures to avoid dropping down the standings.
+This landmark performance immediately impacts the title race and tournament bracket. The winning side secures vital momentum ahead of next week's high-stakes clash, while opponents must swiftly recalibrate structures to avoid dropping down the table standings.
 
 ### Frequently Asked Questions
 
@@ -189,10 +191,10 @@ A: The victory reinforces aggregate standing and seeds the team in prime positio
 **Q: Where can viewers watch detailed video highlights and analysis?**  
 A: Full verified reporting is updated live on **GlobalPulse AI**, with tactical video breakdowns syndicated on **EduHub by Saeed**."""
 
-        youtube_script = f"""[00:00 - 00:06] HOOK: A sports masterclass just rocked the global arena!
+        youtube_script = f"""[00:00 - 00:06] HOOK: A sports masterclass just rocked the global arena! {refined_title[:60]}!
 [00:06 - 00:18] VISUAL: High-octane stadium visuals and match telemetry from {source_name}.
-[00:18 - 00:32] NARRATION: {raw_summary[:140]}... The tactical masterstroke that secured a historic victory.
-[00:32 - 00:46] STAT OVERLAY: Rating 9.3/10 | 88% Accuracy | 7 Key Interventions.
+[00:18 - 00:32] NARRATION: {raw_summary[:140] if raw_summary else refined_title}... The tactical masterstroke that secured a historic victory.
+[00:32 - 00:46] STAT OVERLAY: Rating 9.4/10 | 89% Accuracy | 8 Key Interventions.
 [00:46 - 00:55] VISUAL: Tactical board displaying the decisive attacking transition and defensive shape.
 [00:55 - 01:00] CTA: Subscribe to EduHub by Saeed (@EduHubbySaeed) and read full sports breakdown on GlobalPulse AI!"""
     else:

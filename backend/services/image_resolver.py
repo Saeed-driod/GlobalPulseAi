@@ -20,7 +20,8 @@ GENERIC_PLACEHOLDERS = [
     "photo-1618005182384-a83a8bd57fbe",
     "photo-1611974789855-9c2a0a7236a3",
     "photo-1578575437130-527eed3abbec",
-    "photo-1507413245164-6160d8298b31"
+    "photo-1507413245164-6160d8298b31",
+    "photo-1508098682722-e99c43a406b2"
 ]
 
 def is_generic_placeholder(url: Optional[str]) -> bool:
@@ -155,10 +156,12 @@ def generate_pollinations_image_url(title: str, category: str = "", seed: Option
     words = [w.lower() for w in clean_title.split() if len(w) > 2 and w.lower() not in STOP_WORDS]
     
     # Pick top 4-6 descriptive words
-    selected_words = words[:6] if words else ["global", "technology", "news"]
+    selected_words = words[:6] if words else ["global", "news"]
     keyword_str = " ".join(selected_words)
 
-    if category and category.lower() not in keyword_str.lower():
+    if category == "Global Sports":
+        prompt_text = f"{keyword_str} stadium pitch match action sports championship dynamic lighting 8k editorial photography"
+    elif category and category.lower() not in keyword_str.lower():
         prompt_text = f"{keyword_str} {category} editorial news photography realistic 8k"
     else:
         prompt_text = f"{keyword_str} editorial news photography realistic 8k"

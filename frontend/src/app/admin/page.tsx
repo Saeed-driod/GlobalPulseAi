@@ -164,7 +164,8 @@ export default function AdminPage() {
 
   const handleFetchNow = async () => {
     setFetchingNews(true);
-    const res = await triggerFetchNow();
+    const cat = filterCategory !== "ALL" ? filterCategory : undefined;
+    const res = await triggerFetchNow(cat);
     setFetchingNews(false);
     if (res.success) {
       showToast(res.message);

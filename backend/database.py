@@ -1,10 +1,19 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-load_dotenv()
+# Load .env from backend directory or project root
+backend_env = Path(__file__).resolve().parent / ".env"
+root_env = Path(__file__).resolve().parent.parent / ".env"
+if backend_env.exists():
+    load_dotenv(backend_env)
+elif root_env.exists():
+    load_dotenv(root_env)
+else:
+    load_dotenv()
 
 # Configurable database URL: Defaults to local SQLite, seamless Neon DB / PostgreSQL switch
 raw_db_url = os.getenv("DATABASE_URL", "sqlite:///./globalpulse.db")

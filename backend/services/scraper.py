@@ -1,14 +1,44 @@
 import re
 import html
-from typing import List, Dict, Any
+import random
+from typing import List, Dict, Any, Optional
 import feedparser
 
-# Curated Tier-1 Global RSS Feeds grouped by High-CPM Media Categories
+try:
+    from .image_resolver import resolve_article_image
+except (ImportError, ValueError):
+    try:
+        from services.image_resolver import resolve_article_image
+    except (ImportError, ValueError):
+        from backend.services.image_resolver import resolve_article_image
+
+# Curated Tier-1 Global RSS Feeds grouped across all 5 Core Media Categories
 RSS_FEEDS = [
-    # AI & Tech
+    # 1. Global Sports (Top Tier Coverage: BBC, ESPN, Cricinfo, Sky Sports)
+    {
+        "category": "Global Sports",
+        "name": "BBC Sport",
+        "url": "http://feeds.bbci.co.uk/sport/rss.xml",
+    },
+    {
+        "category": "Global Sports",
+        "name": "ESPN Top Headlines",
+        "url": "https://www.espn.com/espn/rss/news",
+    },
+    {
+        "category": "Global Sports",
+        "name": "ESPN Cricinfo",
+        "url": "https://www.espncricinfo.com/rss/content/story/feeds/0.xml",
+    },
+    {
+        "category": "Global Sports",
+        "name": "Sky Sports News",
+        "url": "https://www.skysports.com/rss/12040",
+    },
+    # 2. AI & Tech
     {
         "category": "AI & Tech",
-        "name": "TechCrunch",
+        "name": "TechCrunch AI",
         "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
     },
     {
@@ -26,7 +56,7 @@ RSS_FEEDS = [
         "name": "Hacker News",
         "url": "https://news.ycombinator.com/rss",
     },
-    # Global Markets & Crypto
+    # 3. Global Markets & Economy
     {
         "category": "Global Markets",
         "name": "CNBC Markets",
@@ -37,7 +67,7 @@ RSS_FEEDS = [
         "name": "CoinDesk",
         "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
     },
-    # Geopolitics
+    # 4. Geopolitics & World Affairs
     {
         "category": "Geopolitics",
         "name": "BBC World News",
@@ -48,7 +78,7 @@ RSS_FEEDS = [
         "name": "NPR World",
         "url": "https://feeds.npr.org/1004/rss.xml",
     },
-    # Future Science
+    # 5. Future Science & Space Exploration
     {
         "category": "Future Science",
         "name": "ScienceDaily",
@@ -59,30 +89,22 @@ RSS_FEEDS = [
         "name": "Phys.org",
         "url": "https://phys.org/rss-feed/",
     },
-    # Global Sports
-    {
-        "category": "Global Sports",
-        "name": "BBC Sport",
-        "url": "http://feeds.bbci.co.uk/sport/rss.xml",
-    },
-    {
-        "category": "Global Sports",
-        "name": "ESPN Top Headlines",
-        "url": "https://www.espn.com/espn/rss/news",
-    },
-    {
-        "category": "Global Sports",
-        "name": "ESPN Cricinfo",
-        "url": "https://www.espncricinfo.com/rss/content/story/feeds/0.xml",
-    },
 ]
 
 SPORTS_KEYWORDS = [
-    "cricket", "football", "premier league", "champions league", "fifa", "icc",
-    "nba", "f1", "formula 1", "ufc", "tennis", "match", "tournament",
-    "transfer", "championship", "world cup", "bundesliga", "la liga", "serie a",
-    "ipl", "t20", "grand slam", "ballon d'or"
+    "cricket", "football", "soccer", "premier league", "champions league", "fifa", "icc",
+    "bcci", "ipl", "t20", "test match", "odi", "ashes", "nba", "wnba", "nfl", "mlb", "nhl",
+    "f1", "formula 1", "grand prix", "ufc", "mma", "boxing", "tennis", "grand slam", "wimbledon",
+    "djokovic", "alcaraz", "sinner", "federer", "nadal", "match", "tournament", "transfer", "championship", "world cup",
+    "bundesliga", "la liga", "serie a", "ballon d'or", "olympics", "derby", "playoffs", "quarterfinal",
+    "semifinal", "score", "stadium", "manager", "trophy", "haaland", "mbappe", "messi", "ronaldo",
+    "chelsea", "arsenal", "liverpool", "manchester", "man utd", "real madrid", "barcelona", "bayern",
+    "psg", "leclerc", "verstappen", "hamilton", "norris", "lebron", "curry", "super bowl", "touchdown",
+    "wicket", "century", "striker", "goalkeeper", "penalty", "hat-trick", "carrick", "amorim", "guardiola",
+    "arteta", "athletics", "olympic", "paralympic"
 ]
+
+ALL_CATEGORIES = ["Global Sports", "AI & Tech", "Global Markets", "Geopolitics", "Future Science"]
 
 def clean_html(raw_html: str) -> str:
     """Strip HTML tags and unescape entities."""
@@ -92,14 +114,40 @@ def clean_html(raw_html: str) -> str:
     clean_text = html.unescape(clean_text)
     return " ".join(clean_text.split())
 
-def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
+def fetch_breaking_rss_news(limit: int = 5, target_category: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Fetch breaking stories from across top Tier-1 RSS feeds.
-    Returns a normalized list of raw news items.
+    Provides balanced round-robin sampling across all 5 core categories
+    (including Global Sports) or focuses on target_category if specified.
     """
-    extracted_items = []
+    extracted_items: List[Dict[str, Any]] = []
 
-    for feed_info in RSS_FEEDS:
+    # 1. Filter or organize feeds by category
+    if target_category:
+        active_feeds = [f for f in RSS_FEEDS if f["category"].lower() == target_category.lower()]
+        if not active_feeds:
+            active_feeds = RSS_FEEDS
+        per_feed_limit = 3
+    else:
+        # Balanced category interleaving: Group feeds by category
+        cat_map: Dict[str, List[Dict[str, str]]] = {cat: [] for cat in ALL_CATEGORIES}
+        for f in RSS_FEEDS:
+            cat = f["category"]
+            if cat in cat_map:
+                cat_map[cat].append(f)
+
+        # Interleave so each category gets a turn
+        active_feeds = []
+        max_len = max(len(flist) for flist in cat_map.values()) if cat_map else 0
+        for i in range(max_len):
+            for cat in ALL_CATEGORIES:
+                flist = cat_map[cat]
+                if i < len(flist):
+                    active_feeds.append(flist[i])
+        per_feed_limit = 1
+
+    # 2. Iterate through feeds to collect breaking stories
+    for feed_info in active_feeds:
         if len(extracted_items) >= limit:
             break
 
@@ -108,12 +156,11 @@ def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
         feed_url = feed_info["url"]
 
         try:
-            # Parse feed with feedparser
             parsed = feedparser.parse(feed_url)
             if not parsed.entries:
                 continue
 
-            for entry in parsed.entries[:2]:
+            for entry in parsed.entries[:per_feed_limit]:
                 title = getattr(entry, "title", "").strip()
                 link = getattr(entry, "link", "").strip()
                 summary = getattr(entry, "summary", "") or getattr(entry, "description", "")
@@ -126,16 +173,14 @@ def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
                 if any(item["raw_title"].lower() == title.lower() for item in extracted_items):
                     continue
 
-                # Sports keyword matching for dynamic re-classification
+                # Sports keyword matching for dynamic classification
                 combined_text = f"{title.lower()} {summary.lower()}"
-                if category != "Global Sports" and any(re.search(rf"\b{re.escape(kw)}\b", combined_text) for kw in SPORTS_KEYWORDS):
+                if category == "Global Sports" or any(re.search(rf"\b{re.escape(kw)}\b", combined_text) for kw in SPORTS_KEYWORDS):
                     item_category = "Global Sports"
                 else:
                     item_category = category
 
-                from backend.services.image_resolver import resolve_article_image
-
-                # Tier 1 & 2 image resolution from RSS entry or URL
+                # Resolve image from RSS media tags or URL
                 resolved_img = resolve_article_image(
                     entry=entry,
                     title=title,
@@ -163,11 +208,20 @@ def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
         print("RSS networks throttled; falling back to wire aggregation queue.")
         extracted_items = [
             {
+                "raw_title": "Champions League Blockbuster: Tactical Breakdown and Player Performance Matrix",
+                "raw_summary": "High-intensity counter-pressing and fluid wide rotations dictate the definitive European knockout clash as title contenders lock down aggregate advantages.",
+                "source_name": "BBC Sport",
+                "source_url": "https://bbc.co.uk/sport",
+                "suggested_category": "Global Sports",
+                "raw_image_url": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80"
+            },
+            {
                 "raw_title": "Anthropic and DeepMind Announce Joint Safety Evaluation Framework for Frontier Models",
                 "raw_summary": "Leading AI laboratories establish unified cross-evaluation benchmarks to assess autonomous capabilities and alignment protocols prior to tier-1 enterprise release.",
                 "source_name": "TechCrunch AI",
                 "source_url": "https://techcrunch.com/category/artificial-intelligence/",
                 "suggested_category": "AI & Tech",
+                "raw_image_url": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80"
             },
             {
                 "raw_title": "Global Sovereign Wealth Funds Reallocate $65B to Infrastructure and Power Grids",
@@ -175,6 +229,7 @@ def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
                 "source_name": "CNBC Markets",
                 "source_url": "https://cnbc.com/markets",
                 "suggested_category": "Global Markets",
+                "raw_image_url": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80"
             },
             {
                 "raw_title": "European Union and Indo-Pacific Partners Finalize Semiconductor Resilience Corridor",
@@ -182,6 +237,7 @@ def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
                 "source_name": "BBC World News",
                 "source_url": "https://bbc.com/news/world",
                 "suggested_category": "Geopolitics",
+                "raw_image_url": "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1200&q=80"
             },
             {
                 "raw_title": "Deep Space Optical Communications Link Streams Terabyte Telemetry from Mars Orbit",
@@ -189,13 +245,7 @@ def fetch_breaking_rss_news(limit: int = 4) -> List[Dict[str, Any]]:
                 "source_name": "ScienceDaily",
                 "source_url": "https://sciencedaily.com",
                 "suggested_category": "Future Science",
-            },
-            {
-                "raw_title": "Champions League Blockbuster: Tactical Breakdown and Player Performance Matrix",
-                "raw_summary": "High-intensity counter-pressing and fluid wide rotations dictate the definitive European knockout clash as title contenders lock down aggregate advantages.",
-                "source_name": "BBC Sport",
-                "source_url": "https://bbc.co.uk/sport",
-                "suggested_category": "Global Sports",
+                "raw_image_url": "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=1200&q=80"
             },
         ]
 

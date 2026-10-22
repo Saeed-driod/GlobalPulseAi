@@ -147,9 +147,13 @@ export async function verifyAdminSecret(key: string): Promise<{ success: boolean
   }
 }
 
-export async function triggerFetchNow(): Promise<ActionResponse> {
+export async function triggerFetchNow(category?: string): Promise<ActionResponse> {
   try {
-    const res = await fetch(`${getApiBase()}/api/articles/fetch-now`, {
+    const url = new URL(`${getApiBase()}/api/articles/fetch-now`);
+    if (category && category !== "ALL") {
+      url.searchParams.set("category", category);
+    }
+    const res = await fetch(url.toString(), {
       method: "POST",
       headers: {
         "X-Admin-Secret": getAdminSecret(),

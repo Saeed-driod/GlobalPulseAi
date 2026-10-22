@@ -15,13 +15,15 @@ export const metadata: Metadata = {
     template: "%s | GlobalPulse AI",
   },
   description:
-    "Automated AI-powered global news and video media network delivering real-time geopolitical, financial market, and technological insights for Tier-1 decision makers.",
+    "Automated AI-powered global news and video media network delivering real-time geopolitical, financial market, technological, and global sports intelligence for Tier-1 decision makers.",
   keywords: [
     "Global News",
     "AI Technology",
     "Global Markets",
     "Geopolitics",
     "Future Science",
+    "Global Sports",
+    "Sports Analytics",
     "Automated Journalism",
     "YouTube Shorts Intelligence",
   ],
