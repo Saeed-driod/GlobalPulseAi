@@ -54,23 +54,42 @@ def record_error(stage: str, error: Exception, article_id: Optional[int] = None)
     }
     print(f"[ERROR TRACKER] [{stage}] Article #{article_id}: {error}")
 
-from .database import engine, Base, get_db
-from .models import Article, ArticleStatus, ArticleCategory
-from .schemas import (
-    ArticleResponse,
-    ArticleListResponse,
-    AdminStatsResponse,
-    ActionResponse,
-    ArticleCreate,
-    ArticleUpdate
-)
-from .services.scraper import fetch_breaking_rss_news
-from .services.ai_service import process_raw_news
-from .services.video_generator import compose_short_video, compose_video, compose_long_video
-from .services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status
-from .services.pipeline import run_full_automation_pipeline
-from .services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status
-from .services.image_resolver import refresh_missing_images
+try:
+    from .database import engine, Base, get_db, SessionLocal
+    from .models import Article, ArticleStatus, ArticleCategory
+    from .schemas import (
+        ArticleResponse,
+        ArticleListResponse,
+        AdminStatsResponse,
+        ActionResponse,
+        ArticleCreate,
+        ArticleUpdate
+    )
+    from .services.scraper import fetch_breaking_rss_news
+    from .services.ai_service import process_raw_news
+    from .services.video_generator import compose_short_video, compose_video, compose_long_video
+    from .services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status
+    from .services.pipeline import run_full_automation_pipeline
+    from .services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status
+    from .services.image_resolver import refresh_missing_images
+except (ImportError, ValueError):
+    from database import engine, Base, get_db, SessionLocal
+    from models import Article, ArticleStatus, ArticleCategory
+    from schemas import (
+        ArticleResponse,
+        ArticleListResponse,
+        AdminStatsResponse,
+        ActionResponse,
+        ArticleCreate,
+        ArticleUpdate
+    )
+    from services.scraper import fetch_breaking_rss_news
+    from services.ai_service import process_raw_news
+    from services.video_generator import compose_short_video, compose_video, compose_long_video
+    from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status
+    from services.pipeline import run_full_automation_pipeline
+    from services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status
+    from services.image_resolver import refresh_missing_images
 
 
 
@@ -485,7 +504,6 @@ def auto_publish_pipeline(
     db.refresh(article)
 
     def _bg_publish(art_id: int, fmt: str):
-        from .database import SessionLocal
         bg_db = SessionLocal()
         try:
             art = bg_db.query(Article).filter(Article.id == art_id).first()
@@ -550,7 +568,6 @@ def auth_youtube():
     Instantly returns a 307 redirect to Google's OAuth consent screen
     so the browser opens Google login immediately without spinning.
     """
-    from .services.youtube_uploader import get_oauth_authorization_url
     try:
         auth_url = get_oauth_authorization_url()
         return RedirectResponse(url=auth_url, status_code=307)
@@ -564,7 +581,6 @@ def auth_youtube():
 @app.get("/api/auth-youtube/status")
 def auth_youtube_status():
     """Check whether token.json exists and is valid."""
-    from .services.youtube_uploader import check_auth_status
     return check_auth_status()
 
 
@@ -580,7 +596,6 @@ def trigger_master_pipeline(
     Executes RSS fetch, Gemini AI synthesis, FFmpeg video generation, and YouTube upload in background.
     """
     def _execute_pipeline():
-        from .database import SessionLocal
         bg_db = SessionLocal()
         try:
             run_full_automation_pipeline(limit=limit, db=bg_db, video_format=format)

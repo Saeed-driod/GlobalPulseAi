@@ -3,8 +3,12 @@ Database Seeder - GlobalPulse AI
 Note: Automatic fake/dummy article seeding has been permanently disabled.
 This file remains as an empty safe utility.
 """
-from .database import SessionLocal, engine, Base
-from .models import Article
+try:
+    from .database import SessionLocal, engine, Base
+    from .models import Article
+except (ImportError, ValueError):
+    from database import SessionLocal, engine, Base
+    from models import Article
 
 SAMPLE_ARTICLES = []
 

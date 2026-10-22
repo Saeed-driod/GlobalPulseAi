@@ -6,12 +6,20 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 
-from ..database import get_db, SessionLocal
-from ..models import Article, ArticleStatus
-from .scraper import fetch_breaking_rss_news
-from .ai_service import process_raw_news
-from .video_generator import compose_short_video, compose_video
-from .youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
+try:
+    from ..database import get_db, SessionLocal
+    from ..models import Article, ArticleStatus
+    from .scraper import fetch_breaking_rss_news
+    from .ai_service import process_raw_news
+    from .video_generator import compose_short_video, compose_video
+    from .youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
+except (ImportError, ValueError):
+    from database import get_db, SessionLocal
+    from models import Article, ArticleStatus
+    from services.scraper import fetch_breaking_rss_news
+    from services.ai_service import process_raw_news
+    from services.video_generator import compose_short_video, compose_video
+    from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
 
 
 def slugify(text: str) -> str:
@@ -164,7 +172,10 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     print(f"[Master Pipeline WARNING] Video rendering/upload issue for article #{article.id}: {vid_err}")
                     traceback.print_exc()
                     try:
-                        from ..main import record_error
+                        try:
+                            from ..main import record_error
+                        except (ImportError, ValueError):
+                            from main import record_error
                         record_error("pipeline_video_upload", vid_err, article_id=article.id)
                     except Exception:
                         pass

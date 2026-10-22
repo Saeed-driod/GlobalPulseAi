@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
 import enum
 from sqlalchemy import Column, Integer, String, Text, DateTime, Enum
-from .database import Base
+try:
+    from .database import Base
+except (ImportError, ValueError):
+    from database import Base
 
 class ArticleStatus(str, enum.Enum):
     DRAFT = "DRAFT"

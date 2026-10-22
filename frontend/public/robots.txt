@@ -1,6 +1,0 @@
-# GlobalPulse AI Robots.txt - Updated v2
-User-agent: *
-Allow: /
-Disallow: /admin/
-
-Sitemap: https://globlepluse.onrender.com/sitemap.xml

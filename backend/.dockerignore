@@ -1,0 +1,17 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+.env
+.env.*
+client_secret*.json
+token*.json
+*.db
+*.sqlite3
+static/videos/*
+!static/videos/.gitkeep
+.git
+.gitignore
