@@ -259,6 +259,10 @@ def run_daemon_worker(interval_seconds: int = 60, video_format: str = "long", do
 def interactive_menu():
     """CLI interactive menu for ease of use without memorizing flags."""
     print_banner()
+    auth = check_auth_status()
+    is_auth = bool(auth and auth.get("authenticated"))
+    default_upload = "y" if is_auth else "n"
+
     while True:
         print("\nChoose an action:")
         print("  [1] Fetch Breaking 'Global Sports' News & Render Video")
@@ -270,26 +274,30 @@ def interactive_menu():
 
         choice = input("\nEnter choice [1-6]: ").strip()
         if choice == "1":
-            fmt = input("Select format: 'long' (16:9 HD) or 'short' (9:16 Shorts) [default: long]: ").strip().lower() or "long"
-            upload_choice = input("Auto-upload to YouTube if authenticated? (y/n) [default: n]: ").strip().lower() == "y"
+            fmt = input("Select format: 'long' (16:9 HD) or 'short' (9:16 Shorts) [default: short]: ").strip().lower() or "short"
+            u_in = input(f"Auto-upload to YouTube ({auth.get('channel', 'EduHubbySaeed')})? (y/n) [default: {default_upload}]: ").strip().lower()
+            upload_choice = (u_in != "n") if is_auth else (u_in == "y")
             fetch_and_publish_news(target_category="Global Sports", video_format=fmt, do_upload=upload_choice)
         elif choice == "2":
             art_id_str = input("Enter Article ID: ").strip()
             if art_id_str.isdigit():
-                fmt = input("Select format: 'long' or 'short' [default: long]: ").strip().lower() or "long"
-                upload_choice = input("Auto-upload to YouTube? (y/n) [default: n]: ").strip().lower() == "y"
+                fmt = input("Select format: 'long' or 'short' [default: short]: ").strip().lower() or "short"
+                u_in = input(f"Auto-upload to YouTube? (y/n) [default: {default_upload}]: ").strip().lower()
+                upload_choice = (u_in != "n") if is_auth else (u_in == "y")
                 render_article_video(int(art_id_str), video_format=fmt, do_upload=upload_choice)
             else:
                 print("Invalid article ID.")
         elif choice == "3":
-            fmt = input("Select format: 'long' or 'short' [default: long]: ").strip().lower() or "long"
+            fmt = input("Select format: 'long' or 'short' [default: short]: ").strip().lower() or "short"
             cat = input("Filter category (e.g. 'Global Sports', or leave empty for all): ").strip() or None
-            process_pending_articles(category=cat, video_format=fmt)
+            u_in = input(f"Auto-upload to YouTube? (y/n) [default: {default_upload}]: ").strip().lower()
+            upload_choice = (u_in != "n") if is_auth else (u_in == "y")
+            process_pending_articles(category=cat, video_format=fmt, do_upload=upload_choice)
         elif choice == "4":
-            fmt = input("Select default format: 'long' or 'short' [default: long]: ").strip().lower() or "long"
+            fmt = input("Select default format: 'long' or 'short' [default: short]: ").strip().lower() or "short"
             interval = input("Polling interval in seconds [default: 60]: ").strip()
             interval_sec = int(interval) if interval.isdigit() else 60
-            run_daemon_worker(interval_seconds=interval_sec, video_format=fmt)
+            run_daemon_worker(interval_seconds=interval_sec, video_format=fmt, do_upload=is_auth)
         elif choice == "5":
             list_recent_articles()
         elif choice == "6":
@@ -302,8 +310,9 @@ def interactive_menu():
 def main():
     parser = argparse.ArgumentParser(description="GlobalPulse AI Local Video Offloading Worker")
     parser.add_argument("--article", type=int, help="Render video for a specific article ID")
-    parser.add_argument("--format", choices=["long", "short"], default="long", help="Video format (long = 16:9 HD, short = 9:16 Shorts)")
-    parser.add_argument("--upload", action="store_true", help="Auto-upload to YouTube upon completion")
+    parser.add_argument("--format", choices=["long", "short"], default="short", help="Video format (default: short)")
+    parser.add_argument("--upload", action="store_true", help="Force auto-upload to YouTube upon completion")
+    parser.add_argument("--no-upload", action="store_true", help="Disable YouTube upload even if authenticated")
     parser.add_argument("--fetch", type=str, nargs="?", const="Global Sports", help="Fetch breaking news now for category (default: 'Global Sports')")
     parser.add_argument("--pending", action="store_true", help="Process all pending articles missing videos")
     parser.add_argument("--category", type=str, help="Filter category when processing pending articles")
@@ -320,16 +329,25 @@ def main():
 
     print_banner()
 
+    auth = check_auth_status()
+    is_auth = bool(auth and auth.get("authenticated"))
+    should_upload = False if args.no_upload else (True if (args.upload or is_auth) else False)
+
+    if should_upload:
+        print(f"[Worker] YouTube Auto-Upload is ACTIVE for channel '{auth.get('channel', 'EduHubbySaeed')}'.")
+    else:
+        print("[Worker] YouTube Auto-Upload is DISABLED for this run.")
+
     if args.list:
         list_recent_articles()
     elif args.fetch:
-        fetch_and_publish_news(target_category=args.fetch, video_format=args.format, do_upload=args.upload)
+        fetch_and_publish_news(target_category=args.fetch, video_format=args.format, do_upload=should_upload)
     elif args.article:
-        render_article_video(article_id=args.article, video_format=args.format, do_upload=args.upload)
+        render_article_video(article_id=args.article, video_format=args.format, do_upload=should_upload)
     elif args.pending:
-        process_pending_articles(category=args.category, video_format=args.format, do_upload=args.upload)
+        process_pending_articles(category=args.category, video_format=args.format, do_upload=should_upload)
     elif args.daemon:
-        run_daemon_worker(interval_seconds=args.interval, video_format=args.format, do_upload=args.upload)
+        run_daemon_worker(interval_seconds=args.interval, video_format=args.format, do_upload=should_upload)
 
 
 if __name__ == "__main__":
