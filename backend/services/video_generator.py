@@ -215,12 +215,11 @@ def clean_script_for_voiceover(youtube_script: str, fallback_title: str = "", fa
 def prepare_text_for_tts(clean_text: str) -> str:
     """
     Transforms text specifically for speech synthesis engine:
-    - Replaces 'EduHub by Saeed' with phonetic 'Edu-Hub by Saa-eed' for crisp pronunciation.
     - Adds a trailing pause buffer so the voiceover never cuts off abruptly at the end.
     """
     t = clean_text
-    t = re.sub(r"(?i)\beduhub\s+by\s+saeed\b", "Edu-Hub by Saa-eed", t)
-    t = re.sub(r"(?i)\bsaeed\b", "Saa-eed", t)
+    t = re.sub(r"(?i)\beduhub\s+by\s+saeed\b", "GlobalPulse AI", t)
+    t = re.sub(r"(?i)\b@eduhubbysaeed\b", "@GloblePulseAi", t)
     # Trailing 1-second pause buffer
     t = t.rstrip(".!? ") + ". ... Thank you for watching GlobalPulse AI."
     return t
@@ -269,7 +268,7 @@ def build_long_form_narration(
       2. Core Operational Facts & Executive Summary
       3. Deep-Dive Investigation (from full cleaned article content)
       4. Global Market & Strategic Implications
-      5. Outro & Call-to-Action for EduHub by Saeed (@EduHubbySaeed) and GlobalPulse AI
+      5. Outro & Call-to-Action for GlobalPulse AI (@GloblePulseAi)
     """
     clean_domain = get_clean_domain(PUBLIC_SITE_URL)
     clean_title = re.sub(r"(?i)\s*#shorts\b", "", title).strip().rstrip(".:,-")
@@ -341,10 +340,10 @@ def build_long_form_narration(
             "are actively recalibrating institutional capital flows and long-term enterprise technology roadmaps worldwide."
         )
 
-    # Section 5: Outro & Call-to-Action (EduHub by Saeed & GlobalPulse AI)
+    # Section 5: Outro & Call-to-Action (GlobalPulse AI)
     outro_text = (
-        "For daily technical masterclasses, real-world implementations, and cutting-edge tutorials, "
-        "make sure to subscribe to our official media partner, EduHub by Saeed, on YouTube at handle EduHub by Saeed. "
+        "For daily technical dispatches, real-world implementations, and cutting-edge intelligence briefings, "
+        "make sure to subscribe to our official YouTube channel, GlobalPulse AI, at handle GloblePulseAi. "
         f"And to inspect the complete dossier and verified data, visit GlobalPulse AI at {clean_domain}. Thank you for watching."
     )
 
@@ -861,7 +860,7 @@ def generate_news_slides(
     - Dynamic zoom & crop variations per scene.
     - Sleek top-left live badge (🔴 BREAKING • {category.upper()}).
     - TikTok-style large pop-up captions (lower-middle) displaying the exact spoken sentence with neon keyword highlights!
-    - Clean bottom bar (@EduHubbySaeed • GlobalPulse AI).
+    - Clean bottom bar (@GloblePulseAi • GlobalPulse AI).
     """
     import gc
     width, height = 1080, 1920
@@ -912,7 +911,7 @@ def generate_news_slides(
 
         # 3. Clean Bottom Bar (y=1810 to 1860)
         draw.line([(60, 1800), (width - 60, 1800)], fill=(51, 65, 85, 180), width=1)
-        bottom_text = "● LIVE WIRE • @EduHubbySaeed • GLOBALPULSE AI"
+        bottom_text = "● LIVE WIRE • @GloblePulseAi • GLOBALPULSE AI"
         b_box = draw.textbbox((0, 0), bottom_text, font=font_bottom)
         bw = b_box[2] - b_box[0]
         draw.text(((width - bw) // 2, 1825), bottom_text, fill=(203, 213, 225), font=font_bottom)
@@ -940,9 +939,9 @@ def generate_widescreen_long_slides(
     - 100% photo-rich dynamic visuals (no static PowerPoint cards or fake stat boxes).
     - Dynamic zoom & crop variations per scene.
     - Sleek top-left live broadcast badge (🔴 BREAKING • {category.upper()}).
-    - Top-right verified channel branding (@EduHubbySaeed • YouTube).
+    - Top-right verified channel branding (@GloblePulseAi • YouTube).
     - High-contrast broadcast subtitles in lower third with neon keyword highlights!
-    - Clean bottom bar (@EduHubbySaeed • GlobalPulse AI).
+    - Clean bottom bar (@GloblePulseAi • GlobalPulse AI).
     """
     import gc
     width, height = 1280, 720
@@ -982,7 +981,7 @@ def generate_widescreen_long_slides(
         draw.text((74, 34), badge_text, fill=(255, 255, 255), font=font_top_badge)
 
         # Top-Right Channel Pill
-        channel_text = "@EduHubbySaeed • YOUTUBE"
+        channel_text = "@GloblePulseAi • YOUTUBE"
         ch_box = draw.textbbox((0, 0), channel_text, font=font_top_channel)
         ch_w = ch_box[2] - ch_box[0]
         ch_h = ch_box[3] - ch_box[1]
@@ -1004,7 +1003,7 @@ def generate_widescreen_long_slides(
 
         # 4. Clean Bottom Bar
         draw.line([(40, 672), (width - 40, 672)], fill=(51, 65, 85, 180), width=1)
-        bottom_text = f"● LIVE INTELLIGENCE • @EduHubbySaeed • GLOBALPULSE AI • WWW.{clean_domain.upper()}"
+        bottom_text = f"● LIVE INTELLIGENCE • @GloblePulseAi • GLOBALPULSE AI • WWW.{clean_domain.upper()}"
         bot_box = draw.textbbox((0, 0), bottom_text, font=font_bottom)
         bot_w = bot_box[2] - bot_box[0]
         draw.text(((width - bot_w) // 2, 686), bottom_text, fill=(203, 213, 225), font=font_bottom)

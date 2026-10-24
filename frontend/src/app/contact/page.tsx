@@ -186,18 +186,18 @@ export default function ContactPage() {
                 <span>OFFICIAL YOUTUBE MEDIA PARTNER</span>
               </div>
               <h4 className="text-base font-bold text-white font-serif">
-                EduHub by Saeed
+                GlobalPulse AI on YouTube
               </h4>
               <p className="text-xs text-neutral-300 leading-relaxed">
-                Connect directly with our primary broadcast partner for video sponsorships, coding tutorials, and tech reviews.
+                Connect directly with our primary broadcast channel for video dispatches, technology intelligence, and global market coverage.
               </p>
               <a
-                href="https://www.youtube.com/@EduHubbySaeed"
+                href="https://www.youtube.com/@GloblePulseAi"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition shadow-md shadow-red-600/30"
               >
-                <span>Visit YouTube Channel</span>
+                <span>Visit YouTube Channel (@GloblePulseAi)</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>

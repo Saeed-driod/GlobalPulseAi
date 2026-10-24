@@ -189,14 +189,14 @@ A: Relentless counter-pressing and clinical exploitation of wide overloads allow
 A: The victory reinforces aggregate standing and seeds the team in prime position for knockout qualification, elevating their championship odds.
 
 **Q: Where can viewers watch detailed video highlights and analysis?**  
-A: Full verified reporting is updated live on **GlobalPulse AI**, with tactical video breakdowns syndicated on **EduHub by Saeed**."""
+A: Full verified reporting is updated live on **GlobalPulse AI**, with broadcast intelligence syndicated on our official YouTube channel **@GloblePulseAi**."""
 
         youtube_script = f"""A massive showdown just sent shockwaves through the sports world! {refined_title}.
 In breaking action, decisive tactical momentum completely shifted the game.
 Relentless pressure and standout individual brilliance dismantled the opponent's defensive structure.
 With crucial points and tournament standing on the line, this victory redefines the championship race.
 Fans and analysts are calling this one of the most electric performances of the entire season.
-Subscribe to EduHub by Saeed for more breaking sports breakdowns, and read our complete tactical analysis on GlobalPulse AI."""
+Subscribe to GlobalPulse AI on YouTube at GloblePulseAi for more breaking sports breakdowns, and read our complete tactical analysis on GlobalPulse AI."""
     else:
         summary = f"""• Verified dispatches from {source_name} confirm an accelerating operational transition across {category}.
 • Primary metrics validate a 38% efficiency dividend, superseding legacy infrastructure bottlenecks.
@@ -249,7 +249,7 @@ A: The primary reporting was initially documented by **{source_name}**, with com
 Verified reporting confirms a decisive transition that directly impacts global markets and modern infrastructure.
 Industry leaders are eliminating critical friction points, delivering higher efficiency and immediate strategic advantages.
 This development is now triggering a chain reaction across international financial and tech corridors.
-Subscribe to EduHub by Saeed for rapid intelligence updates, and explore the full investigation on GlobalPulse AI."""
+Subscribe to GlobalPulse AI on YouTube at GloblePulseAi for rapid intelligence updates, and explore the full investigation on GlobalPulse AI."""
 
     return {
         "title": refined_title,

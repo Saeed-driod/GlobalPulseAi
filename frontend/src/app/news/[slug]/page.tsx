@@ -94,7 +94,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: cleanSummary,
       siteName: "GlobalPulse AI",
       publishedTime: article.published_at || article.created_at,
-      authors: [authorName, "https://www.youtube.com/@EduHubbySaeed"],
+      authors: [authorName, "https://www.youtube.com/@GloblePulseAi"],
       images: [
         {
           url: imageUrl,
@@ -108,7 +108,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: "summary_large_image",
       title: article.title,
       description: cleanSummary,
-      creator: "@EduHubbySaeed",
+      creator: "@GloblePulseAi",
       images: [imageUrl],
     },
   };
@@ -140,8 +140,8 @@ export default async function Page({ params }: PageProps) {
           "@type": "Person",
           name: "Muhammad Saeed",
           jobTitle: "Chief Editor, GlobalPulse AI",
-          url: "https://www.youtube.com/@EduHubbySaeed",
-          sameAs: ["https://www.youtube.com/@EduHubbySaeed"],
+          url: "https://www.youtube.com/@GloblePulseAi",
+          sameAs: ["https://www.youtube.com/@GloblePulseAi"],
         },
         publisher: {
           "@type": "NewsMediaOrganization",
@@ -173,7 +173,7 @@ export default async function Page({ params }: PageProps) {
           embedUrl: `https://www.youtube-nocookie.com/embed/${article.youtube_video_id}`,
           publisher: {
             "@type": "Organization",
-            name: "EduHub by Saeed",
+            name: "GlobalPulse AI",
             logo: {
               "@type": "ImageObject",
               url: `${siteUrl}/logo.png`,

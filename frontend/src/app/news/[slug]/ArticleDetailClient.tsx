@@ -385,14 +385,14 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
             <div className="flex items-center gap-2.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
               <span className="text-neutral-200">
-                <strong className="text-white">Edited & Verified by Muhammad Saeed</strong> • Founder of EduHub by Saeed (
+                <strong className="text-white">Edited & Verified by Muhammad Saeed</strong> • Lead Analyst at GlobalPulse AI (
                 <a
-                  href="https://www.youtube.com/@EduHubbySaeed"
+                  href="https://www.youtube.com/@GloblePulseAi"
                   target="_blank"
                   rel="noreferrer"
                   className="text-cyan-400 hover:underline font-mono"
                 >
-                  @EduHubbySaeed
+                  @GloblePulseAi
                 </a>
                 ) | Primary Wire Sources Checked
               </span>
@@ -461,7 +461,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2 text-xs font-mono font-bold text-red-400">
                     <Video className="w-4 h-4 text-red-500" />
-                    <span>HD Video Intelligence Broadcast (EduHub by Saeed)</span>
+                    <span>HD Video Intelligence Broadcast (GlobalPulse AI)</span>
                   </div>
                   <span className="text-[10px] text-neutral-400 font-mono bg-white/5 px-2 py-0.5 rounded">
                     PRODUCED FOR TIER-1 AUDIENCE
@@ -565,25 +565,25 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                     </span>
                   </div>
                   <p className="text-xs text-neutral-300 mt-1 leading-relaxed">
-                    Founder of{" "}
+                    Lead analyst at{" "}
                     <a
-                      href="https://www.youtube.com/@EduHubbySaeed"
+                      href="https://www.youtube.com/@GloblePulseAi"
                       target="_blank"
                       rel="noreferrer"
                       className="text-cyan-400 hover:underline font-semibold"
                     >
-                      EduHub by Saeed (@EduHubbySaeed)
+                      GlobalPulse AI (@GloblePulseAi)
                     </a>
                     . Leading high-gain automated news intelligence, technological foresight, and macroeconomic analysis. Every dispatch is synthesized strictly from tier-1 wires and official filings under rigorous E-E-A-T editorial standards.
                   </p>
                 </div>
                 <a
-                  href="https://www.youtube.com/@EduHubbySaeed"
+                  href="https://www.youtube.com/@GloblePulseAi"
                   target="_blank"
                   rel="noreferrer"
                   className="shrink-0 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-red-600/30 transition"
                 >
-                  <Video className="w-3.5 h-3.5" /> EduHub on YouTube
+                  <Video className="w-3.5 h-3.5" /> Watch on YouTube
                 </a>
               </div>
             </div>

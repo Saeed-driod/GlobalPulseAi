@@ -134,7 +134,7 @@ export default function AdminPage() {
     checkAuth();
 
     if (typeof window !== "undefined" && window.location.search.includes("youtube=connected")) {
-      showToast("YouTube Channel EduHubbySaeed successfully connected!");
+      showToast("YouTube Channel GloblePulseAi successfully connected!");
     }
   }, []);
 
@@ -437,18 +437,18 @@ export default function AdminPage() {
             {ytAuthStatus?.authenticated ? (
               <div
                 className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold text-xs shadow-lg shadow-emerald-500/20"
-                title="Channel EduHubbySaeed is connected and authorized for automated Shorts publishing"
+                title="Channel GloblePulseAi is connected and authorized for automated Shorts publishing"
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <Youtube className="w-4 h-4 text-red-500" />
-                <span>Connected: {ytAuthStatus.channel || "EduHubbySaeed"}</span>
+                <span>Connected: {ytAuthStatus.channel || "GloblePulseAi"}</span>
               </div>
             ) : (
               <button
                 onClick={handleAuthYouTube}
                 disabled={authorizingYouTube}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 font-bold text-xs shadow-lg transition duration-150"
-                title="Test interactive OAuth2 login and connect YouTube channel (EduHubbySaeed)"
+                title="Test interactive OAuth2 login and connect YouTube channel (GloblePulseAi)"
               >
                 <Youtube className="w-4 h-4 text-red-500" />
                 {authorizingYouTube ? "Authenticating..." : "Authorize YouTube Channel"}
@@ -505,7 +505,7 @@ export default function AdminPage() {
           <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-neutral-400 w-full md:w-auto justify-between md:justify-end">
             <div className="bg-neutral-950/70 px-3 py-1.5 rounded-lg border border-neutral-800">
               <span className="text-neutral-500">Target Channel:</span>{" "}
-              <span className="text-red-400 font-semibold">EduHubbySaeed</span>
+              <span className="text-red-400 font-semibold">GloblePulseAi</span>
             </div>
             {schedulerInfo?.next_run_time && (
               <div className="bg-neutral-950/70 px-3 py-1.5 rounded-lg border border-neutral-800 hidden lg:block">

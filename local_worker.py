@@ -275,7 +275,7 @@ def interactive_menu():
         choice = input("\nEnter choice [1-6]: ").strip()
         if choice == "1":
             fmt = input("Select format: 'long' (16:9 HD) or 'short' (9:16 Shorts) [default: short]: ").strip().lower() or "short"
-            u_in = input(f"Auto-upload to YouTube ({auth.get('channel', 'EduHubbySaeed')})? (y/n) [default: {default_upload}]: ").strip().lower()
+            u_in = input(f"Auto-upload to YouTube ({auth.get('channel', 'GloblePulseAi')})? (y/n) [default: {default_upload}]: ").strip().lower()
             upload_choice = (u_in != "n") if is_auth else (u_in == "y")
             fetch_and_publish_news(target_category="Global Sports", video_format=fmt, do_upload=upload_choice)
         elif choice == "2":
@@ -334,7 +334,7 @@ def main():
     should_upload = False if args.no_upload else (True if (args.upload or is_auth) else False)
 
     if should_upload:
-        print(f"[Worker] YouTube Auto-Upload is ACTIVE for channel '{auth.get('channel', 'EduHubbySaeed')}'.")
+        print(f"[Worker] YouTube Auto-Upload is ACTIVE for channel '{auth.get('channel', 'GloblePulseAi')}'.")
     else:
         print("[Worker] YouTube Auto-Upload is DISABLED for this run.")
 

@@ -45,8 +45,8 @@ services:
       - key: NEXT_PUBLIC_ADSENSE_CLIENT_ID
         sync: false
       - key: NEXT_PUBLIC_YOUTUBE_CHANNEL_URL
-        value: "https://www.youtube.com/@EduHubbySaeed"
+        value: "https://www.youtube.com/@GloblePulseAi"
       - key: NEXT_PUBLIC_YOUTUBE_CHANNEL_NAME
-        value: "EduHub by Saeed"
+        value: "GlobalPulse AI"
       - key: NODE_VERSION
         value: 20.11.0

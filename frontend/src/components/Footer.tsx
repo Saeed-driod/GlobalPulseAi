@@ -63,13 +63,13 @@ export const Footer: React.FC = () => {
               </li>
               <li className="pt-2">
                 <a
-                  href="https://www.youtube.com/@EduHubbySaeed"
+                  href="https://www.youtube.com/@GloblePulseAi"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-red-400 font-bold hover:text-red-300 font-mono text-[11px]"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-red-400" />
-                  EduHub Video Intelligence →
+                  GlobalPulse AI on YouTube →
                 </a>
               </li>
             </ul>
@@ -108,12 +108,12 @@ export const Footer: React.FC = () => {
               Contact Desk
             </Link>
             <a
-              href="https://www.youtube.com/@EduHubbySaeed"
+              href="https://www.youtube.com/@GloblePulseAi"
               target="_blank"
               rel="noreferrer"
               className="text-red-400/80 hover:text-red-300 transition"
             >
-              @EduHubbySaeed
+              @GloblePulseAi
             </a>
           </div>
         </div>

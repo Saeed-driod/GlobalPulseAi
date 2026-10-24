@@ -145,7 +145,7 @@ def get_oauth_success_html() -> str:
     <div class="icon">🎉</div>
     <div class="badge">CHANNEL CONNECTED</div>
     <h1>YouTube Authorization Complete!</h1>
-    <p>Your Google account and YouTube channel (<strong>EduHubbySaeed</strong>) are successfully authorized for automated Shorts publishing.</p>
+    <p>Your Google account and YouTube channel (<strong>GloblePulseAi</strong>) are successfully authorized for automated Shorts publishing.</p>
     <p style="color: #64748b; font-size: 12px;">Token saved to backend/token.json. Auto-redirecting to Admin Dashboard...</p>
     <a href="{ADMIN_DASHBOARD_URL}" class="btn">Return to Admin Dashboard</a>
   </div>
@@ -293,7 +293,7 @@ def check_auth_status() -> Dict[str, Any]:
             "authenticated": bool(creds and (creds.valid or creds.refresh_token)),
             "message": "Authenticated with YouTube!",
             "token_file": str(TOKEN_FILE),
-            "channel": "EduHubbySaeed"
+            "channel": "GloblePulseAi"
         }
     except Exception as e:
         return {"authenticated": False, "message": f"Invalid token file: {e}"}
@@ -472,13 +472,13 @@ def upload_video_to_youtube(
             clean_t = re.sub(r"(?i)\s*#shorts\b", "", title).strip()
             upload_title = clean_t[:95]
             if category_id == "17":
-                default_tags = ["GlobalPulse AI", "Global Sports", "Sports", "Match Analysis", "Highlights", "EduHub by Saeed"]
+                default_tags = ["GlobalPulse AI", "GloblePulseAi", "Global Sports", "Sports", "Match Analysis", "Highlights"]
             else:
-                default_tags = ["GlobalPulse AI", "News", "Technology", "World News", "Market Analysis", "EduHub by Saeed"]
+                default_tags = ["GlobalPulse AI", "GloblePulseAi", "News", "Technology", "World News", "Market Analysis"]
         else:
             raw_title = f"{title.strip()} #shorts" if "#shorts" not in title.lower() else title.strip()
             upload_title = raw_title[:100]
-            default_tags = ["GlobalPulse AI", "News", "Technology", "Shorts"]
+            default_tags = ["GlobalPulse AI", "GloblePulseAi", "News", "Technology", "Shorts"]
 
         body = {
             "snippet": {
@@ -638,13 +638,13 @@ def upload_long_video_to_youtube(
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Stay ahead of global shifts with daily deep-dive intelligence briefings.
-Subscribe to EduHub by Saeed (@EduHubbySaeed) for cutting-edge AI, software engineering, and autonomous systems masterclasses:
-👉 https://www.youtube.com/@EduHubbySaeed
+Subscribe to GlobalPulse AI on YouTube (@GloblePulseAi) for cutting-edge AI, geopolitical insights, global sports, and markets:
+👉 https://www.youtube.com/@GloblePulseAi
 
-#{category.replace(' ', '').replace('&', '')} #News #GlobalMarkets #Technology #GlobalPulseAI #EduHubbySaeed #WorldNews #IntelligenceBriefing
+#{category.replace(' ', '').replace('&', '')} #News #GlobalMarkets #Technology #GlobalPulseAI #GloblePulseAi #WorldNews #IntelligenceBriefing
 """
 
-    tags = ["GlobalPulse AI", category, "Breaking News", "World News", "Technology", "Markets", "Documentary", "EduHub by Saeed"]
+    tags = ["GlobalPulse AI", "GloblePulseAi", category, "Breaking News", "World News", "Technology", "Markets", "Documentary"]
     cat_id = get_category_id(category)
 
     try:

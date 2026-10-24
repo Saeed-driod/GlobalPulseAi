@@ -78,7 +78,7 @@ def start_scheduler() -> BackgroundScheduler:
     scheduler.start()
     print(f"============================================================")
     print(f"[Scheduler] 24/7 BACKGROUND AUTOMATION ACTIVE ({interval_desc})")
-    print(f"   Target YouTube Channel: 'EduHubbySaeed'")
+    print(f"   Target YouTube Channel: 'GloblePulseAi'")
     print(f"   Next Scheduled Run: {trigger.get_next_fire_time(None, datetime.now(timezone.utc))}")
     print(f"============================================================")
 
@@ -118,5 +118,5 @@ def get_scheduler_status() -> Dict[str, Any]:
         "last_run_time": last_run_info["last_run_time"],
         "last_run_status": last_run_info["last_run_status"],
         "last_run_summary": last_run_info["last_run_summary"],
-        "channel": "EduHubbySaeed"
+        "channel": "GloblePulseAi"
     }

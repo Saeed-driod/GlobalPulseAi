@@ -15,8 +15,8 @@ interface AdBannerProps {
 
 export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = "" }) => {
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
-  const channelUrl = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || "https://www.youtube.com/@EduHubbySaeed";
-  const channelName = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_NAME || "EduHub by Saeed";
+  const channelUrl = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || "https://www.youtube.com/@GloblePulseAi";
+  const channelName = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_NAME || "GlobalPulse AI";
 
   const [dismissed, setDismissed] = useState<boolean>(false);
 
@@ -57,7 +57,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = "" }) => {
   }
 
   // -------------------------------------------------------------
-  // HOUSE AD FALLBACK: Promoting "EduHub by Saeed" YouTube Channel
+  // HOUSE AD FALLBACK: Promoting "GlobalPulse AI" YouTube Channel
   // -------------------------------------------------------------
 
   if (slot === "header") {

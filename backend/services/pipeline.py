@@ -36,7 +36,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
     1. Fetch latest raw news from Tier-1 RSS feeds.
     2. Process and rewrite via Gemini AI (headline, TL;DR, markdown, 60s shorts script).
     3. Generate 16:9 Long-Form HD MP4 video (or 9:16 Shorts) with neural voiceover.
-    4. Upload video to YouTube for channel ('EduHubbySaeed') via OAuth2 credentials (client_secret.json / token.json).
+    4. Upload video to YouTube for channel ('GloblePulseAi') via OAuth2 credentials (client_secret.json / token.json).
     5. Update article status to PUBLISHED, linking YouTube video ID, and publish live on portal.
     """
     is_long = (str(video_format).lower() == "long")
@@ -146,8 +146,8 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     db.refresh(article)
                     print(f"[Master Pipeline] Video rendered successfully: {article.video_path} ({video_res.get('resolution')})")
 
-                    # Step 4: Upload to YouTube (EduHubbySaeed channel)
-                    print(f"\n[Step 4/5] Uploading {fmt_str} video to YouTube Data API v3 (channel: EduHubbySaeed)...")
+                    # Step 4: Upload to YouTube (GloblePulseAi channel)
+                    print(f"\n[Step 4/5] Uploading {fmt_str} video to YouTube Data API v3 (channel: GloblePulseAi)...")
                     video_disk_path = article.video_path or ""
                     if video_disk_path.startswith("/static/"):
                         backend_dir = Path(__file__).resolve().parent.parent
