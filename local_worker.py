@@ -36,6 +36,13 @@ if str(BACKEND_DIR) not in sys.path:
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+# Ensure console output handles unicode cleanly on Windows
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 # Ensure environment variables are loaded
 from dotenv import load_dotenv
 load_dotenv(BACKEND_DIR / ".env")
@@ -62,10 +69,11 @@ def print_banner():
     """)
 
 
-def render_article_video(article_id: int, video_format: str = "long", do_upload: bool = False) -> bool:
+def render_article_video(article_id: int, video_format: str = "short", do_upload: bool = True) -> bool:
     """
     Renders a photo-rich broadcast video for an article using local FFmpeg and PIL.
     Directly updates the article record in the database.
+    If the video already exists on disk, skips re-rendering and proceeds to upload.
     """
     db = SessionLocal()
     try:
@@ -75,66 +83,87 @@ def render_article_video(article_id: int, video_format: str = "long", do_upload:
             return False
 
         fmt_label = "16:9 Long-Form HD (1280x720)" if video_format == "long" else "9:16 Shorts (1080x1920)"
-        print(f"\n[Worker] Starting video render for Article #{article.id}:")
+        print(f"\n============================================================")
+        print(f"[Worker] Processing Article #{article.id} on LOCAL PC:")
         print(f"  Title   : {article.title}")
         print(f"  Category: {article.category}")
         print(f"  Format  : {fmt_label}")
 
-        start_time = time.time()
-        result = compose_video(
-            article_id=article.id,
-            title=article.title,
-            category=article.category,
-            youtube_script=article.youtube_script or article.summary,
-            summary=article.summary,
-            content=article.content,
-            image_url=article.image_url,
-            video_format=video_format
-        )
+        # Check if valid video file already exists on disk
+        video_disk_path = article.video_path or ""
+        if video_disk_path.startswith("/static/"):
+            video_disk_path = str(BACKEND_DIR / video_disk_path.lstrip("/"))
 
-        elapsed = time.time() - start_time
-        video_path = result.get("video_path")
-        article.video_path = video_path
-        db.commit()
-        db.refresh(article)
+        video_exists = bool(video_disk_path and os.path.exists(video_disk_path) and os.path.getsize(video_disk_path) >= 100_000)
 
-        print(f"[Worker SUCCESS] Rendered {result.get('runtime_seconds')}s video in {elapsed:.1f}s.")
-        print(f"  Saved to: {video_path} ({result.get('file_size_bytes', 0):,} bytes)")
+        if not video_exists:
+            print(f"[Worker] Generating fresh video on Local PC (Render cloud RAM: 0 MB used)...")
+            start_time = time.time()
+            result = compose_video(
+                article_id=article.id,
+                title=article.title,
+                category=article.category,
+                youtube_script=article.youtube_script or article.summary,
+                summary=article.summary,
+                content=article.content,
+                image_url=article.image_url,
+                video_format=video_format
+            )
+            elapsed = time.time() - start_time
+            video_path = result.get("video_path")
+            article.video_path = video_path
+            db.commit()
+            db.refresh(article)
+            print(f"[Worker SUCCESS] Rendered {result.get('runtime_seconds')}s video in {elapsed:.1f}s!")
+            print(f"  Local file: {video_path} ({result.get('file_size_bytes', 0):,} bytes)")
+        else:
+            print(f"[Worker INFO] Video already exists on disk: {video_disk_path}")
+            video_path = article.video_path
 
+        # Step 2: YouTube Auto-Upload
         if do_upload:
-            print(f"[Worker] Initiating YouTube upload for article #{article.id}...")
-            video_disk_path = video_path or ""
-            if video_disk_path.startswith("/static/"):
-                video_disk_path = str(BACKEND_DIR / video_disk_path.lstrip("/"))
-
-            if os.path.exists(video_disk_path):
-                upload_res = upload_short_to_youtube(
-                    video_filepath=video_disk_path,
-                    title=article.title,
-                    summary=article.summary,
-                    category=article.category,
-                    slug=article.slug,
-                    video_format=video_format
-                )
-                yt_id = upload_res.get("video_id") or upload_res.get("youtube_video_id")
-                if yt_id:
-                    article.youtube_video_id = yt_id
-                    db.commit()
-                    print(f"[Worker SUCCESS] Uploaded to YouTube: https://youtu.be/{yt_id}")
+            if article.youtube_video_id and article.youtube_video_id != "dQw4w9WgXcQ":
+                print(f"[Worker INFO] Article #{article.id} already uploaded to YouTube: https://youtu.be/{article.youtube_video_id}")
             else:
-                print(f"[Worker Warning] Could not find video on disk for upload: {video_disk_path}")
+                print(f"[Worker] Uploading video to YouTube channel @GloblePulseAi...")
+                upload_disk_path = video_path or ""
+                if upload_disk_path.startswith("/static/"):
+                    upload_disk_path = str(BACKEND_DIR / upload_disk_path.lstrip("/"))
 
+                if os.path.exists(upload_disk_path):
+                    upload_start = time.time()
+                    upload_res = upload_short_to_youtube(
+                        video_filepath=upload_disk_path,
+                        title=article.title,
+                        summary=article.summary,
+                        category=article.category,
+                        slug=article.slug,
+                        video_format=video_format
+                    )
+                    upload_elapsed = time.time() - upload_start
+                    yt_id = upload_res.get("video_id") or upload_res.get("youtube_video_id")
+                    if yt_id and yt_id != "dQw4w9WgXcQ":
+                        article.youtube_video_id = yt_id
+                        db.commit()
+                        print(f"[Worker SUCCESS] Uploaded to YouTube in {upload_elapsed:.1f}s!")
+                        print(f"  YouTube Link: https://youtu.be/{yt_id}")
+                    else:
+                        print(f"[Worker Warning] YouTube upload notice: {upload_res}")
+                else:
+                    print(f"[Worker Warning] Could not find video file on disk: {upload_disk_path}")
+
+        print(f"============================================================\n")
         return True
 
     except Exception as e:
-        print(f"[Worker ERROR] Failed to render video for #{article_id}: {e}")
+        print(f"[Worker ERROR] Failed processing video for #{article_id}: {e}")
         traceback.print_exc()
         return False
     finally:
         db.close()
 
 
-def fetch_and_publish_news(target_category: str = "Global Sports", video_format: str = "long", do_upload: bool = False):
+def fetch_and_publish_news(target_category: str = "Global Sports", video_format: str = "short", do_upload: bool = True):
     """
     Fetches the latest breaking RSS news for the target category,
     synthesizes it with Gemini AI, saves it as PUBLISHED, and renders video locally.
@@ -193,10 +222,10 @@ def fetch_and_publish_news(target_category: str = "Global Sports", video_format:
         db.close()
 
 
-def process_pending_articles(category: str = None, video_format: str = "long", limit: int = 10, do_upload: bool = False):
+def process_pending_articles(category: str = None, video_format: str = "short", limit: int = 10, do_upload: bool = True):
     """
-    Scans the database for published articles that don't have a valid video file.
-    Renders videos for each pending article.
+    Scans the database for published articles that don't have a valid video file
+    OR have not been uploaded to YouTube yet.
     """
     db = SessionLocal()
     try:
@@ -204,16 +233,29 @@ def process_pending_articles(category: str = None, video_format: str = "long", l
         if category:
             query = query.filter(Article.category.ilike(f"%{category}%"))
 
-        query = query.filter((Article.video_path == None) | (Article.video_path == ""))
-        pending = query.order_by(Article.id.desc()).limit(limit).all()
+        # Find articles needing video generation OR YouTube upload
+        pending = (
+            query
+            .filter(
+                (Article.video_path == None) | 
+                (Article.video_path == "") | 
+                (Article.youtube_video_id == None) | 
+                (Article.youtube_video_id == "") |
+                (Article.youtube_video_id == "dQw4w9WgXcQ")
+            )
+            .order_by(Article.id.desc())
+            .limit(limit)
+            .all()
+        )
 
         if not pending:
-            print("[Worker] No pending articles found needing video generation.")
             return
 
-        print(f"\n[Worker] Found {len(pending)} pending articles lacking videos:")
+        print(f"\n[Worker] Found {len(pending)} articles needing video processing / YouTube upload:")
         for a in pending:
-            print(f"  - #{a.id} [{a.category}] {a.title[:60]}")
+            vid_status = "READY" if a.video_path else "MISSING"
+            yt_status = f"https://youtu.be/{a.youtube_video_id}" if (a.youtube_video_id and a.youtube_video_id != "dQw4w9WgXcQ") else "PENDING UPLOAD"
+            print(f"  - Article #{a.id} [{a.category}] Video: {vid_status} | YT: {yt_status} | {a.title[:45]}")
 
         for a in pending:
             render_article_video(a.id, video_format=video_format, do_upload=do_upload)
@@ -232,22 +274,34 @@ def list_recent_articles(limit: int = 15):
     db = SessionLocal()
     try:
         articles = db.query(Article).order_by(Article.id.desc()).limit(limit).all()
-        print(f"\n{'ID':<5} | {'Category':<16} | {'Video':<6} | {'YouTube':<12} | {'Title'}")
-        print("-" * 80)
+        print(f"\n{'ID':<5} | {'Category':<16} | {'Video':<8} | {'YouTube Status / Link':<24} | {'Title'}")
+        print("-" * 88)
         for a in articles:
             has_vid = "YES" if a.video_path else "NO"
-            has_yt = a.youtube_video_id[:10] if (a.youtube_video_id and a.youtube_video_id != "dQw4w9WgXcQ") else "NO"
-            print(f"{a.id:<5} | {a.category:<16} | {has_vid:<6} | {has_yt:<12} | {a.title[:45]}")
+            if a.youtube_video_id and a.youtube_video_id != "dQw4w9WgXcQ":
+                has_yt = f"https://youtu.be/{a.youtube_video_id}"
+            else:
+                has_yt = "NOT UPLOADED"
+            print(f"{a.id:<5} | {a.category:<16} | {has_vid:<8} | {has_yt:<24} | {a.title[:32]}")
+        print("-" * 88)
     finally:
         db.close()
 
 
-def run_daemon_worker(interval_seconds: int = 60, video_format: str = "long", do_upload: bool = False):
+def run_daemon_worker(interval_seconds: int = 30, video_format: str = "short", do_upload: bool = True):
     """
-    Continuously monitors the database and processes newly added stories.
+    Continuously monitors the shared database and auto-renders & uploads videos
+    using your local PC hardware. Zero memory usage on Render!
     """
-    print(f"[Worker Daemon] Started! Checking database every {interval_seconds}s for pending videos...")
-    print("Press Ctrl+C to terminate.")
+    auth = check_auth_status()
+    channel = auth.get("channel", "GloblePulseAi")
+    print(f"\n🚀 [LOCAL WORKER DAEMON ACTIVE]")
+    print(f"   Target YouTube Channel : @{channel}")
+    print(f"   Target Video Format    : {'9:16 YouTube Shorts' if video_format == 'short' else '16:9 Long-Form HD'}")
+    print(f"   YouTube Auto-Upload    : {'ENABLED' if do_upload else 'DISABLED'}")
+    print(f"   Database Poll Interval : Every {interval_seconds} seconds")
+    print(f"   Cloud RAM Impact       : 0 MB (100% offloaded to your Local PC!)")
+    print(f"   Status                 : Watching for new articles... (Press Ctrl+C to stop)\n")
     try:
         while True:
             process_pending_articles(video_format=video_format, limit=3, do_upload=do_upload)

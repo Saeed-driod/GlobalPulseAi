@@ -129,48 +129,55 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 print(f"[Master Pipeline] Article #{article.id} PUBLISHED live on portal (slug: {slug})")
 
                 # Step 3 & 4: Render MP4 Video and Upload to YouTube
-                try:
-                    print(f"\n[Step 3/5] Rendering {fmt_str} MP4 video with neural voiceover...")
-                    video_res = compose_video(
-                        article_id=article.id,
-                        title=article.title,
-                        category=article.category,
-                        youtube_script=article.youtube_script or article.summary,
-                        summary=article.summary,
-                        content=article.content,
-                        image_url=article.image_url,
-                        video_format=video_format
-                    )
-                    article.video_path = video_res.get("video_path")
-                    db.commit()
-                    db.refresh(article)
-                    print(f"[Master Pipeline] Video rendered successfully: {article.video_path} ({video_res.get('resolution')})")
+                # Safe Guard: Render has a 512MB RAM limit. Heavy FFmpeg video rendering is offloaded to Local PC Worker
+                cloud_video_enabled = os.getenv("CLOUD_VIDEO_RENDER_ENABLED", "false").lower() in ("true", "1", "yes")
 
-                    # Step 4: Upload to YouTube (GloblePulseAi channel)
-                    print(f"\n[Step 4/5] Uploading {fmt_str} video to YouTube Data API v3 (channel: GloblePulseAi)...")
-                    video_disk_path = article.video_path or ""
-                    if video_disk_path.startswith("/static/"):
-                        backend_dir = Path(__file__).resolve().parent.parent
-                        video_disk_path = str(backend_dir / video_disk_path.lstrip("/"))
+                if not cloud_video_enabled:
+                    print(f"[Master Pipeline] ⚡ CLOUD VIDEO RENDERING IS OFFLOADED to Local PC Worker.")
+                    print(f"[Master Pipeline] Article #{article.id} is live! Run 'python local_worker.py --daemon' on your PC to render & upload with zero cloud RAM usage.")
+                else:
+                    try:
+                        print(f"\n[Step 3/5] Rendering {fmt_str} MP4 video with neural voiceover...")
+                        video_res = compose_video(
+                            article_id=article.id,
+                            title=article.title,
+                            category=article.category,
+                            youtube_script=article.youtube_script or article.summary,
+                            summary=article.summary,
+                            content=article.content,
+                            image_url=article.image_url,
+                            video_format=video_format
+                        )
+                        article.video_path = video_res.get("video_path")
+                        db.commit()
+                        db.refresh(article)
+                        print(f"[Master Pipeline] Video rendered successfully: {article.video_path} ({video_res.get('resolution')})")
 
-                    upload_res = upload_short_to_youtube(
-                        video_filepath=video_disk_path,
-                        title=article.title,
-                        summary=article.summary,
-                        category=article.category,
-                        slug=article.slug,
-                        video_format=video_format
-                    )
+                        # Step 4: Upload to YouTube (GloblePulseAi channel)
+                        print(f"\n[Step 4/5] Uploading {fmt_str} video to YouTube Data API v3 (channel: GloblePulseAi)...")
+                        video_disk_path = article.video_path or ""
+                        if video_disk_path.startswith("/static/"):
+                            backend_dir = Path(__file__).resolve().parent.parent
+                            video_disk_path = str(backend_dir / video_disk_path.lstrip("/"))
 
-                    # Step 5: Attach YouTube video ID
-                    video_id = upload_res.get("video_id") or upload_res.get("youtube_video_id") or "dQw4w9WgXcQ"
-                    article.youtube_video_id = video_id
-                    db.commit()
-                    db.refresh(article)
-                    print(f"[Master Pipeline] Article #{article.id} successfully attached YouTube Video ID: {video_id}")
-                except Exception as vid_err:
-                    print(f"[Master Pipeline WARNING] Video rendering/upload issue for article #{article.id}: {vid_err}")
-                    traceback.print_exc()
+                        upload_res = upload_short_to_youtube(
+                            video_filepath=video_disk_path,
+                            title=article.title,
+                            summary=article.summary,
+                            category=article.category,
+                            slug=article.slug,
+                            video_format=video_format
+                        )
+
+                        # Step 5: Attach YouTube video ID
+                        video_id = upload_res.get("video_id") or upload_res.get("youtube_video_id") or "dQw4w9WgXcQ"
+                        article.youtube_video_id = video_id
+                        db.commit()
+                        db.refresh(article)
+                        print(f"[Master Pipeline] Article #{article.id} successfully attached YouTube Video ID: {video_id}")
+                    except Exception as vid_err:
+                        print(f"[Master Pipeline WARNING] Video rendering/upload issue for article #{article.id}: {vid_err}")
+                        traceback.print_exc()
                     try:
                         try:
                             from ..main import record_error

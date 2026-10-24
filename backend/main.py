@@ -367,7 +367,19 @@ def generate_video(
     db.commit()
     db.refresh(article)
 
-    # Execute Video Generator Service
+    # Safety Gate: Render 512MB RAM protection
+    cloud_video_enabled = os.getenv("CLOUD_VIDEO_RENDER_ENABLED", "false").lower() in ("true", "1", "yes")
+    if not cloud_video_enabled:
+        return ActionResponse(
+            success=True,
+            message=(
+                f"Article #{article.id} is live! Heavy video generation is safely offloaded from Render's 512MB RAM to your Local PC Worker. "
+                "Run `python local_worker.py --daemon` on your PC to render and auto-upload with zero cloud RAM."
+            ),
+            article=article
+        )
+
+    # Execute Video Generator Service (only when cloud rendering is explicitly enabled)
     try:
         result = compose_video(
             article_id=article.id,
@@ -444,6 +456,13 @@ def publish_article(
     try:
         video_exists = bool(video_disk_path and os.path.exists(video_disk_path) and os.path.getsize(video_disk_path) >= 100_000)
         if not video_exists:
+            if not cloud_video_enabled:
+                print(f"[Publish] Video file missing on disk for article #{article.id}. Heavy cloud video generation is OFF (offloaded to Local PC Worker).")
+                return ActionResponse(
+                    success=True,
+                    message=f"Article #{article.id} is PUBLISHED live! Video generation is queued for Local PC Worker (run 'python local_worker.py --daemon' on your PC).",
+                    article=article
+                )
             print(f"[Publish] Video file missing or incomplete on disk for article #{article.id}. Auto-generating {target_format} video now...")
             video_res = compose_video(
                 article_id=article.id,

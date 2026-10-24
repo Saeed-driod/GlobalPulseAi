@@ -25,6 +25,8 @@ services:
         sync: false
       - key: PUBLIC_SITE_URL
         sync: false
+      - key: CLOUD_VIDEO_RENDER_ENABLED
+        value: "false"
       - key: PYTHON_VERSION
         value: 3.11.8
 
