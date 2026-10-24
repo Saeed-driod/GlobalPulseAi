@@ -118,7 +118,7 @@ Return ONLY a valid JSON object with the following keys:
   "author_name": "Muhammad Saeed (Chief Editor, GlobalPulse AI)",
   "summary": "3-4 concise, impactful bullet points starting with • summarizing key verified numbers, turning points, and consequences",
   "content": "A comprehensive 600-900 word human investigative markdown article containing the mandatory sections specified above",
-  "youtube_script": "A punchy, viral 60-second vertical video script divided into [00:00-00:05] HOOK, [00:05-00:20] VISUAL & NARRATION, [00:20-00:45] CORE DATA & ANALYSIS, and [00:45-01:00] CTA pointing viewers to EduHub by Saeed (@EduHubbySaeed) and globalpulse.ai",
+  "youtube_script": "A high-energy, 100% spoken narration script for a human voiceover broadcaster. Write ONLY the exact words the presenter will say out loud across 6 to 8 punchy sentences (Hook -> What Happened -> Why It Matters -> Outro). STRICT CONSTRAINT: ZERO visual directions, ZERO camera angles, ZERO sound cues, ZERO brackets like [VISUAL] or [00:00], and ZERO fractions like '9.4/10' (write 'nine out of ten').",
   "image_url": "A high-resolution image URL matching the topic"
 }}"""
 
@@ -191,12 +191,12 @@ A: The victory reinforces aggregate standing and seeds the team in prime positio
 **Q: Where can viewers watch detailed video highlights and analysis?**  
 A: Full verified reporting is updated live on **GlobalPulse AI**, with tactical video breakdowns syndicated on **EduHub by Saeed**."""
 
-        youtube_script = f"""[00:00 - 00:06] HOOK: A sports masterclass just rocked the global arena! {refined_title[:60]}!
-[00:06 - 00:18] VISUAL: High-octane stadium visuals and match telemetry from {source_name}.
-[00:18 - 00:32] NARRATION: {raw_summary[:140] if raw_summary else refined_title}... The tactical masterstroke that secured a historic victory.
-[00:32 - 00:46] STAT OVERLAY: Rating 9.4/10 | 89% Accuracy | 8 Key Interventions.
-[00:46 - 00:55] VISUAL: Tactical board displaying the decisive attacking transition and defensive shape.
-[00:55 - 01:00] CTA: Subscribe to EduHub by Saeed (@EduHubbySaeed) and read full sports breakdown on GlobalPulse AI!"""
+        youtube_script = f"""A massive showdown just sent shockwaves through the sports world! {refined_title}.
+In breaking action, decisive tactical momentum completely shifted the game.
+Relentless pressure and standout individual brilliance dismantled the opponent's defensive structure.
+With crucial points and tournament standing on the line, this victory redefines the championship race.
+Fans and analysts are calling this one of the most electric performances of the entire season.
+Subscribe to EduHub by Saeed for more breaking sports breakdowns, and read our complete tactical analysis on GlobalPulse AI."""
     else:
         summary = f"""• Verified dispatches from {source_name} confirm an accelerating operational transition across {category}.
 • Primary metrics validate a 38% efficiency dividend, superseding legacy infrastructure bottlenecks.
@@ -244,12 +244,12 @@ A: Capital is shifting away from redundant custom architectures toward modular, 
 **Q: Where can readers verify the underlying documentation and source dispatches?**  
 A: The primary reporting was initially documented by **{source_name}**, with comprehensive telemetry models and continuous analytical briefings tracked live on **GlobalPulse AI**."""
 
-        youtube_script = f"""[00:00 - 00:06] HOOK: A massive shift just shook {category}, and most people haven't noticed yet.
-[00:06 - 00:18] VISUAL: High-speed graphics showing breaking news telemetry from {source_name}.
-[00:18 - 00:32] NARRATION: {raw_summary[:140]}... This transforms international markets and enterprise infrastructure.
-[00:32 - 00:46] STAT OVERLAY: Efficiency +38% | Latency -88% | Expedited regulatory timeline.
-[00:46 - 00:55] VISUAL: Clean modern map illustrating global capital and data flow across US, UK, and APAC.
-[00:55 - 01:00] CTA: Subscribe to EduHub by Saeed (@EduHubbySaeed) and read full investigation on GlobalPulse AI!"""
+        youtube_script = f"""A major shift just shook {category}, and the global implications are monumental.
+{refined_title}.
+Verified reporting confirms a decisive transition that directly impacts global markets and modern infrastructure.
+Industry leaders are eliminating critical friction points, delivering higher efficiency and immediate strategic advantages.
+This development is now triggering a chain reaction across international financial and tech corridors.
+Subscribe to EduHub by Saeed for rapid intelligence updates, and explore the full investigation on GlobalPulse AI."""
 
     return {
         "title": refined_title,

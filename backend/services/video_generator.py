@@ -159,26 +159,101 @@ def wrap_text(text: str, max_chars: int = 24) -> List[str]:
 
 def clean_script_for_voiceover(youtube_script: str, fallback_title: str = "", fallback_summary: str = "") -> str:
     """
-    Cleans raw script by removing director cues, timing brackets, and markdown artifacts.
-    Ensures natural, broadcast-ready speech.
+    Cleans raw script by removing director cues, timing brackets, fractions, and markdown artifacts.
+    Guarantees pure, natural spoken broadcaster dialogue with ZERO visual instructions read aloud.
     """
     text = youtube_script or ""
-    # Remove timing cues like [00:00 - 00:05]
-    text = re.sub(r"\[\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}\]", " ", text)
-    # Remove cues like HOOK:, VISUAL:, NARRATION:, CTA:, STATS:
-    text = re.sub(r"(?i)\b(hook|visual|narration|on-screen graphic|cta|stats|action|bgm|scene|audio):\s*", " ", text)
-    # Remove bracketed and parenthetical notes
+    # 1. Remove bracketed and parenthetical notes e.g. [00:00 - 00:05] or [HOOK:] or [VISUAL: ...]
     text = re.sub(r"\[.*?\]", " ", text)
     text = re.sub(r"\(.*?\)", " ", text)
-    # Remove markdown asterisks and bullets
-    text = text.replace("*", "").replace("•", "").replace("▸", "")
-    clean = " ".join(text.split()).strip()
 
-    # If the clean script is too brief (< 50 chars), enrich with headline & summary
-    if len(clean) < 50:
-        clean = f"{fallback_title}. {fallback_summary}. Follow GlobalPulse AI for breaking developments."
+    # 2. Filter line by line: eliminate director cues and visual instructions
+    filtered_lines = []
+    for raw_line in text.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            continue
+        line_lower = line.lower()
+        # If line starts with a speaker cue like "HOOK:", "NARRATION:", "CTA:" - keep only the spoken text
+        matched = re.match(r"^(?:hook|narration|spoken|speaker|voiceover|presenter|host|cta)\s*:\s*(.+)$", line, re.IGNORECASE)
+        if matched:
+            line = matched.group(1).strip()
+            line_lower = line.lower()
 
-    return clean
+        # If line is or contains director / visual cues, discard entirely
+        if any(line_lower.startswith(cue) for cue in [
+            "visual:", "visuals:", "graphic:", "stat overlay:", "tactical board", 
+            "b-roll:", "camera:", "scene:", "bgm:", "sfx:", "telemetry:"
+        ]):
+            continue
+        if any(bad_phrase in line_lower for bad_phrase in [
+            "tactical board displaying", "stadium visuals", "match telemetry", 
+            "stat overlay rating", "on-screen graphic", "b-roll showing"
+        ]):
+            continue
+
+        filtered_lines.append(line)
+
+    cleaned = " ".join(filtered_lines)
+
+    # 3. Strip remaining inline cues
+    cleaned = re.sub(r"(?i)\b(hook|visual|narration|on-screen graphic|cta|stats|action|bgm|scene|audio):\s*", " ", cleaned)
+    cleaned = cleaned.replace("*", "").replace("•", "").replace("▸", "").replace(">", "").replace("|", " ")
+
+    # 4. Fix fractions e.g. 9.4/10 -> 9.4 out of 10 so TTS never reads it as 'September 4th'
+    cleaned = re.sub(r"\b(\d+(?:\.\d+)?)\s*/\s*10\b", r"\1 out of 10", cleaned)
+    cleaned = re.sub(r"\b(\d+)\s*/\s*(\d+)\b", r"\1 out of \2", cleaned)
+
+    cleaned = " ".join(cleaned.split()).strip()
+
+    # If the clean script is too brief (< 40 chars), enrich with headline & summary
+    if len(cleaned) < 40:
+        cleaned = f"{fallback_title}. {fallback_summary}. Follow GlobalPulse AI for breaking developments."
+
+    return cleaned
+
+def prepare_text_for_tts(clean_text: str) -> str:
+    """
+    Transforms text specifically for speech synthesis engine:
+    - Replaces 'EduHub by Saeed' with phonetic 'Edu-Hub by Saa-eed' for crisp pronunciation.
+    - Adds a trailing pause buffer so the voiceover never cuts off abruptly at the end.
+    """
+    t = clean_text
+    t = re.sub(r"(?i)\beduhub\s+by\s+saeed\b", "Edu-Hub by Saa-eed", t)
+    t = re.sub(r"(?i)\bsaeed\b", "Saa-eed", t)
+    # Trailing 1-second pause buffer
+    t = t.rstrip(".!? ") + ". ... Thank you for watching GlobalPulse AI."
+    return t
+
+def segment_script_into_sentences(text: str, fallback_title: str = "", count: int = 7) -> List[str]:
+    """
+    Splits narration text into 6 to 8 punchy spoken sentences for slide synchronization.
+    Each sentence is displayed as a large pop-up caption on its own full-bleed cinematic scene.
+    """
+    raw = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if len(s.strip()) > 8]
+    sentences = [s for s in raw if "thank you for watching" not in s.lower()]
+
+    if len(sentences) < 4:
+        expanded = []
+        for s in sentences:
+            if len(s) > 90 and ("," in s or ";" in s):
+                parts = [p.strip() for p in re.split(r"[,;]", s) if len(p.strip()) > 15]
+                expanded.extend(parts)
+            else:
+                expanded.append(s)
+        sentences = expanded
+
+    if not sentences:
+        sentences = [
+            fallback_title or "Breaking news dispatch.",
+            "Key developments have surfaced altering the competitive posture.",
+            "Verified reporting corroborates significant institutional impact.",
+            "Analysts highlight crucial strategic and tactical implications.",
+            "Stay tuned to GlobalPulse AI for comprehensive live updates."
+        ]
+
+    # Target 6 to 8 sentences
+    return sentences[:8]
 
 def build_long_form_narration(
     title: str,
@@ -634,99 +709,142 @@ def fetch_scene_images(
     gc.collect()
     return scene_paths
 
-def build_broadcast_widescreen_canvas(
-    scene_img_path: Path,
-    accent: Tuple[int, int, int],
-    category: str,
-    clean_domain: str,
-    title: str
-) -> Tuple[Image.Image, ImageDraw.ImageDraw]:
-    """
-    Creates an ultra-lightweight 1280x720 studio broadcast canvas (optimized for Render 512MB RAM):
-    1. Background: scene_img blurred with GaussianBlur(radius=18) and darkened with navy/obsidian overlay.
-    2. Top Broadcast Navigation Bar with Category Badge and Live Telemetry indicator.
-    3. TV Lower-Third Breaking News Ticker across the bottom with '● LIVE' red pill and ticker text.
-    """
-    width, height = 1280, 720
-    try:
-        raw_scene = Image.open(scene_img_path).convert("RGB")
-    except Exception:
-        raw_scene = Image.new("RGB", (width, height), (15, 23, 42))
-
-    # 1. Studio glass wall blurred background (radius=18 saves 60% CPU/RAM compared to 1080p)
-    bg = raw_scene.resize((width, height), Image.Resampling.LANCZOS)
-    bg = bg.filter(ImageFilter.GaussianBlur(radius=18))
-
-    # Dark studio glass overlay (rgba(3, 7, 18, 195))
-    overlay = Image.new("RGBA", (width, height), (3, 7, 18, 195))
-    bg.paste(overlay, (0, 0), overlay)
-
-    # Ambient neon corner glow
-    glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow)
-    glow_draw.ellipse([(-100, -100), (450, 320)], fill=(accent[0], accent[1], accent[2], 18))
-    glow_draw.ellipse([(850, 350), (1400, 780)], fill=(accent[0], accent[1], accent[2], 12))
-    bg.paste(glow, (0, 0), glow)
-
-    draw = ImageDraw.Draw(bg)
-
-    # 2. Top Broadcast Bar (0 to 56)
-    draw.rectangle([(0, 0), (width, 56)], fill=(11, 15, 25))
-    draw.line([(0, 56), (width, 56)], fill=(51, 65, 85), width=2)
-    font_top = get_font(18, bold=True)
-    draw.text((50, 18), "GLOBALPULSE AI • TIER-1 GLOBAL INTELLIGENCE WIRE", fill=(226, 232, 240), font=font_top)
-
-    font_pill = get_font(13, bold=True)
-    draw.rectangle([(width - 320, 12), (width - 40, 44)], fill=(15, 23, 42), outline=accent, width=2)
-    draw.text((width - 300, 20), f"● LIVE BROADCAST | {category.upper()}", fill=accent, font=font_pill)
-
-    # 3. Bottom TV Live Ticker Bar (660 to 720)
-    draw.rectangle([(0, 660), (width, height)], fill=(8, 12, 20))
-    draw.line([(0, 660), (width, 660)], fill=accent, width=2)
-
-    # Red Live Indicator Pill
-    draw.rectangle([(45, 672), (115, 708)], fill=(220, 38, 38))
-    draw.text((58, 680), "● LIVE", fill=(255, 255, 255), font=get_font(14, bold=True))
-
-    font_ticker = get_font(15, bold=True)
-    clean_title_ticker = title.upper()[:75]
-    ticker_text = f"GLOBAL TELEMETRY • EDUHUB BY SAEED (@EduHubbySaeed) • BREAKING: {clean_title_ticker} • {clean_domain.upper()}"
-    draw.text((130, 680), ticker_text, fill=(241, 245, 249), font=font_ticker)
-
-    return bg, draw
-
-def paste_framed_visual(
-    canvas: Image.Image,
-    draw: ImageDraw.ImageDraw,
+def create_fullbleed_cinematic_frame(
     photo_path: Path,
-    accent: Tuple[int, int, int],
-    frame_coords: Tuple[int, int, int, int] = (670, 75, 1235, 420),
-    corner_tag: str = "● LIVE VISUAL // VERIFIED SOURCE"
-):
-    """Pastes unblurred HD news photo inside a sleek broadcast frame with glowing accent borders and live tag."""
-    fx1, fy1, fx2, fy2 = frame_coords
-    fw, fh = fx2 - fx1, fy2 - fy1
-
+    target_w: int,
+    target_h: int,
+    zoom_crop_index: int = 0
+) -> Image.Image:
+    """
+    Creates a full-bleed, high-impact cinematic visual frame:
+    - Scales and crops the HD photo to completely fill the canvas (1080x1920 or 1280x720).
+    - Applies dynamic focal zoom & pan variations across scenes so each slide feels fresh.
+    - Applies a dual gradient vignette: subtle top darkening for badges, and deep dark vignette in lower 50% for high-contrast subtitles.
+    """
     try:
-        photo_img = Image.open(photo_path).convert("RGB")
-        scale = max(fw / photo_img.width, fh / photo_img.height)
-        nw, nh = int(photo_img.width * scale), int(photo_img.height * scale)
-        resized = photo_img.resize((nw, nh), Image.Resampling.LANCZOS)
-        x1 = (nw - fw) // 2
-        y1 = (nh - fh) // 2
-        cropped = resized.crop((x1, y1, x1 + fw, y1 + fh))
-        canvas.paste(cropped, (fx1, fy1))
+        img = Image.open(photo_path).convert("RGB")
     except Exception:
-        draw.rectangle([(fx1, fy1), (fx2, fy2)], fill=(15, 23, 42))
+        img = Image.new("RGB", (target_w, target_h), (15, 23, 42))
 
-    # Glowing double border
-    draw.rectangle([(fx1 - 2, fy1 - 2), (fx2 + 2, fy2 + 2)], outline=accent, width=2)
-    draw.rectangle([(fx1, fy1), (fx2, fy2)], outline=(255, 255, 255, 120), width=1)
+    # Varied focal zooms & pan alignments across scenes
+    zoom_factors = [1.02, 1.12, 1.18, 1.25, 1.15, 1.10, 1.06, 1.22]
+    align_modes = ["center", "top", "left", "center", "right", "bottom", "center", "top"]
 
-    # Corner Tag Pill
-    tag_font = get_font(13, bold=True)
-    draw.rectangle([(fx2 - 220, fy1 + 10), (fx2 - 10, fy1 + 36)], fill=(11, 15, 25), outline=accent, width=1)
-    draw.text((fx2 - 210, fy1 + 15), corner_tag, fill=accent, font=tag_font)
+    zf = zoom_factors[zoom_crop_index % len(zoom_factors)]
+    am = align_modes[zoom_crop_index % len(align_modes)]
+
+    scale = max(target_w / img.width, target_h / img.height) * zf
+    new_w, new_h = max(target_w, int(img.width * scale)), max(target_h, int(img.height * scale))
+    resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+    if am == "top":
+        x1 = (new_w - target_w) // 2
+        y1 = 0
+    elif am == "left":
+        x1 = 0
+        y1 = (new_h - target_h) // 2
+    elif am == "right":
+        x1 = new_w - target_w
+        y1 = (new_h - target_h) // 2
+    elif am == "bottom":
+        x1 = (new_w - target_w) // 2
+        y1 = new_h - target_h
+    else:  # center
+        x1 = (new_w - target_w) // 2
+        y1 = (new_h - target_h) // 2
+
+    x1 = max(0, min(x1, new_w - target_w))
+    y1 = max(0, min(y1, new_h - target_h))
+
+    frame = resized.crop((x1, y1, x1 + target_w, y1 + target_h))
+
+    # Dual gradient vignette (top header fade + bottom caption fade)
+    vignette = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+    v_draw = ImageDraw.Draw(vignette)
+
+    # Top fade for live status badge
+    top_limit = int(target_h * 0.18)
+    for y in range(top_limit):
+        alpha = int(190 * (1.0 - (y / top_limit)))
+        v_draw.line([(0, y), (target_w, y)], fill=(3, 7, 18, alpha))
+
+    # Bottom fade for high-impact subtitles (smooth quadratic curve)
+    bottom_start = int(target_h * 0.48)
+    fade_len = target_h - bottom_start
+    for y in range(bottom_start, target_h):
+        prog = (y - bottom_start) / float(fade_len)
+        alpha = int(245 * (prog ** 1.3))
+        v_draw.line([(0, y), (target_w, y)], fill=(3, 7, 18, min(245, alpha)))
+
+    frame.paste(vignette, (0, 0), vignette)
+    del vignette
+    return frame
+
+def draw_sentence_captions(
+    draw: ImageDraw.ImageDraw,
+    sentence: str,
+    canvas_w: int,
+    canvas_h: int,
+    font: ImageFont.ImageFont,
+    accent_color: Tuple[int, int, int] = (250, 204, 21),
+    max_chars: int = 24,
+    is_shorts: bool = True
+):
+    """
+    Renders high-impact TikTok/Reels style pop-up subtitles:
+    - Bold, large text with thick black outline stroke (4px) for 100% legibility on any background.
+    - First 2-3 impact words highlighted in Neon Yellow / Neon Cyan.
+    - Remaining words in crisp white.
+    """
+    words = sentence.split()
+    if not words:
+        return
+
+    lines = []
+    curr = []
+    for w in words:
+        if len(" ".join(curr + [w])) <= max_chars:
+            curr.append(w)
+        else:
+            if curr:
+                lines.append(curr)
+            curr = [w]
+    if curr:
+        lines.append(curr)
+
+    line_height = 68 if is_shorts else 50
+    total_height = len(lines) * line_height
+
+    if is_shorts:
+        start_y = max(1200, 1550 - (total_height // 2))
+    else:
+        start_y = max(480, 580 - (total_height // 2))
+
+    word_counter = 0
+    highlight_word_count = min(3, len(words))
+
+    for i, line_words in enumerate(lines):
+        full_line = " ".join(line_words)
+        bbox = draw.textbbox((0, 0), full_line, font=font)
+        line_w = bbox[2] - bbox[0]
+        x = (canvas_w - line_w) // 2
+        y = start_y + (i * line_height)
+
+        for w in line_words:
+            w_str = w + " "
+            is_accent = (word_counter < highlight_word_count)
+            color = accent_color if is_accent else (255, 255, 255)
+            draw.text(
+                (x, y),
+                w_str,
+                fill=color,
+                font=font,
+                stroke_width=4,
+                stroke_fill=(0, 0, 0)
+            )
+            w_box = draw.textbbox((0, 0), w_str, font=font)
+            x += (w_box[2] - w_box[0])
+            word_counter += 1
 
 def generate_news_slides(
     title: str,
@@ -734,164 +852,76 @@ def generate_news_slides(
     summary: str,
     output_dir: Path,
     article_id: int,
-    scene_images: List[Path]
+    scene_images: List[Path],
+    spoken_sentences: Optional[List[str]] = None
 ) -> List[Path]:
     """
-    Generates 7 dynamic vertical news cards (1080x1920) for 9:16 Shorts mode:
-    Every slide features that scene's news photo (blurred glass backdrop + framed HD visual).
+    Generates 6 to 8 full-bleed cinematic vertical frames (1080x1920) for 9:16 Shorts mode:
+    - 100% photo-rich dynamic visuals (no black screens, no PowerPoint boxes).
+    - Dynamic zoom & crop variations per scene.
+    - Sleek top-left live badge (🔴 BREAKING • {category.upper()}).
+    - TikTok-style large pop-up captions (lower-middle) displaying the exact spoken sentence with neon keyword highlights!
+    - Clean bottom bar (@EduHubbySaeed • GlobalPulse AI).
     """
+    import gc
     width, height = 1080, 1920
     accent = CATEGORY_ACCENTS.get(category, (6, 182, 212))
     slide_paths: List[Path] = []
-    clean_domain = get_clean_domain(PUBLIC_SITE_URL)
 
-    raw_lines = [
-        re.sub(r"^[\s•▸*\-]+", "", line).strip()
-        for line in summary.split("\n")
-        if line.strip() and len(line.strip()) > 8
-    ]
-    if len(raw_lines) < 3:
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", summary) if len(s.strip()) > 10]
-        if len(sentences) >= 2:
-            raw_lines = sentences
+    if not spoken_sentences:
+        spoken_sentences = segment_script_into_sentences(summary, fallback_title=title, count=7)
 
-    summary_lines = list(raw_lines)
-    defaults = [
-        f"Verified Milestone: {title[:70]}",
-        "Accelerated industry adoption verified across Tier-1 institutions.",
-        "Strategic implications signaling global technological transition.",
-        "Primary telemetry indicates sustained macro momentum across sectors."
-    ]
-    for d in defaults:
-        if len(summary_lines) < 4:
-            summary_lines.append(d)
+    font_top_badge = get_font(26, bold=True)
+    font_top_channel = get_font(22, bold=True)
+    font_caption = get_font(52, bold=True)
+    font_bottom = get_font(24, bold=True)
 
-    font_badge = get_font(24, bold=True)
-    font_h2 = get_font(42, bold=True)
-    font_card_text = get_font(34, bold=False)
-    font_sub = get_font(26, bold=False)
+    neon_keywords_color = (250, 204, 21) if category == "Global Sports" else (34, 211, 238)
 
-    # 7 Vertical Slides
-    for idx in range(1, 8):
-        img_p = scene_images[min(idx - 1, len(scene_images) - 1)]
-        try:
-            base_img = Image.open(img_p).convert("RGB")
-        except Exception:
-            base_img = Image.new("RGB", (width, height), (15, 23, 42))
+    for idx, sentence in enumerate(spoken_sentences, 1):
+        img_p = scene_images[(idx - 1) % len(scene_images)]
+        frame = create_fullbleed_cinematic_frame(img_p, width, height, zoom_crop_index=idx - 1)
+        draw = ImageDraw.Draw(frame)
 
-        # Blurred backdrop
-        bg = base_img.resize((width, height), Image.Resampling.LANCZOS)
-        bg = bg.filter(ImageFilter.GaussianBlur(radius=28))
-        overlay = Image.new("RGBA", (width, height), (3, 7, 18, 195))
-        bg.paste(overlay, (0, 0), overlay)
+        # 1. Sleek Top-Left Live Badge
+        badge_text = f"BREAKING • {category.upper()}"
+        b_box = draw.textbbox((0, 0), badge_text, font=font_top_badge)
+        bw = b_box[2] - b_box[0]
+        bx1, by1 = 50, 75
+        bx2, by2 = bx1 + bw + 80, by1 + 64
+        draw.rounded_rectangle([(bx1, by1), (bx2, by2)], radius=14, fill=(15, 23, 42, 230), outline=accent, width=2)
+        # Red Live Broadcast Circle
+        draw.ellipse([(bx1 + 22, by1 + 22), (bx1 + 42, by1 + 42)], fill=(239, 68, 68))
+        draw.text((bx1 + 52, by1 + 16), badge_text, fill=(255, 255, 255), font=font_top_badge)
 
-        draw = ImageDraw.Draw(bg)
+        # Top-Right Watermark
+        draw.rounded_rectangle([(width - 360, by1), (width - 50, by2)], radius=14, fill=(15, 23, 42, 200), outline=(51, 65, 85), width=1)
+        draw.text((width - 335, by1 + 18), "GLOBALPULSE AI", fill=accent, font=font_top_channel)
 
-        # Top Bar
-        draw.rectangle([(0, 0), (width, 100)], fill=(11, 15, 25))
-        draw.line([(0, 100), (width, 100)], fill=(51, 65, 85), width=2)
-        draw.text((60, 32), "GLOBALPULSE AI • 60-SEC WIRE", fill=(226, 232, 240), font=get_font(26, bold=True))
-        draw.rectangle([(780, 25), (1020, 75)], fill=(15, 23, 42), outline=accent, width=2)
-        draw.text((805, 36), f"● {category.upper()}", fill=accent, font=get_font(20, bold=True))
+        # 2. Large Bold Pop-Up Captions (Lower-Middle: y=1340 to 1640)
+        draw_sentence_captions(
+            draw=draw,
+            sentence=sentence,
+            canvas_w=width,
+            canvas_h=height,
+            font=font_caption,
+            accent_color=neon_keywords_color,
+            max_chars=24,
+            is_shorts=True
+        )
 
-        # Upper Visual Frame (60, 130, 1020, 730)
-        fw, fh = 960, 600
-        scale = max(fw / base_img.width, fh / base_img.height)
-        nw, nh = int(base_img.width * scale), int(base_img.height * scale)
-        res_photo = base_img.resize((nw, nh), Image.Resampling.LANCZOS)
-        x1, y1 = (nw - fw) // 2, (nh - fh) // 2
-        bg.paste(res_photo.crop((x1, y1, x1 + fw, y1 + fh)), (60, 130))
-        draw.rectangle([(57, 127), (1023, 733)], outline=accent, width=3)
-        draw.rectangle([(720, 145), (1005, 185)], fill=(11, 15, 25), outline=accent, width=1)
-        draw.text((735, 152), "● LIVE VISUAL // VERIFIED", fill=accent, font=get_font(18, bold=True))
-
-        # Lower Editorial Panel (760 to 1750)
-        draw.rectangle([(60, 770), (1020, 1750)], fill=(15, 23, 42), outline=accent, width=2)
-
-        if idx == 1:
-            draw.rectangle([(100, 810), (520, 860)], fill=(18, 30, 49), outline=accent, width=2)
-            draw.text((120, 822), f"BREAKING WIRE • {category.upper()}", fill=accent, font=font_badge)
-            font_title = get_font(46, bold=True)
-            y_t = 890
-            for line in wrap_text(title, max_chars=24)[:4]:
-                draw.text((100, y_t), line, fill=(255, 255, 255), font=font_title)
-                y_t += 62
-            draw.text((100, y_t + 20), "Strategic verified dispatch • Multi-source telemetry", fill=(148, 163, 184), font=font_sub)
-            draw.rectangle([(100, 1560), (980, 1680)], fill=(18, 30, 49), outline=accent, width=1)
-            draw.text((120, 1600), "STATUS: VERIFIED TIER-1 TELEMETRY", fill=accent, font=get_font(24, bold=True))
-
-        elif idx in (2, 3, 4, 5):
-            if category == "Global Sports":
-                badge_map = {
-                    2: "01 // MATCH ANALYSIS",
-                    3: "02 // TURNING POINTS",
-                    4: "03 // PLAYER RATINGS & STATS",
-                    5: "04 // STANDINGS & IMPLICATIONS"
-                }
-                sub_title_map = {
-                    2: "Headline Fixture & Tactical Shape",
-                    3: "Key Momentum Shifts & Decisions",
-                    4: "Player Ratings & Key Contributions",
-                    5: "Tournament Table Implications"
-                }
-            else:
-                badge_map = {
-                    2: "01 // EXECUTIVE SUMMARY",
-                    3: "02 // DATA CORROBORATION",
-                    4: "03 // CRITICAL CONTEXT",
-                    5: "04 // STRATEGIC IMPACT"
-                }
-                sub_title_map = {
-                    2: "Primary Operational Findings",
-                    3: "Telemetry & Multi-Source Evidence",
-                    4: "Context & Market Realignment",
-                    5: "Global Macro Implications"
-                }
-            draw.rectangle([(100, 810), (520, 860)], fill=(18, 30, 49), outline=accent, width=2)
-            draw.text((120, 822), badge_map[idx], fill=accent, font=font_badge)
-            draw.text((100, 890), sub_title_map[idx], fill=(255, 255, 255), font=font_h2)
-            pt_idx = min(idx - 2, len(summary_lines) - 1)
-            y_b = 990
-            for l in wrap_text(summary_lines[pt_idx], max_chars=28)[:8]:
-                draw.text((100, y_b), l, fill=(241, 245, 249), font=font_card_text)
-                y_b += 52
-
-        elif idx == 6:
-            draw.rectangle([(100, 810), (520, 860)], fill=(45, 15, 20), outline=(239, 68, 68), width=2)
-            draw.text((120, 822), "OFFICIAL MEDIA PARTNER", fill=(239, 68, 68), font=font_badge)
-            draw.text((100, 890), "Subscribe On YouTube", fill=(255, 255, 255), font=font_h2)
-            draw.text((100, 970), "EduHub by Saeed", fill=(255, 255, 255), font=get_font(52, bold=True))
-            draw.text((100, 1045), "@EduHubbySaeed", fill=(239, 68, 68), font=get_font(34, bold=True))
-            y_ed = 1130
-            for l in wrap_text("Daily cutting-edge tutorials, real-world coding builds, and breaking technology briefings. Subscribe free.", max_chars=30):
-                draw.text((100, y_ed), l, fill=(203, 213, 225), font=font_card_text)
-                y_ed += 50
-            draw.rectangle([(100, 1560), (980, 1680)], fill=(185, 28, 28), outline=(239, 68, 68), width=1)
-            draw.text((130, 1600), "SUBSCRIBE FREE: YOUTUBE.COM/@EDUHUBBYSAEED", fill=(255, 255, 255), font=get_font(22, bold=True))
-
-        else:
-            draw.rectangle([(100, 810), (520, 860)], fill=(18, 30, 49), outline=accent, width=2)
-            draw.text((120, 822), "FULL INVESTIGATION", fill=accent, font=font_badge)
-            draw.text((100, 890), "Read Complete Dossier", fill=(255, 255, 255), font=font_h2)
-            draw.text((100, 980), clean_domain, fill=accent, font=get_font(48, bold=True))
-            y_cl = 1070
-            for l in wrap_text("Access full citations, interactive market data, and verified sources on our news platform.", max_chars=30):
-                draw.text((100, y_cl), l, fill=(226, 232, 240), font=font_card_text)
-                y_cl += 50
-            draw.rectangle([(100, 1560), (980, 1680)], fill=(18, 30, 49), outline=accent, width=1)
-            draw.text((140, 1600), f"VISIT: WWW.{clean_domain}", fill=accent, font=get_font(24, bold=True))
-
-        # Bottom TV Ticker Bar (1800 to 1920)
-        draw.rectangle([(0, 1800), (width, height)], fill=(8, 12, 20))
-        draw.line([(0, 1800), (width, 1800)], fill=accent, width=3)
-        draw.rectangle([(40, 1830), (140, 1880)], fill=(220, 38, 38))
-        draw.text((55, 1842), "● LIVE", fill=(255, 255, 255), font=get_font(20, bold=True))
-        ticker_text = f"GLOBAL TELEMETRY • EDUHUB BY SAEED (@EduHubbySaeed) • BREAKING: {title.upper()[:65]}"
-        draw.text((160, 1845), ticker_text, fill=(241, 245, 249), font=get_font(20, bold=True))
+        # 3. Clean Bottom Bar (y=1810 to 1860)
+        draw.line([(60, 1800), (width - 60, 1800)], fill=(51, 65, 85, 180), width=1)
+        bottom_text = "● LIVE WIRE • @EduHubbySaeed • GLOBALPULSE AI"
+        b_box = draw.textbbox((0, 0), bottom_text, font=font_bottom)
+        bw = b_box[2] - b_box[0]
+        draw.text(((width - bw) // 2, 1825), bottom_text, fill=(203, 213, 225), font=font_bottom)
 
         slide_file = output_dir / f"slide_{idx}_{article_id}.png"
-        bg.save(slide_file, "PNG")
+        frame.save(slide_file, "PNG")
         slide_paths.append(slide_file)
+        del frame, draw
+        gc.collect()
 
     return slide_paths
 
@@ -902,364 +932,88 @@ def generate_widescreen_long_slides(
     content: str,
     output_dir: Path,
     article_id: int,
-    scene_images: List[Path]
+    scene_images: List[Path],
+    spoken_sentences: Optional[List[str]] = None
 ) -> List[Path]:
     """
-    Generates 7 widescreen HD broadcast chapters/slides (1920x1080) for full-length YouTube videos.
-    Every slide features that scene's news photo (blurred glass backdrop + framed HD visual).
+    Generates 6 to 8 full-bleed cinematic widescreen frames (1280x720) for 16:9 Long-Form videos:
+    - 100% photo-rich dynamic visuals (no static PowerPoint cards or fake stat boxes).
+    - Dynamic zoom & crop variations per scene.
+    - Sleek top-left live broadcast badge (🔴 BREAKING • {category.upper()}).
+    - Top-right verified channel branding (@EduHubbySaeed • YouTube).
+    - High-contrast broadcast subtitles in lower third with neon keyword highlights!
+    - Clean bottom bar (@EduHubbySaeed • GlobalPulse AI).
     """
+    import gc
+    width, height = 1280, 720
     accent = CATEGORY_ACCENTS.get(category, (6, 182, 212))
     slide_paths: List[Path] = []
     clean_domain = get_clean_domain(PUBLIC_SITE_URL)
 
-    def _strip(text: str) -> str:
-        t = re.sub(r"#+\s*", "", text)
-        t = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", t)
-        t = re.sub(r"<[^>]+>", "", t)
-        t = t.replace("**", "").replace("*", "").replace("`", "").replace("•", "").replace("▸", "").replace(">", "").replace("|", " ")
-        return " ".join(t.split()).strip()
+    if not spoken_sentences:
+        spoken_sentences = segment_script_into_sentences(content or summary, fallback_title=title, count=7)
 
-    # Extract summary bullet points
-    raw_lines = [_strip(l) for l in summary.split("\n") if len(_strip(l)) > 12]
-    if len(raw_lines) < 3:
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", summary) if len(s.strip()) > 12]
-        if len(sentences) >= 2:
-            raw_lines = sentences
-    summary_lines = list(raw_lines)
-    while len(summary_lines) < 4:
-        summary_lines.append(f"Primary operational development: {title[:70]}")
-        summary_lines.append("Accelerated institutional adoption verified across transatlantic nodes.")
-        summary_lines.append("Telemetry signals structural shift recalibrating market fundamentals.")
-        summary_lines.append("Multi-source corroboration confirmed across independent technical datasets.")
+    font_top_badge = get_font(18, bold=True)
+    font_top_channel = get_font(18, bold=True)
+    font_caption = get_font(34, bold=True)
+    font_bottom = get_font(17, bold=True)
 
-    # Extract content paragraphs
-    content_paras = []
-    if content:
-        for p in content.split("\n\n"):
-            p_clean = _strip(p)
-            if len(p_clean) > 55 and not p.strip().startswith("|") and not p_clean.startswith("###"):
-                content_paras.append(p_clean)
-    while len(content_paras) < 4:
-        content_paras.append(
-            f"Independent engineering reviews have verified that this milestone in {category} represents a major operational transition. "
-            "Technical telemetry confirms that scalability constraints are being superseded by modular, resilient next-generation systems."
+    neon_keywords_color = (250, 204, 21) if category == "Global Sports" else (34, 211, 238)
+
+    for idx, sentence in enumerate(spoken_sentences):
+        photo_path = scene_images[idx % len(scene_images)]
+
+        # 1. Full-bleed cinematic background frame with zoom/crop variation + dark gradient vignette
+        frame = create_fullbleed_cinematic_frame(
+            photo_path=photo_path,
+            target_w=width,
+            target_h=height,
+            zoom_crop_index=idx
         )
-        content_paras.append(
-            "Enterprise operators across North America and Europe are aligning deployment roadmaps. "
-            "Cross-sector benchmarks demonstrate significant productivity enhancements and reduced operational latency."
+        draw = ImageDraw.Draw(frame)
+
+        # 2. Sleek Top-Left Live Badge
+        badge_text = f"BREAKING • {category.upper()}"
+        b_box = draw.textbbox((0, 0), badge_text, font=font_top_badge)
+        bw = b_box[2] - b_box[0]
+        bh = b_box[3] - b_box[1]
+        draw.rounded_rectangle([(40, 26), (40 + bw + 52, 26 + bh + 18)], radius=8, fill=(15, 23, 42, 220), outline=accent, width=2)
+        draw.ellipse([(52, 36), (66, 50)], fill=(239, 68, 68))
+        draw.text((74, 34), badge_text, fill=(255, 255, 255), font=font_top_badge)
+
+        # Top-Right Channel Pill
+        channel_text = "@EduHubbySaeed • YOUTUBE"
+        ch_box = draw.textbbox((0, 0), channel_text, font=font_top_channel)
+        ch_w = ch_box[2] - ch_box[0]
+        ch_h = ch_box[3] - ch_box[1]
+        ch_x = width - 40 - ch_w - 28
+        draw.rounded_rectangle([(ch_x, 26), (width - 40, 26 + ch_h + 18)], radius=8, fill=(15, 23, 42, 220), outline=(220, 38, 38), width=2)
+        draw.text((ch_x + 14, 34), channel_text, fill=(248, 113, 113), font=font_top_channel)
+
+        # 3. High-Contrast Lower-Third Broadcast Subtitles with Neon Accent Keywords
+        draw_sentence_captions(
+            draw=draw,
+            sentence=sentence,
+            canvas_w=width,
+            canvas_h=height,
+            font=font_caption,
+            accent_color=neon_keywords_color,
+            max_chars=46,
+            is_shorts=False
         )
-        content_paras.append(
-            "Capital allocators and institutional funds are adjusting portfolio exposures to prioritize sovereign infrastructure resilience. "
-            "Public-private partnerships are formalizing long-term procurement agreements to secure strategic market positioning."
-        )
-        content_paras.append(
-            "Looking toward the 2026 to 2030 horizon, these developments establish a definitive precedent. "
-            "Industry consensus anticipates comprehensive standardization across global regulatory and technical consortiums."
-        )
 
-    import gc
-    font_badge = get_font(16, bold=True)
-    font_h2 = get_font(28, bold=True)
-    font_title = get_font(32, bold=True)
-    font_body = get_font(20, bold=False)
-    font_sub = get_font(18, bold=False)
+        # 4. Clean Bottom Bar
+        draw.line([(40, 672), (width - 40, 672)], fill=(51, 65, 85, 180), width=1)
+        bottom_text = f"● LIVE INTELLIGENCE • @EduHubbySaeed • GLOBALPULSE AI • WWW.{clean_domain.upper()}"
+        bot_box = draw.textbbox((0, 0), bottom_text, font=font_bottom)
+        bot_w = bot_box[2] - bot_box[0]
+        draw.text(((width - bot_w) // 2, 686), bottom_text, fill=(203, 213, 225), font=font_bottom)
 
-    # -------------------------------------------------------------
-    # SLIDE 1: Widescreen Breaking News Hero Card (1280x720)
-    # -------------------------------------------------------------
-    img_1 = scene_images[0]
-    s1, draw1 = build_broadcast_widescreen_canvas(img_1, accent, category, clean_domain, title)
-
-    # Left Column: Headline and Badge
-    draw1.rectangle([(50, 75), (420, 115)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw1.text((65, 85), f"BREAKING WIRE • {category.upper()}", fill=accent, font=font_badge)
-
-    title_lines = wrap_text(title, max_chars=28)
-    y_t = 135
-    for line in title_lines[:4]:
-        draw1.text((51, y_t + 1), line, fill=(0, 0, 0), font=font_title)
-        draw1.text((50, y_t), line, fill=(255, 255, 255), font=font_title)
-        y_t += 42
-
-    draw1.text((50, min(y_t + 8, 325)), "Primary verified wire dispatch • Strategic industry assessment", fill=(148, 163, 184), font=font_sub)
-
-    # Executive Dossier Synopsis Box
-    draw1.rectangle([(50, 355), (640, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw1.text((75, 375), "EXECUTIVE DOSSIER SYNOPSIS", fill=accent, font=font_badge)
-    y_syn = 415
-    for l in wrap_text(summary_lines[0], max_chars=38)[:4]:
-        draw1.text((75, y_syn), l, fill=(241, 245, 249), font=font_body)
-        y_syn += 34
-
-    # Right Column: Framed Hero Visual + Status Pill
-    paste_framed_visual(s1, draw1, img_1, accent, frame_coords=(670, 75, 1235, 430), corner_tag="● LIVE VISUAL // VERIFIED LEAD")
-
-    draw1.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=(51, 65, 85), width=2)
-    draw1.text((695, 475), "STATUS: VERIFIED • TIER-1 STANDARDS AUDITED", fill=accent, font=font_badge)
-    y_st = 515
-    for l in wrap_text(summary_lines[1] if len(summary_lines) > 1 else summary_lines[0], max_chars=38)[:3]:
-        draw1.text((695, y_st), l, fill=(203, 213, 225), font=font_sub)
-        y_st += 32
-
-    p1 = output_dir / f"widescreen_1_{article_id}.png"
-    s1.save(p1, "PNG")
-    slide_paths.append(p1)
-    del s1, draw1
-    gc.collect()
-
-    # -------------------------------------------------------------
-    # SLIDE 2: 01 // Executive Summary & Core Operational Findings (Sports: Match Analysis)
-    # -------------------------------------------------------------
-    img_2 = scene_images[min(1, len(scene_images) - 1)]
-    s2, draw2 = build_broadcast_widescreen_canvas(img_2, accent, category, clean_domain, title)
-
-    is_sports = (category == "Global Sports")
-    draw2.rectangle([(50, 75), (420, 115)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw2.text((65, 85), "01 // MATCH ANALYSIS" if is_sports else "01 // EXECUTIVE SUMMARY", fill=accent, font=font_badge)
-    draw2.text((50, 130), "Tactical Posture & Opening Exchanges" if is_sports else "Core Operational Findings", fill=(255, 255, 255), font=font_h2)
-
-    # Finding 01 Card
-    draw2.rectangle([(50, 185), (640, 400)], fill=(15, 23, 42), outline=accent, width=2)
-    draw2.text((75, 205), "TACTICAL POSTURE // INITIAL PRESSURE" if is_sports else "FINDING 01 // TELEMETRY CONFIRMED", fill=accent, font=font_badge)
-    y_f1 = 245
-    for l in wrap_text(summary_lines[0], max_chars=38)[:3]:
-        draw2.text((75, y_f1), l, fill=(241, 245, 249), font=font_body)
-        y_f1 += 34
-
-    # Finding 02 Card
-    draw2.rectangle([(50, 425), (640, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw2.text((75, 445), "TRANSITIONAL MOMENTS // CLINICAL FINISH" if is_sports else "FINDING 02 // MULTI-SOURCE CORROBORATED", fill=accent, font=font_badge)
-    y_f2 = 485
-    for l in wrap_text(summary_lines[1] if len(summary_lines) > 1 else summary_lines[0], max_chars=38)[:3]:
-        draw2.text((75, y_f2), l, fill=(241, 245, 249), font=font_body)
-        y_f2 += 34
-
-    # Right Column: Framed Scene Image + Finding 03 Card
-    paste_framed_visual(s2, draw2, img_2, accent, frame_coords=(670, 75, 1235, 430), corner_tag="● PITCH TELEMETRY // VERIFIED" if is_sports else "● TELEMETRY // DATA CONFIRMED")
-
-    draw2.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw2.text((695, 475), "MOMENTUM IMPACT // HIGH STAKES" if is_sports else "FINDING 03 // INSTITUTIONAL BENCHMARK", fill=accent, font=font_badge)
-    y_f3 = 515
-    for l in wrap_text(summary_lines[2] if len(summary_lines) > 2 else summary_lines[0], max_chars=38)[:3]:
-        draw2.text((695, y_f3), l, fill=(241, 245, 249), font=font_body)
-        y_f3 += 34
-
-    p2 = output_dir / f"widescreen_2_{article_id}.png"
-    s2.save(p2, "PNG")
-    slide_paths.append(p2)
-    del s2, draw2
-    gc.collect()
-
-    # -------------------------------------------------------------
-    # SLIDE 3: 02 // Background & Technical Deep-Dive (Sports: Key Turning Points)
-    # -------------------------------------------------------------
-    img_3 = scene_images[min(2, len(scene_images) - 1)]
-    s3, draw3 = build_broadcast_widescreen_canvas(img_3, accent, category, clean_domain, title)
-
-    draw3.rectangle([(50, 75), (440, 115)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw3.text((65, 85), "02 // KEY TURNING POINTS" if is_sports else "02 // INVESTIGATIVE REPORT", fill=accent, font=font_badge)
-    draw3.text((50, 130), "Decisive Momentum Shifts & Plays" if is_sports else "Architectural & Technical Analysis", fill=(255, 255, 255), font=font_h2)
-
-    # Left Column: Detailed Evidence Box
-    draw3.rectangle([(50, 185), (640, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw3.text((75, 210), "MATCH DISPATCH & TACTICAL LOG" if is_sports else "TECHNICAL DISPATCH & EVIDENCE", fill=accent, font=font_badge)
-    y_dd = 250
-    for l in wrap_text(content_paras[0], max_chars=38)[:9]:
-        draw3.text((75, y_dd), l, fill=(241, 245, 249), font=font_body)
-        y_dd += 34
-
-    # Right Column: Framed Image + Validated Metrics Box
-    paste_framed_visual(s3, draw3, img_3, accent, frame_coords=(670, 75, 1235, 430), corner_tag="● MATCH ACTION // KEY PLAY" if is_sports else "● INFRASTRUCTURE // LIVE NODE")
-
-    draw3.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw3.text((695, 475), "FIXTURE PERFORMANCE INDICATORS" if is_sports else "VALIDATED METRICS & INDICATORS", fill=accent, font=font_badge)
-    metrics = [
-        ("MOMENTUM SWING", "High-Press Counter Transition") if is_sports else ("ARCHITECTURE", "Modular Framework"),
-        ("DEFENSIVE DISCIPLINE", "Zero Conceded on Direct Breaks") if is_sports else ("DEPLOYMENT", "Enterprise Multi-Region"),
-        ("EXECUTION RATE", "89% Clinical Opportunity Conversion") if is_sports else ("COMPLIANCE", "Tier-1 Standards Verified")
-    ]
-    y_m = 515
-    for m_label, m_val in metrics:
-        draw3.text((695, y_m), f"• {m_label}:", fill=accent, font=get_font(16, bold=True))
-        draw3.text((880, y_m), m_val, fill=(241, 245, 249), font=get_font(16, bold=False))
-        y_m += 38
-
-    p3 = output_dir / f"widescreen_3_{article_id}.png"
-    s3.save(p3, "PNG")
-    slide_paths.append(p3)
-    del s3, draw3
-    gc.collect()
-
-    # -------------------------------------------------------------
-    # SLIDE 4: 03 // Player Form & Stats or Strategic Impact
-    # -------------------------------------------------------------
-    img_4 = scene_images[min(3, len(scene_images) - 1)]
-    s4, draw4 = build_broadcast_widescreen_canvas(img_4, accent, category, clean_domain, title)
-
-    draw4.rectangle([(50, 75), (460, 115)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw4.text((65, 85), "03 // PLAYER FORM & STATS MATRIX" if is_sports else "03 // STRATEGIC IMPACT & FORECAST", fill=accent, font=font_badge)
-    draw4.text((50, 130), "Player Contributions & Match Telemetry" if is_sports else "Macro Trajectory & Market Outlook", fill=(255, 255, 255), font=font_h2)
-
-    # Left Column: Strategic Impact or Stats
-    draw4.rectangle([(50, 185), (640, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw4.text((75, 210), "STANDOUT PERFORMER CONTRIBUTIONS" if is_sports else "CAPITAL ALLOCATION & SYSTEMIC SHIFT", fill=accent, font=font_badge)
-    
-    if is_sports:
-        y_st = 250
-        sports_ratings = [
-            ("Lead Playmaker", "Rating: 9.4/10", "89% passing, 5 key chances created"),
-            ("Defensive Anchor", "Rating: 9.0/10", "8 critical stops, 100% aerial duels won"),
-            ("High-Press Frontline", "Rating: 9.2/10", "19 pressures, decisive offensive finish"),
-            ("Goalkeeper / Final Unit", "Rating: 8.8/10", "6 crucial interventions, 94% distribution")
-        ]
-        for role, rtg, desc in sports_ratings:
-            draw4.text((75, y_st), f"• {role}: {rtg}", fill=accent, font=get_font(18, bold=True))
-            draw4.text((95, y_st + 24), desc, fill=(241, 245, 249), font=get_font(16, bold=False))
-            y_st += 55
-    else:
-        y_m1 = 250
-        impact_text = content_paras[1] if len(content_paras) > 1 else content_paras[0]
-        for l in wrap_text(impact_text, max_chars=38)[:9]:
-            draw4.text((75, y_m1), l, fill=(241, 245, 249), font=font_body)
-            y_m1 += 34
-
-    # Right Column: Framed Image + Horizon Timeline / Standings Card
-    paste_framed_visual(s4, draw4, img_4, accent, frame_coords=(670, 75, 1235, 430), corner_tag="● ATHLETE SPOTLIGHT // 9.4 RTG" if is_sports else "● STRATEGIC FORECAST // HORIZON")
-
-    draw4.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw4.text((695, 470), "TOURNAMENT TRAJECTORY TIMELINE" if is_sports else "STRATEGIC HORIZON TIMELINE", fill=accent, font=font_badge)
-    draw4.rectangle([(695, 505), (1210, 560)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
-    draw4.text((710, 522), "PHASE 1 (Upcoming): Crucial Group / Knockout Qualification Fixture" if is_sports else "HORIZON 1 (0-12M): Enterprise Protocol Standardization", fill=accent, font=get_font(16, bold=True))
-    draw4.rectangle([(695, 575), (1210, 630)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
-    draw4.text((710, 592), "PHASE 2 (Season): Championship Odds Shift & Table Trajectory" if is_sports else "HORIZON 2 (1-3Y): Global Cross-Sector Systemic Integration", fill=accent, font=get_font(16, bold=True))
-
-    p4 = output_dir / f"widescreen_4_{article_id}.png"
-    s4.save(p4, "PNG")
-    slide_paths.append(p4)
-    del s4, draw4
-    gc.collect()
-
-    # -------------------------------------------------------------
-    # SLIDE 5: 04 // Upcoming Fixtures & Championship Implications
-    # -------------------------------------------------------------
-    img_5 = scene_images[min(4, len(scene_images) - 1)]
-    s5, draw5 = build_broadcast_widescreen_canvas(img_5, accent, category, clean_domain, title)
-
-    draw5.rectangle([(50, 75), (460, 115)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw5.text((65, 85), "04 // CHAMPIONSHIP IMPLICATIONS" if is_sports else "04 // GLOBAL MARKET RIPPLE EFFECTS", fill=accent, font=font_badge)
-    draw5.text((50, 130), "League Standings & Upcoming Clashes" if is_sports else "Enterprise Repercussions & Capital Realignment", fill=(255, 255, 255), font=font_h2)
-
-    # Left Column: Standings / Implications Box
-    draw5.rectangle([(50, 185), (640, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw5.text((75, 210), "QUALIFICATION PATHWAY & TABLE SHIFT" if is_sports else "INSTITUTIONAL MARKET MOVEMENTS", fill=accent, font=font_badge)
-    y_imp = 250
-    imp_p = content_paras[2] if len(content_paras) > 2 else (content_paras[1] if len(content_paras) > 1 else content_paras[0])
-    for l in wrap_text(imp_p, max_chars=38)[:9]:
-        draw5.text((75, y_imp), l, fill=(241, 245, 249), font=font_body)
-        y_imp += 34
-
-    # Right Column: Framed Image + Live Standings Card
-    paste_framed_visual(s5, draw5, img_5, accent, frame_coords=(670, 75, 1235, 430), corner_tag="● CHAMPIONSHIP TABLE // LIVE" if is_sports else "● CAPITAL NETWORK // FLOW")
-
-    draw5.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw5.text((695, 475), "CONFIRMED BRACKET TELEMETRY" if is_sports else "CROSS-BORDER ADOPTION METRICS", fill=accent, font=font_badge)
-    fixture_items = [
-        ("TITLE RACE", "Points margin tightened in championship hunt") if is_sports else ("LIQUIDITY", "Substantial capital inflows observed"),
-        ("UPCOMING CLASH", "High-stakes direct showdown scheduled next week") if is_sports else ("REGULATION", "Harmonized transatlantic frameworks"),
-        ("PROBABILITY", "Knockout advancement odds elevated significantly") if is_sports else ("EFFICIENCY", "38% audited dividend across nodes")
-    ]
-    y_fix = 515
-    for f_label, f_val in fixture_items:
-        draw5.text((695, y_fix), f"• {f_label}:", fill=accent, font=get_font(16, bold=True))
-        draw5.text((880, y_fix), f_val, fill=(241, 245, 249), font=get_font(16, bold=False))
-        y_fix += 38
-
-    p5 = output_dir / f"widescreen_5_{article_id}.png"
-    s5.save(p5, "PNG")
-    slide_paths.append(p5)
-    del s5, draw5
-    gc.collect()
-
-    # -------------------------------------------------------------
-    # SLIDE 6: Official Media Partner Showcase (EduHub by Saeed)
-    # -------------------------------------------------------------
-    img_6 = scene_images[min(5, len(scene_images) - 1)]
-    s6, draw6 = build_broadcast_widescreen_canvas(img_6, (239, 68, 68), category, clean_domain, title)
-
-    draw6.rectangle([(50, 75), (420, 115)], fill=(239, 68, 68, 50), outline=(239, 68, 68), width=2)
-    draw6.text((65, 85), "OFFICIAL MEDIA PARTNER", fill=(239, 68, 68), font=font_badge)
-    draw6.text((50, 130), "Subscribe On YouTube • Master Next-Gen Tech", fill=(255, 255, 255), font=font_h2)
-
-    # Left Column: EduHub by Saeed Branding Card
-    draw6.rectangle([(50, 185), (640, 645)], fill=(15, 23, 42), outline=(239, 68, 68), width=2)
-    draw6.rectangle([(75, 210), (320, 245)], fill=(220, 38, 38))
-    draw6.text((90, 220), "▶ YOUTUBE CHANNEL", fill=(255, 255, 255), font=font_badge)
-    draw6.text((75, 260), "EduHub by Saeed", fill=(255, 255, 255), font=get_font(34, bold=True))
-    draw6.text((75, 310), "@EduHubbySaeed", fill=(239, 68, 68), font=get_font(22, bold=True))
-    ch_desc = "Daily in-depth masterclasses covering cutting-edge AI development, full-stack software engineering, autonomous systems, and real-world architectures. Subscribe free to accelerate your mastery."
-    y_ch = 360
-    for l in wrap_text(ch_desc, max_chars=38):
-        draw6.text((75, y_ch), l, fill=(203, 213, 225), font=font_body)
-        y_ch += 34
-    draw6.rectangle([(75, 580), (615, 625)], fill=(220, 38, 38), outline=(239, 68, 68), width=1)
-    draw6.text((95, 592), "SUBSCRIBE FREE: YOUTUBE.COM/@EDUHUBBYSAEED", fill=(255, 255, 255), font=get_font(16, bold=True))
-
-    # Right Column: Framed Studio Visual + Channel Info
-    paste_framed_visual(s6, draw6, img_6, (239, 68, 68), frame_coords=(670, 75, 1235, 430), corner_tag="● OFFICIAL BROADCAST // EDUHUB")
-
-    draw6.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=(239, 68, 68), width=2)
-    draw6.text((695, 475), "COMMUNITY & BROADCAST NETWORK", fill=(239, 68, 68), font=font_badge)
-    draw6.text((695, 510), "YouTube.com/@EduHubbySaeed", fill=(255, 255, 255), font=get_font(24, bold=True))
-    draw6.text((695, 555), "Official video intelligence partner syndicating daily breakdowns.", fill=(203, 213, 225), font=font_sub)
-    draw6.rectangle([(695, 595), (1210, 635)], fill=(220, 38, 38, 40), outline=(239, 68, 68), width=1)
-    draw6.text((710, 606), "JOIN FREE TODAY: SUBSCRIBE ON YOUTUBE", fill=(255, 255, 255), font=get_font(16, bold=True))
-
-    p6 = output_dir / f"widescreen_6_{article_id}.png"
-    s6.save(p6, "PNG")
-    slide_paths.append(p6)
-    del s6, draw6
-    gc.collect()
-
-    # -------------------------------------------------------------
-    # SLIDE 7: GlobalPulse AI Full Platform Dossier
-    # -------------------------------------------------------------
-    img_7 = scene_images[min(6, len(scene_images) - 1)]
-    s7, draw7 = build_broadcast_widescreen_canvas(img_7, accent, category, clean_domain, title)
-
-    draw7.rectangle([(50, 75), (420, 115)], fill=(accent[0], accent[1], accent[2], 50), outline=accent, width=2)
-    draw7.text((65, 85), "FULL INTELLIGENCE DOSSIER", fill=accent, font=font_badge)
-    draw7.text((50, 130), "Verified Telemetry & Source Attribution", fill=(255, 255, 255), font=font_h2)
-
-    # Left Column: Portal Overview Card
-    draw7.rectangle([(50, 185), (640, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw7.text((75, 210), "GLOBALPULSE AI INTELLIGENCE PLATFORM", fill=accent, font=font_badge)
-    draw7.text((75, 250), clean_domain, fill=accent, font=get_font(38, bold=True))
-    y_dos = 310
-    dos_desc = (
-        "Access full interactive articles, verified primary source citations, real-time market data, "
-        "and comprehensive editorial investigations across Global Sports, AI & Tech, Global Markets, Geopolitics, and Future Science."
-    )
-    for l in wrap_text(dos_desc, max_chars=38):
-        draw7.text((75, y_dos), l, fill=(203, 213, 225), font=font_body)
-        y_dos += 34
-    draw7.rectangle([(75, 580), (615, 625)], fill=(accent[0], accent[1], accent[2], 40), outline=accent, width=1)
-    draw7.text((95, 592), f"EXPLORE LIVE PORTAL: WWW.{clean_domain}", fill=accent, font=get_font(16, bold=True))
-
-    # Right Column: Framed Studio Visual + Live Portal Link
-    paste_framed_visual(s7, draw7, img_7, accent, frame_coords=(670, 75, 1235, 430), corner_tag="● GLOBAL WIRE // VERIFIED DOSSIER")
-
-    draw7.rectangle([(670, 455), (1235, 645)], fill=(15, 23, 42), outline=accent, width=2)
-    draw7.text((695, 475), "VERIFIED WIRE ARCHIVE & RSS SYNDICATION", fill=accent, font=font_badge)
-    draw7.text((695, 515), "24/7 Autonomous News Bureau Engine", fill=(255, 255, 255), font=get_font(22, bold=True))
-    draw7.text((695, 555), "AI-curated dispatches, verified facts, zero hallucination.", fill=(203, 213, 225), font=font_sub)
-    draw7.rectangle([(695, 595), (1210, 635)], fill=(accent[0], accent[1], accent[2], 30), outline=accent, width=1)
-    draw7.text((710, 606), "GLOBAL INTELLIGENCE: REAL-TIME ARCHIVE", fill=accent, font=get_font(16, bold=True))
-
-    p7 = output_dir / f"widescreen_7_{article_id}.png"
-    s7.save(p7, "PNG")
-    slide_paths.append(p7)
-    del s7, draw7
-    gc.collect()
+        slide_file = output_dir / f"widescreen_{idx}_{article_id}.png"
+        frame.save(slide_file, "PNG")
+        slide_paths.append(slide_file)
+        del frame, draw
+        gc.collect()
 
     return slide_paths
 
@@ -1275,8 +1029,8 @@ def compose_video(
 ) -> Dict[str, Any]:
     """
     Renders an authentic, broadcast-grade MP4 video:
-    - video_format='long' (Default): 16:9 widescreen 720p HD (1280x720), 5 broadcast slides, 90-150s narration
-    - video_format='short': 9:16 vertical (1080x1920) 60-second YouTube Short
+    - video_format='long' (Default): 16:9 widescreen 720p HD (1280x720) with cinematic full-bleed frames & captions
+    - video_format='short': 9:16 vertical (1080x1920) 60-second YouTube Short with dynamic TikTok-style captions
     Optimized strictly for Render 512MB RAM with single-threaded ultrafast FFmpeg encoding and gTTS fallback.
     """
     import gc
@@ -1291,6 +1045,9 @@ def compose_video(
         video_filename = f"short_article_{article_id}.mp4"
         audio_filename = f"voiceover_article_{article_id}.mp3"
 
+    # Phonetic fix for accurate TTS pronunciation & trailing pause buffer to prevent audio cutoff
+    tts_text = prepare_text_for_tts(clean_text)
+
     output_audio_path = STATIC_VIDEOS_DIR / audio_filename
     output_video_path = STATIC_VIDEOS_DIR / video_filename
     temp_raw_img = STATIC_VIDEOS_DIR / f"raw_img_{article_id}.jpg"
@@ -1299,18 +1056,18 @@ def compose_video(
     # Step A: Synthesize Speech Voiceover (edge-tts -> gTTS -> Windows SAPI fallback)
     audio_ok = False
     try:
-        audio_ok = run_async_in_isolated_thread(synthesize_edge_tts, clean_text, output_audio_path, timeout=60.0)
+        audio_ok = run_async_in_isolated_thread(synthesize_edge_tts, tts_text, output_audio_path, timeout=60.0)
     except Exception as e:
         print(f"[Video Generator] Isolated edge-tts execution error: {e}")
         audio_ok = False
 
     if not audio_ok:
         print("[Video Generator] edge-tts unavailable. Falling back to bulletproof Google TTS (gTTS)...")
-        audio_ok = synthesize_gtts(clean_text, output_audio_path)
+        audio_ok = synthesize_gtts(tts_text, output_audio_path)
 
     if not audio_ok:
         print("[Video Generator] Falling back to Windows SAPI System TTS...")
-        audio_ok = synthesize_system_tts(clean_text, output_audio_path)
+        audio_ok = synthesize_system_tts(tts_text, output_audio_path)
 
     if not audio_ok or not output_audio_path.exists() or output_audio_path.stat().st_size < 5000:
         raise RuntimeError(f"Failed to generate valid voiceover audio for article {article_id}")
@@ -1321,8 +1078,10 @@ def compose_video(
 
     print(f"[Video Generator] Audio voiceover synthesized: {audio_duration:.2f} seconds ({output_audio_path.stat().st_size} bytes)")
 
-    # Step B: Source Visual HD Photos across all 7 scenes for both formats
-    required_scene_count = 7
+    # Step B: Segment Script into 6-8 Punchy Spoken Sentences & Source Visual HD Photos
+    spoken_sentences = segment_script_into_sentences(clean_text, fallback_title=title, count=7)
+    required_scene_count = max(len(spoken_sentences), 4)
+
     scene_images = fetch_scene_images(
         title=title,
         category=category,
@@ -1343,7 +1102,8 @@ def compose_video(
             content=content,
             output_dir=STATIC_VIDEOS_DIR,
             article_id=article_id,
-            scene_images=scene_images
+            scene_images=scene_images,
+            spoken_sentences=spoken_sentences
         )
         slide_dur = max(audio_duration / float(len(slides)), 3.5)
     else:
@@ -1353,7 +1113,8 @@ def compose_video(
             summary=summary,
             output_dir=STATIC_VIDEOS_DIR,
             article_id=article_id,
-            scene_images=scene_images
+            scene_images=scene_images,
+            spoken_sentences=spoken_sentences
         )
         slide_dur = max(audio_duration / float(len(slides)), 2.8)
 
