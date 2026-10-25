@@ -69,7 +69,7 @@ export const metadata: Metadata = {
       "HzE1M4G8b8r0fI4mYFJ1mlcRpIuXTtlLYKJlWqfrVZw",
     ],
     other: {
-      "tiktok-developers-site-verification": "QFp2awRN7qTwaTOTSh824lhTKoK2Q9tO",
+      "tiktok-developers-site-verification": "qtGjolrbl9OJ5MgmnT9xzAyWXy8bM0Kh",
     },
   },
 };
@@ -82,6 +82,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased dark">
       <head>
+        <meta name="tiktok-developers-site-verification" content="qtGjolrbl9OJ5MgmnT9xzAyWXy8bM0Kh" />
         <meta name="tiktok-developers-site-verification" content="QFp2awRN7qTwaTOTSh824lhTKoK2Q9tO" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
