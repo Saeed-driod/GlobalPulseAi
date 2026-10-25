@@ -2,7 +2,12 @@ import type { MetadataRoute } from "next";
 import { fetchArticles } from "@/lib/api";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globlepulseai.onrender.com").replace(/\/$/, "");
+  const siteUrl = (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+    "https://globalpulseai.vercel.app"
+  ).replace(/\/$/, "");
   const currentDate = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [

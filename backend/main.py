@@ -121,6 +121,8 @@ cors_origins = [
     "https://globlepulseai.onrender.com",
     "https://globalpulseai.onrender.com",
     "https://globlepluseai.onrender.com",
+    "https://globalpulseai.vercel.app",
+    "https://globlepulseai.vercel.app",
 ]
 if FRONTEND_URL:
     clean_frontend = FRONTEND_URL.strip().rstrip("/")
@@ -130,7 +132,7 @@ if FRONTEND_URL:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"https://.*\.onrender\.com",
+    allow_origin_regex=r"https://.*(\.onrender\.com|\.vercel\.app)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
