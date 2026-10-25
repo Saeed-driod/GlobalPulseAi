@@ -118,6 +118,8 @@ cors_origins = [
     "http://127.0.0.1:3000",
     "https://localhost:3000",
     "https://globlepluse.onrender.com",
+    "https://globlepulseai.onrender.com",
+    "https://globalpulseai.onrender.com",
     "https://globlepluseai.onrender.com",
 ]
 if FRONTEND_URL:

@@ -43,7 +43,7 @@ services:
       - key: NEXT_PUBLIC_API_URL
         value: "https://globlepluseai.onrender.com"
       - key: NEXT_PUBLIC_SITE_URL
-        value: "https://globlepluse.onrender.com"
+        value: "https://globlepulseai.onrender.com"
       - key: NEXT_PUBLIC_ADSENSE_CLIENT_ID
         sync: false
       - key: NEXT_PUBLIC_YOUTUBE_CHANNEL_URL
