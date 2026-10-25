@@ -107,6 +107,44 @@ def update_article_progress(db, article: Article, percent: int, status: str, sta
         print(f"[Worker Progress DB Error] {e}")
 
 
+def export_to_tiktok_package(article: Article, source_video_path: str):
+    """
+    Exports a clean copy of the vertical Shorts video along with a viral TikTok caption file
+    to exports/tiktok/ so it can be uploaded directly to TikTok Studio or via mobile.
+    """
+    try:
+        import shutil
+        tiktok_dir = ROOT_DIR / "exports" / "tiktok"
+        tiktok_dir.mkdir(parents=True, exist_ok=True)
+        
+        slug = article.slug or f"article_{article.id}"
+        clean_name = f"TikTok_{article.id}_{slug[:25]}"
+        dest_video = tiktok_dir / f"{clean_name}.mp4"
+        dest_caption = tiktok_dir / f"{clean_name}_caption.txt"
+        
+        if os.path.exists(source_video_path):
+            shutil.copy2(source_video_path, dest_video)
+            
+        title = article.title or "Breaking AI & Tech News"
+        summary = (article.summary or "")[:140]
+        hashtags = "#AI #ArtificialIntelligence #TechNews #Technology #FutureTech #GlobalPulseAI #fyp #foryou #viral #trending"
+        
+        caption_content = (
+            f"⚡ {title}\n\n"
+            f"{summary}...\n\n"
+            f"👇 Follow @globalpulseai for daily global AI & Tech breakthroughs!\n"
+            f"🌐 Full story & analysis: https://globalpulseai.vercel.app/article/{article.slug}\n\n"
+            f"{hashtags}\n"
+        )
+        
+        with open(dest_caption, "w", encoding="utf-8") as f:
+            f.write(caption_content)
+            
+        print(f"[TikTok Export] Saved ready-to-post package: {dest_video.name}")
+    except Exception as e:
+        print(f"[TikTok Export Notice] {e}")
+
+
 def print_banner():
     print("""
 ================================================================================
@@ -176,7 +214,13 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
             video_path = article.video_path
             update_article_progress(db, article, 80, "RENDERING_FFMPEG", "Existing video verified on disk. Ready for YouTube upload.", eta="~10s remaining")
 
-        # Step 2: YouTube Auto-Upload
+        # Step 2: Auto-Export package for TikTok
+        export_disk_path = video_path or ""
+        if export_disk_path.startswith("/static/"):
+            export_disk_path = str(BACKEND_DIR / export_disk_path.lstrip("/"))
+        export_to_tiktok_package(article, export_disk_path)
+
+        # Step 3: YouTube Auto-Upload
         if do_upload:
             if article.youtube_video_id and article.youtube_video_id != "dQw4w9WgXcQ":
                 print(f"[Worker INFO] Article #{article.id} already uploaded to YouTube: https://youtu.be/{article.youtube_video_id}")
