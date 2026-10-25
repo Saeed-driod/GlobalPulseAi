@@ -644,19 +644,13 @@ def fetch_scene_images(
 
     # Step 1: Download Primary Image (if valid and not generic placeholder)
     if main_image_url and main_image_url.startswith("http") and "photo-1618005182384" not in main_image_url:
-        primary_downloaded = download_web_image(main_image_url, primary_img_path, timeout=5.0)
+        primary_downloaded = download_web_image(main_image_url, primary_img_path, timeout=3.0)
 
-    # Step 2: Fallback to Curated Lead Photo for this category
+    # Step 2: Fallback to Curated Lead Photo for this category (Fast Unsplash CDN)
     if not primary_downloaded and lead_curated_url:
-        primary_downloaded = download_web_image(lead_curated_url, primary_img_path, timeout=5.0)
+        primary_downloaded = download_web_image(lead_curated_url, primary_img_path, timeout=3.0)
 
-    # Step 3: Fallback to Pollinations AI
-    if not primary_downloaded:
-        clean_kw = urllib.parse.quote(f"{title[:40]} {category} breaking news 8k")
-        poll_url = f"https://image.pollinations.ai/prompt/{clean_kw}?width={target_w}&height={target_h}&nologo=true&seed={article_id}"
-        primary_downloaded = download_web_image(poll_url, primary_img_path, timeout=4.0)
-
-    # Step 4: Ultimate Fallback: High-contrast styled category backdrop
+    # Step 3: Ultimate Fallback: High-contrast styled category backdrop
     if not primary_downloaded or not primary_img_path.exists():
         accent = CATEGORY_ACCENTS.get(category, (6, 182, 212))
         synth = Image.new("RGB", (target_w, target_h), (11, 15, 25))
@@ -674,28 +668,17 @@ def fetch_scene_images(
     except Exception:
         base_pil = Image.new("RGB", (target_w, target_h), (15, 23, 42))
 
-    scene_prompts = get_category_scene_prompts(title, category, count=count)
-
+    # Fast Concurrent Scene Image Retrieval (Direct Unsplash CDNs or Multi-Focal Variants - 0 slow AI delays!)
     for idx in range(2, count + 1):
         scene_file = output_dir / f"scene_{idx}_{article_id}.jpg"
         scene_downloaded = False
-        p_idx = idx - 1
-        p_text = scene_prompts[p_idx] if p_idx < len(scene_prompts) else f"{title[:40]} {category} news photography 8k"
 
-        # A. Try downloading topic-specific photo via Pollinations
-        try:
-            encoded_p = urllib.parse.quote(p_text)
-            p_url = f"https://image.pollinations.ai/prompt/{encoded_p}?width={target_w}&height={target_h}&nologo=true&seed={article_id * 17 + idx * 31}"
-            scene_downloaded = download_web_image(p_url, scene_file, timeout=3.5)
-        except Exception:
-            scene_downloaded = False
-
-        # B. If Pollinations timed out or failed, download category's curated HD photo for this scene index
-        if not scene_downloaded and curated_pool and len(curated_pool) >= idx:
+        # Fast direct CDN download from curated pool
+        if curated_pool and len(curated_pool) >= idx:
             curated_url = curated_pool[idx - 1]
-            scene_downloaded = download_web_image(curated_url, scene_file, timeout=4.0)
+            scene_downloaded = download_web_image(curated_url, scene_file, timeout=2.0)
 
-        # C. If offline, generate distinct multi-focal/contrast variant of base image
+        # Instant local focal crop/zoom variation of base image
         if not scene_downloaded or not scene_file.exists():
             variant = create_focal_variant(base_pil, idx, target_w, target_h)
             variant.save(scene_file, "JPEG", quality=85)
@@ -707,6 +690,7 @@ def fetch_scene_images(
     import gc
     gc.collect()
     return scene_paths
+
 
 def create_fullbleed_cinematic_frame(
     photo_path: Path,
@@ -1128,17 +1112,17 @@ def compose_video(
     fade_duration = 0.5 if is_long else 0.4
     fade_out_start = max(audio_duration - fade_duration, 0.0)
     fps_val = "24" if not is_long else "15"
-    scale_w, scale_h = (1280, 720) if is_long else (1080, 1920)
-    fmt_label = "16:9 Widescreen HD (1280x720)" if is_long else "9:16 Shorts (1080x1920)"
+    scale_w, scale_h = (1280, 720) if is_long else (720, 1280)
+    fmt_label = "16:9 Widescreen HD (1280x720)" if is_long else "9:16 Shorts (720x1280)"
     ffmpeg_timeout = 360 if is_long else 180
     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 
     if progress_callback:
-        progress_callback(70, "RENDERING_FFMPEG", f"Step 3/4: Encoding MP4 ({fmt_label}) with FFmpeg motion transitions...", "~15s remaining")
+        progress_callback(70, "RENDERING_FFMPEG", f"Step 3/4: Encoding MP4 ({fmt_label}) with multi-threaded FFmpeg...", "~10s remaining")
 
     compiled_successfully = False
 
-    # Attempt 1: Smooth Crossfade Transitions via FFmpeg xfade filter
+    # Attempt 1: Smooth Crossfade Transitions via FFmpeg xfade filter (multi-threaded CPU acceleration)
     if len(slides) >= 2:
         try:
             trans_dur = 0.5
@@ -1171,7 +1155,7 @@ def compose_video(
 
             xfade_cmd = [
                 ffmpeg_exe, "-y",
-                "-threads", "1"
+                "-threads", "0"
             ] + xfade_inputs + [
                 "-filter_complex", filter_str,
                 "-map", "[vf]",
@@ -1218,7 +1202,7 @@ def compose_video(
 
         cmd = [
             ffmpeg_exe, "-y",
-            "-threads", "1",
+            "-threads", "0",
             "-f", "concat",
             "-safe", "0",
             "-i", str(concat_list_file),
@@ -1244,6 +1228,7 @@ def compose_video(
             print(f"[Video Generator ERROR] FFmpeg encoding failed (code {run_res.returncode}):")
             print(run_res.stderr)
             raise RuntimeError(f"FFmpeg encoding failed for article {article_id}: {run_res.stderr[-400:]}")
+
 
     # Step E: Validation Gate
     try:
