@@ -1,5 +1,6 @@
 import React, { Suspense, cache } from "react";
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { fetchArticleBySlug } from "../../../lib/api";
 import { ArticleDetailClient } from "./ArticleDetailClient";
 
@@ -118,9 +119,13 @@ export default async function Page({ params }: PageProps) {
   const resolvedParams = await params;
   const article = await getCachedArticleBySlug(resolvedParams.slug);
 
+  if (!article) {
+    notFound();
+  }
+
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globlepluse.onrender.com").replace(/\/$/, "");
   const articleUrl = `${siteUrl}/news/${resolvedParams.slug}`;
-  const cleanSummary = article?.summary.replace(/^[•▸*-\s]+/gm, " ").trim() || "";
+  const cleanSummary = article.summary.replace(/^[•▸*-\s]+/gm, " ").trim() || "";
 
   // 1. NewsArticle Schema with Muhammad Saeed Person author
   const newsArticleSchema = article

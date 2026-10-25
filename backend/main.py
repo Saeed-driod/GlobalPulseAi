@@ -164,7 +164,7 @@ def get_articles(
     category: Optional[str] = Query(None, description="Filter by category"),
     search: Optional[str] = Query(None, description="Search keyword in title or summary"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=500),
     db: Session = Depends(get_db)
 ):
     """Retrieve paginated list of articles with optional status and category filters."""

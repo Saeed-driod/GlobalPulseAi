@@ -39,16 +39,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const res = await fetchArticles({ limit: 100 });
-    const dynamicRoutes: MetadataRoute.Sitemap = (res.items || []).map((article) => ({
-      url: `${siteUrl}/news/${article.slug}`,
-      lastModified: article.published_at ? new Date(article.published_at) : currentDate,
-      changeFrequency: "hourly",
-      priority: 0.9,
-    }));
+    const res1 = await fetchArticles({ limit: 100, skip: 0 });
+    let allArticles = [...(res1.items || [])];
+
+    if (res1.total > 100) {
+      const res2 = await fetchArticles({ limit: 100, skip: 100 });
+      allArticles = [...allArticles, ...(res2.items || [])];
+    }
+
+    const dynamicRoutes: MetadataRoute.Sitemap = allArticles
+      .filter((article) => article && article.slug)
+      .map((article) => ({
+        url: `${siteUrl}/news/${article.slug}`,
+        lastModified: article.published_at
+          ? new Date(article.published_at)
+          : article.created_at
+          ? new Date(article.created_at)
+          : currentDate,
+        changeFrequency: "daily",
+        priority: 0.9,
+      }));
 
     return [...staticRoutes, ...dynamicRoutes];
-  } catch {
+  } catch (err) {
+    console.error("[Sitemap Error] Could not load dynamic articles:", err);
     return staticRoutes;
   }
 }

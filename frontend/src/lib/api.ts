@@ -5,13 +5,23 @@ export function getApiBase(): string {
   if (envUrl && envUrl.trim() && !envUrl.includes("localhost")) {
     return envUrl.trim().replace(/\/+$/, "");
   }
+
+  // Client-side browser inspection
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
-    if (host.includes("globlepluse") || host.includes("onrender.com")) {
-      return "https://globlepluseai.onrender.com";
+    if (host === "localhost" || host === "127.0.0.1") {
+      return (envUrl || "http://localhost:8000").trim().replace(/\/+$/, "");
     }
+    return "https://globlepluseai.onrender.com";
   }
-  return (envUrl || "http://localhost:8000").trim().replace(/\/+$/, "");
+
+  // Server-side (Node.js SSR / Metadata / Sitemap / RSS generation)
+  if (process.env.NODE_ENV === "development") {
+    return (envUrl || "http://localhost:8000").trim().replace(/\/+$/, "");
+  }
+
+  // Production SSR always targets the production backend URL
+  return "https://globlepluseai.onrender.com";
 }
 
 export const API_BASE = getApiBase();
@@ -34,7 +44,7 @@ export async function fetchArticles(params?: {
     if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 
     const res = await fetch(`${getApiBase()}/api/articles?${searchParams.toString()}`, {
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
 
     if (!res.ok) {
@@ -68,7 +78,7 @@ export async function fetchArticles(params?: {
 export async function fetchArticleBySlug(slug: string): Promise<Article | null> {
   try {
     const res = await fetch(`${getApiBase()}/api/articles/${slug}`, {
-      cache: "no-store",
+      next: { revalidate: 300 },
     });
     if (res.ok) {
       return await res.json();

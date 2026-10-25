@@ -82,6 +82,12 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;0,6..72,800;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="GlobalPulse AI RSS Feed"
+          href="/rss.xml"
+        />
         {/* Adsterra Global Ad Script */}
         <Script
           src="https://bicea.org/14/2ba6590b2085013113c88dee06656a7a"

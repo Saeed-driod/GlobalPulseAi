@@ -41,9 +41,9 @@ services:
     startCommand: "npm start"
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        sync: false
+        value: "https://globlepluseai.onrender.com"
       - key: NEXT_PUBLIC_SITE_URL
-        sync: false
+        value: "https://globlepluse.onrender.com"
       - key: NEXT_PUBLIC_ADSENSE_CLIENT_ID
         sync: false
       - key: NEXT_PUBLIC_YOUTUBE_CHANNEL_URL
