@@ -39,6 +39,14 @@ class Article(Base):
     video_path = Column(String(600), nullable=True)  # Local path or cloud URL to generated MP4
     youtube_video_id = Column(String(100), nullable=True)  # YouTube Shorts/Video ID
     
+    # Live Video Generation & Upload Progress Tracking
+    video_status = Column(String(50), default="IDLE", index=True, nullable=False)
+    video_progress = Column(Integer, default=0, nullable=False)  # 0 to 100 percentage
+    video_stage_text = Column(String(300), default="", nullable=True)
+    video_error = Column(Text, nullable=True)
+    video_eta = Column(String(100), nullable=True)
+    video_updated_at = Column(DateTime(timezone=True), nullable=True)
+    
     status = Column(
         String(50), 
         default=ArticleStatus.DRAFT.value, 
@@ -49,3 +57,17 @@ class Article(Base):
     
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     published_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class WorkerHeartbeat(Base):
+    __tablename__ = "worker_heartbeat"
+
+    id = Column(Integer, primary_key=True, index=True)
+    worker_name = Column(String(100), unique=True, nullable=False, default="LOCAL_PC_WORKER")
+    status = Column(String(50), default="IDLE", nullable=False)
+    last_seen = Column(DateTime(timezone=True), nullable=True)
+    active_article_id = Column(Integer, nullable=True)
+    active_article_title = Column(String(300), nullable=True)
+    channel_name = Column(String(100), default="@GloblePulseAi", nullable=False)
+    total_completed = Column(Integer, default=0, nullable=False)
+

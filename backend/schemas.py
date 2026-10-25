@@ -14,6 +14,12 @@ class ArticleBase(BaseModel):
     youtube_script: Optional[str] = None
     video_path: Optional[str] = None
     youtube_video_id: Optional[str] = None
+    video_status: Optional[str] = "IDLE"
+    video_progress: Optional[int] = 0
+    video_stage_text: Optional[str] = ""
+    video_error: Optional[str] = None
+    video_eta: Optional[str] = None
+    video_updated_at: Optional[datetime] = None
     status: Optional[str] = "DRAFT"
 
 class ArticleCreate(ArticleBase):
@@ -31,6 +37,11 @@ class ArticleUpdate(BaseModel):
     youtube_script: Optional[str] = None
     video_path: Optional[str] = None
     youtube_video_id: Optional[str] = None
+    video_status: Optional[str] = None
+    video_progress: Optional[int] = None
+    video_stage_text: Optional[str] = None
+    video_error: Optional[str] = None
+    video_eta: Optional[str] = None
     status: Optional[str] = None
 
 class ArticleResponse(ArticleBase):
@@ -61,4 +72,28 @@ class ActionResponse(BaseModel):
     message: str
     article: Optional[ArticleResponse] = None
     articles: Optional[List[ArticleResponse]] = None
+
+class VideoProgressResponse(BaseModel):
+    article_id: int
+    title: str
+    category: str
+    video_status: str
+    video_progress: int
+    video_stage_text: str
+    video_error: Optional[str] = None
+    video_eta: Optional[str] = None
+    youtube_video_id: Optional[str] = None
+    video_path: Optional[str] = None
+    updated_at: Optional[datetime] = None
+
+class WorkerStatusResponse(BaseModel):
+    online: bool
+    worker_name: str
+    status: str
+    last_seen: Optional[datetime] = None
+    active_article_id: Optional[int] = None
+    active_article_title: Optional[str] = None
+    channel_name: str
+    total_completed: int
+
 

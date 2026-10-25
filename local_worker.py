@@ -50,7 +50,7 @@ load_dotenv(ROOT_DIR / ".env")
 
 try:
     from database import SessionLocal, engine, Base
-    from models import Article, ArticleStatus, ArticleCategory
+    from models import Article, ArticleStatus, ArticleCategory, WorkerHeartbeat
     from services.video_generator import compose_video, compose_long_video, compose_short_video
     from services.scraper import fetch_breaking_rss_news
     from services.ai_service import process_raw_news
@@ -58,6 +58,53 @@ try:
 except ImportError as e:
     print(f"[Worker Error] Failed importing backend services: {e}")
     sys.exit(1)
+
+
+def send_worker_heartbeat(status: str = "IDLE", active_id: int = None, active_title: str = None, increment_completed: bool = False):
+    """Updates the WorkerHeartbeat record in the shared database so the web UI knows worker is online."""
+    db = SessionLocal()
+    try:
+        hb = db.query(WorkerHeartbeat).filter(WorkerHeartbeat.worker_name == "LOCAL_PC_WORKER").first()
+        if not hb:
+            hb = WorkerHeartbeat(
+                worker_name="LOCAL_PC_WORKER",
+                status=status,
+                last_seen=datetime.now(timezone.utc),
+                active_article_id=active_id,
+                active_article_title=active_title[:290] if active_title else None,
+                channel_name="@GloblePulseAi",
+                total_completed=1 if increment_completed else 0
+            )
+            db.add(hb)
+        else:
+            hb.status = status
+            hb.last_seen = datetime.now(timezone.utc)
+            hb.active_article_id = active_id
+            hb.active_article_title = active_title[:290] if active_title else None
+            if increment_completed:
+                hb.total_completed = (hb.total_completed or 0) + 1
+        db.commit()
+    except Exception as e:
+        print(f"[Worker Heartbeat Warning] {e}")
+    finally:
+        db.close()
+
+
+def update_article_progress(db, article: Article, percent: int, status: str, stage_text: str, eta: str = None, error: str = None):
+    """Persists real-time video generation and upload progress to the database."""
+    try:
+        article.video_progress = max(0, min(100, percent))
+        article.video_status = status
+        article.video_stage_text = stage_text
+        if eta is not None:
+            article.video_eta = eta
+        if error is not None:
+            article.video_error = error
+        article.video_updated_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(article)
+    except Exception as e:
+        print(f"[Worker Progress DB Error] {e}")
 
 
 def print_banner():
@@ -72,7 +119,7 @@ def print_banner():
 def render_article_video(article_id: int, video_format: str = "short", do_upload: bool = True) -> bool:
     """
     Renders a photo-rich broadcast video for an article using local FFmpeg and PIL.
-    Directly updates the article record in the database.
+    Directly updates the article record in the database with live progress percentage.
     If the video already exists on disk, skips re-rendering and proceeds to upload.
     """
     db = SessionLocal()
@@ -88,6 +135,14 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
         print(f"  Title   : {article.title}")
         print(f"  Category: {article.category}")
         print(f"  Format  : {fmt_label}")
+
+        # Update heartbeat and article initial progress
+        send_worker_heartbeat(status="PROCESSING", active_id=article.id, active_title=article.title)
+        update_article_progress(db, article, 10, "VOICEOVER", "Step 1/4: Synthesizing broadcast neural voiceover (Edge-TTS)...", eta="~50s remaining")
+
+        def on_video_progress(pct: int, stage_code: str, stage_text: str, eta: str = ""):
+            update_article_progress(db, article, pct, stage_code, stage_text, eta=eta)
+            print(f"  [Progress {pct}%] {stage_text} ({eta})")
 
         # Check if valid video file already exists on disk
         video_disk_path = article.video_path or ""
@@ -107,25 +162,30 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                 summary=article.summary,
                 content=article.content,
                 image_url=article.image_url,
-                video_format=video_format
+                video_format=video_format,
+                progress_callback=on_video_progress
             )
             elapsed = time.time() - start_time
             video_path = result.get("video_path")
             article.video_path = video_path
-            db.commit()
-            db.refresh(article)
+            update_article_progress(db, article, 80, "RENDERING_FFMPEG", f"Step 3/4: Rendered {result.get('runtime_seconds')}s video in {elapsed:.1f}s. Preparing upload...", eta="~10s remaining")
             print(f"[Worker SUCCESS] Rendered {result.get('runtime_seconds')}s video in {elapsed:.1f}s!")
             print(f"  Local file: {video_path} ({result.get('file_size_bytes', 0):,} bytes)")
         else:
             print(f"[Worker INFO] Video already exists on disk: {video_disk_path}")
             video_path = article.video_path
+            update_article_progress(db, article, 80, "RENDERING_FFMPEG", "Existing video verified on disk. Ready for YouTube upload.", eta="~10s remaining")
 
         # Step 2: YouTube Auto-Upload
         if do_upload:
             if article.youtube_video_id and article.youtube_video_id != "dQw4w9WgXcQ":
                 print(f"[Worker INFO] Article #{article.id} already uploaded to YouTube: https://youtu.be/{article.youtube_video_id}")
+                update_article_progress(db, article, 100, "COMPLETED", "Video already published to YouTube.", eta="Done")
+                send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, increment_completed=True)
             else:
                 print(f"[Worker] Uploading video to YouTube channel @GloblePulseAi...")
+                update_article_progress(db, article, 90, "UPLOADING_YOUTUBE", "Step 4/4: Uploading video directly to YouTube Shorts (@GloblePulseAi)...", eta="~5s remaining")
+
                 upload_disk_path = video_path or ""
                 if upload_disk_path.startswith("/static/"):
                     upload_disk_path = str(BACKEND_DIR / upload_disk_path.lstrip("/"))
@@ -144,13 +204,21 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                     yt_id = upload_res.get("video_id") or upload_res.get("youtube_video_id")
                     if yt_id and yt_id != "dQw4w9WgXcQ":
                         article.youtube_video_id = yt_id
-                        db.commit()
+                        update_article_progress(db, article, 100, "COMPLETED", "Completed! Video successfully published to YouTube Shorts.", eta="Done")
+                        send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, increment_completed=True)
                         print(f"[Worker SUCCESS] Uploaded to YouTube in {upload_elapsed:.1f}s!")
                         print(f"  YouTube Link: https://youtu.be/{yt_id}")
                     else:
                         print(f"[Worker Warning] YouTube upload notice: {upload_res}")
+                        update_article_progress(db, article, 85, "FAILED", f"YouTube upload notice: {str(upload_res)[:100]}", error=str(upload_res))
+                        send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
                 else:
                     print(f"[Worker Warning] Could not find video file on disk: {upload_disk_path}")
+                    update_article_progress(db, article, 80, "FAILED", f"Video file missing on disk: {upload_disk_path}", error="File missing")
+                    send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
+        else:
+            update_article_progress(db, article, 100, "COMPLETED", "Video generated locally (upload skipped).", eta="Done")
+            send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, increment_completed=True)
 
         print(f"============================================================\n")
         return True
@@ -158,9 +226,15 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
     except Exception as e:
         print(f"[Worker ERROR] Failed processing video for #{article_id}: {e}")
         traceback.print_exc()
+        try:
+            update_article_progress(db, article, article.video_progress or 10, "FAILED", f"Rendering error: {str(e)[:120]}", error=str(e))
+        except Exception:
+            pass
+        send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
         return False
     finally:
         db.close()
+
 
 
 def fetch_and_publish_news(target_category: str = "Global Sports", video_format: str = "short", do_upload: bool = True):
@@ -224,8 +298,8 @@ def fetch_and_publish_news(target_category: str = "Global Sports", video_format:
 
 def process_pending_articles(category: str = None, video_format: str = "short", limit: int = 10, do_upload: bool = True):
     """
-    Scans the database for published articles that don't have a valid video file
-    OR have not been uploaded to YouTube yet.
+    Scans the database for articles queued by the user in Admin dashboard,
+    or published articles that don't have a valid video file OR have not been uploaded to YouTube yet.
     """
     db = SessionLocal()
     try:
@@ -233,7 +307,22 @@ def process_pending_articles(category: str = None, video_format: str = "short", 
         if category:
             query = query.filter(Article.category.ilike(f"%{category}%"))
 
-        # Find articles needing video generation OR YouTube upload
+        # Priority 1: Articles explicitly queued from Mission Control Web Admin
+        queued_articles = (
+            query
+            .filter(Article.video_status == "QUEUED")
+            .order_by(Article.video_updated_at.desc(), Article.id.desc())
+            .limit(limit)
+            .all()
+        )
+        if queued_articles:
+            print(f"\n⚡ [Worker Priority Queue] Processing {len(queued_articles)} article(s) queued from Mission Control:")
+            for a in queued_articles:
+                print(f"  ▶ Article #{a.id} [{a.category}] {a.title[:50]}")
+                render_article_video(a.id, video_format=video_format, do_upload=do_upload)
+            return
+
+        # Priority 2: Scan for published articles needing video generation OR YouTube upload
         pending = (
             query
             .filter(
@@ -304,10 +393,13 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "short", d
     print(f"   Status                 : Watching for new articles... (Press Ctrl+C to stop)\n")
     try:
         while True:
-            process_pending_articles(video_format=video_format, limit=3, do_upload=do_upload)
+            send_worker_heartbeat(status="IDLE")
+            process_pending_articles(video_format=video_format, limit=2, do_upload=do_upload)
             time.sleep(interval_seconds)
     except KeyboardInterrupt:
+        send_worker_heartbeat(status="OFFLINE")
         print("\n[Worker Daemon] Stopped cleanly by user.")
+
 
 
 def interactive_menu():

@@ -1,4 +1,5 @@
-import { Article, AdminStats, ArticleListResponse, ActionResponse } from "../types/article";
+import { Article, AdminStats, ArticleListResponse, ActionResponse, VideoProgressInfo, WorkerStatusInfo } from "../types/article";
+
 
 export function getApiBase(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -209,6 +210,90 @@ export async function generateVideo(
       success: false,
       message: err?.message || "Network error while generating video.",
     };
+  }
+}
+
+export async function queueVideo(
+  articleId: number,
+  format: "long" | "short" = "short"
+): Promise<ActionResponse> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/articles/${articleId}/queue-video?format=${format}`, {
+      method: "POST",
+      headers: {
+        "X-Admin-Secret": getAdminSecret(),
+      },
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    const err = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: err.detail || `Failed to queue video (${res.status})`,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || "Network error while queueing video.",
+    };
+  }
+}
+
+export async function fetchVideoProgress(articleId: number): Promise<VideoProgressInfo | null> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/video-progress/${articleId}`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchWorkerStatus(): Promise<WorkerStatusInfo> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/worker/status`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    return {
+      online: false,
+      worker_name: "LOCAL_PC_WORKER",
+      status: "OFFLINE",
+      channel_name: "@GloblePulseAi",
+      total_completed: 0,
+    };
+  } catch {
+    return {
+      online: false,
+      worker_name: "LOCAL_PC_WORKER",
+      status: "OFFLINE",
+      channel_name: "@GloblePulseAi",
+      total_completed: 0,
+    };
+  }
+}
+
+export async function fetchActiveVideoJobs(): Promise<{
+  active_jobs: VideoProgressInfo[];
+  recent_completed: VideoProgressInfo[];
+}> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/worker/active-jobs`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    return { active_jobs: [], recent_completed: [] };
+  } catch {
+    return { active_jobs: [], recent_completed: [] };
   }
 }
 

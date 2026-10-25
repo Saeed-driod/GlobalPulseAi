@@ -2,12 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Article, AdminStats } from "../../types/article";
+import { Article, AdminStats, VideoProgressInfo, WorkerStatusInfo } from "../../types/article";
 import {
   fetchArticles,
   fetchAdminStats,
   triggerFetchNow,
   generateVideo,
+  queueVideo,
+  fetchVideoProgress,
+  fetchWorkerStatus,
+  fetchActiveVideoJobs,
   publishArticle,
   publishInstantArticle,
   autoPublishArticle,
@@ -69,7 +73,12 @@ export default function AdminPage() {
   const [runningPipeline, setRunningPipeline] = useState<boolean>(false);
   const [schedulerInfo, setSchedulerInfo] = useState<SchedulerStatusResponse | null>(null);
   const [ytAuthStatus, setYtAuthStatus] = useState<{ authenticated: boolean; channel?: string } | null>(null);
-  const [videoFormatMode, setVideoFormatMode] = useState<"long" | "short">("long");
+  const [videoFormatMode, setVideoFormatMode] = useState<"long" | "short">("short");
+
+  // Real-time local worker & video progress states
+  const [workerStatus, setWorkerStatus] = useState<WorkerStatusInfo | null>(null);
+  const [activeJobs, setActiveJobs] = useState<VideoProgressInfo[]>([]);
+  const [recentCompleted, setRecentCompleted] = useState<VideoProgressInfo[]>([]);
 
   const handleAuthYouTube = () => {
     showToast("Launching Google YouTube sign-in window...");
@@ -112,6 +121,14 @@ export default function AdminPage() {
     if (yt) {
       setYtAuthStatus(yt);
     }
+    try {
+      const [w, j] = await Promise.all([fetchWorkerStatus(), fetchActiveVideoJobs()]);
+      setWorkerStatus(w);
+      setActiveJobs(j.active_jobs || []);
+      setRecentCompleted(j.recent_completed || []);
+    } catch {
+      // quiet
+    }
   };
 
   useEffect(() => {
@@ -137,6 +154,41 @@ export default function AdminPage() {
       showToast("YouTube Channel GloblePulseAi successfully connected!");
     }
   }, []);
+
+  // Real-time polling: Every 2.5 seconds, checks worker status and video render progress
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let isMounted = true;
+
+    const pollWorkerAndJobs = async () => {
+      try {
+        const [wStatus, jobsData] = await Promise.all([
+          fetchWorkerStatus(),
+          fetchActiveVideoJobs(),
+        ]);
+        if (!isMounted) return;
+        setWorkerStatus(wStatus);
+        setActiveJobs(jobsData.active_jobs || []);
+        setRecentCompleted(jobsData.recent_completed || []);
+
+        if (jobsData.active_jobs && jobsData.active_jobs.length > 0) {
+          const list = await fetchArticles({ limit: 50 });
+          if (isMounted) setArticles(list.items);
+        }
+      } catch {
+        // quiet
+      }
+    };
+
+    pollWorkerAndJobs();
+    const interval = setInterval(pollWorkerAndJobs, 2500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isAuthenticated]);
+
 
   const handlePasskeySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,6 +239,40 @@ export default function AdminPage() {
       showToast(res.message || "Failed to generate video.");
     }
   };
+
+  const handleQueueVideo = async (id: number) => {
+    setActionLoadingId(id);
+    showToast(`Queuing Article #${id} for ${videoFormatMode === "long" ? "16:9 HD" : "9:16 Shorts"} rendering & YouTube upload...`);
+    // Optimistic UI update
+    setArticles((prev) =>
+      prev.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              video_status: "QUEUED",
+              video_progress: 5,
+              video_stage_text: "Queued for processing. Local Worker starting...",
+              video_eta: "~50s remaining",
+            }
+          : a
+      )
+    );
+    try {
+      const res = await queueVideo(id, videoFormatMode);
+      if (res.success) {
+        showToast(res.message);
+        const j = await fetchActiveVideoJobs();
+        setActiveJobs(j.active_jobs || []);
+      } else {
+        showToast(res.message || "Failed to queue video.");
+      }
+    } catch {
+      showToast("Error communicating with queue endpoint.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
 
   const handlePublish = async (id: number) => {
     setActionLoadingId(id);
@@ -477,11 +563,241 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex-1">
+        {/* LIVE VIDEO GENERATION & REAL-TIME UPLOAD CENTER */}
+        <section className="mb-8 p-6 rounded-3xl bg-gradient-to-br from-neutral-900 via-neutral-900/95 to-neutral-950 border-2 border-cyan-500/40 shadow-[0_0_40px_rgba(6,182,212,0.15)] relative overflow-hidden">
+          {/* Subtle Cybernetic Background Grid & Glow */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Header Row */}
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-white/10">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 shrink-0">
+                <Video className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-black text-white font-serif tracking-tight">
+                    LIVE VIDEO PROCESSING & YOUTUBE SHORTS CENTER
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 font-mono animate-pulse">
+                    LIVE TELEMETRY
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-400 font-mono mt-0.5">
+                  Real-time Neural Voiceover • High-Definition Frames • FFmpeg Hardware MP4 Render • YouTube Channel @GloblePulseAi
+                </p>
+              </div>
+            </div>
+
+            {/* Local Worker Status Indicator */}
+            <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
+              {workerStatus?.online ? (
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono text-xs shadow-lg shadow-emerald-500/10">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="font-bold">LOCAL WORKER ONLINE</span>
+                  <span className="text-neutral-400 text-[10px]">({workerStatus.channel_name || "@GloblePulseAi"})</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 font-mono text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="font-bold">LOCAL WORKER STANDBY / OFFLINE</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Active Job Real-Time Progress Box */}
+          {activeJobs && activeJobs.length > 0 ? (
+            <div className="relative z-10 mt-6 space-y-4">
+              {activeJobs.map((job) => (
+                <div
+                  key={job.article_id}
+                  className="p-5 sm:p-6 rounded-2xl bg-neutral-950/80 border border-cyan-500/40 shadow-xl space-y-4"
+                >
+                  {/* Article Title & Badges */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold border border-cyan-400/30">
+                        Article #{job.article_id}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 font-mono text-xs font-bold border border-purple-400/30">
+                        {job.category}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg bg-neutral-800 text-neutral-300 font-mono text-xs font-bold border border-neutral-700">
+                        {videoFormatMode === "long" ? "🖥️ 16:9 Long-Form HD" : "📱 9:16 Shorts"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs font-mono">
+                      <span className="text-neutral-400">Est. Remaining:</span>
+                      <span className="text-cyan-400 font-bold px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800">
+                        {job.video_eta || "~30s remaining"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
+                    {job.title}
+                  </h3>
+
+                  {/* 4-Stage Visual Progress Breadcrumbs */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
+                    {/* Stage 1: Voiceover */}
+                    <div
+                      className={`p-2.5 rounded-xl border text-xs font-mono flex items-center gap-2 transition ${
+                        (job.video_progress || 0) >= 20
+                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
+                          : job.video_status === "VOICEOVER" || job.video_status === "QUEUED"
+                          ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 animate-pulse font-bold"
+                          : "bg-neutral-900 border-neutral-800 text-neutral-500"
+                      }`}
+                    >
+                      <span>🎙️</span>
+                      <span className="truncate">1. Voiceover (TTS)</span>
+                      {(job.video_progress || 0) >= 20 && <span className="ml-auto text-emerald-400">✓</span>}
+                    </div>
+
+                    {/* Stage 2: Slide Composition */}
+                    <div
+                      className={`p-2.5 rounded-xl border text-xs font-mono flex items-center gap-2 transition ${
+                        (job.video_progress || 0) >= 50
+                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
+                          : job.video_status === "COMPOSING_FRAMES"
+                          ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 animate-pulse font-bold"
+                          : "bg-neutral-900 border-neutral-800 text-neutral-500"
+                      }`}
+                    >
+                      <span>🎨</span>
+                      <span className="truncate">2. Visual Captions</span>
+                      {(job.video_progress || 0) >= 50 && <span className="ml-auto text-emerald-400">✓</span>}
+                    </div>
+
+                    {/* Stage 3: FFmpeg Hardware Render */}
+                    <div
+                      className={`p-2.5 rounded-xl border text-xs font-mono flex items-center gap-2 transition ${
+                        (job.video_progress || 0) >= 80
+                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
+                          : job.video_status === "RENDERING_FFMPEG"
+                          ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 animate-pulse font-bold"
+                          : "bg-neutral-900 border-neutral-800 text-neutral-500"
+                      }`}
+                    >
+                      <span>⚡</span>
+                      <span className="truncate">3. FFmpeg MP4</span>
+                      {(job.video_progress || 0) >= 80 && <span className="ml-auto text-emerald-400">✓</span>}
+                    </div>
+
+                    {/* Stage 4: YouTube Upload */}
+                    <div
+                      className={`p-2.5 rounded-xl border text-xs font-mono flex items-center gap-2 transition ${
+                        (job.video_progress || 0) >= 100
+                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
+                          : job.video_status === "UPLOADING_YOUTUBE"
+                          ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 animate-pulse font-bold"
+                          : "bg-neutral-900 border-neutral-800 text-neutral-500"
+                      }`}
+                    >
+                      <span>🚀</span>
+                      <span className="truncate">4. YouTube Upload</span>
+                      {(job.video_progress || 0) >= 100 && <span className="ml-auto text-emerald-400">✓</span>}
+                    </div>
+                  </div>
+
+                  {/* Big Glowing Progress Bar & Percentage */}
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center justify-between font-mono text-xs">
+                      <span className="text-cyan-300 font-bold flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                        {job.video_stage_text || "Processing video stages..."}
+                      </span>
+                      <span className="text-white font-black text-sm">{job.video_progress || 5}% Completed</span>
+                    </div>
+
+                    {/* Animated Progress Bar */}
+                    <div className="w-full h-4 rounded-full bg-neutral-900 border border-neutral-700 overflow-hidden p-0.5 shadow-inner">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 transition-all duration-700 ease-out shadow-[0_0_20px_rgba(6,182,212,0.6)]"
+                        style={{ width: `${Math.max(job.video_progress || 5, 5)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="relative z-10 mt-5 p-4 rounded-2xl bg-neutral-950/60 border border-neutral-800/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
+                  <Play className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white font-mono">
+                    Ready to Generate & Upload Videos
+                  </div>
+                  <p className="text-[11px] text-neutral-400 font-mono mt-0.5">
+                    Click the <strong className="text-cyan-400">"🎬 Render & Upload Video"</strong> button on any article below. Your local PC will render the video with FFmpeg and auto-upload to YouTube Shorts while displaying live progress above.
+                  </p>
+                </div>
+              </div>
+
+              {!workerStatus?.online && (
+                <div className="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-mono shrink-0">
+                  ⚡ <strong>Step:</strong> Double-click <code className="bg-black/50 px-1 py-0.5 rounded text-amber-200">START_VIDEO_WORKER.bat</code> in the project folder to start background rendering.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Recently Uploaded Shorts Bar */}
+          {recentCompleted && recentCompleted.length > 0 && (
+            <div className="relative z-10 mt-5 pt-4 border-t border-white/10">
+              <div className="text-[11px] font-mono uppercase tracking-wider text-neutral-400 font-bold mb-3 flex items-center gap-2">
+                <Youtube className="w-3.5 h-3.5 text-red-500" />
+                <span>Recently Uploaded to YouTube Shorts:</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {recentCompleted.map((rc) => (
+                  <div
+                    key={rc.article_id}
+                    className="p-3 rounded-xl bg-neutral-950 border border-neutral-800 hover:border-red-500/40 transition flex items-center justify-between gap-2"
+                  >
+                    <div className="truncate pr-2">
+                      <div className="text-[10px] text-purple-300 font-mono font-bold">
+                        #{rc.article_id} • {rc.category}
+                      </div>
+                      <div className="text-xs text-white font-medium truncate mt-0.5">
+                        {rc.title}
+                      </div>
+                    </div>
+                    {rc.youtube_video_id && rc.youtube_video_id !== "dQw4w9WgXcQ" ? (
+                      <a
+                        href={`https://www.youtube.com/shorts/${rc.youtube_video_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-[11px] font-mono shrink-0 flex items-center gap-1 shadow-md shadow-red-600/20 transition"
+                      >
+                        <Youtube className="w-3 h-3" />
+                        Watch ↗
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-emerald-400 font-mono font-bold shrink-0">
+                        ✅ Uploaded
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* 24/7 BACKGROUND AUTOMATION TELEMETRY BANNER */}
         <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-neutral-900 via-purple-950/20 to-neutral-900 border border-purple-500/30 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 shrink-0">
               <Clock className="w-5 h-5 text-purple-400" />
+
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
@@ -709,7 +1025,18 @@ export default function AdminPage() {
 
                       {/* Status */}
                       <td className="py-4 px-4 whitespace-nowrap">
-                        {getStatusBadge(art.status)}
+                        <div className="flex flex-col gap-1 items-start">
+                          {getStatusBadge(art.status)}
+                          {art.youtube_video_id && art.youtube_video_id !== "dQw4w9WgXcQ" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-600/20 text-red-300 border border-red-500/30 font-mono">
+                              <Youtube className="w-2.5 h-2.5 text-red-400" /> YouTube Live
+                            </span>
+                          ) : art.video_status && ["QUEUED", "VOICEOVER", "COMPOSING_FRAMES", "RENDERING_FFMPEG", "UPLOADING_YOUTUBE"].includes(art.video_status) ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-mono animate-pulse">
+                              ⚡ {art.video_progress || 5}% ({art.video_eta || "Rendering"})
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
 
                       {/* Views */}
@@ -742,73 +1069,75 @@ export default function AdminPage() {
                             title="Preview 60-sec YouTube Shorts script"
                           >
                             <Video className="w-3.5 h-3.5 text-purple-400" />
-                            Shorts Script
+                            Script
                           </button>
 
+                          {/* YouTube Video Status & Action Buttons */}
+                          {art.youtube_video_id && art.youtube_video_id !== "dQw4w9WgXcQ" ? (
+                            <div className="inline-flex items-center gap-1.5">
+                              <a
+                                href={`https://www.youtube.com/shorts/${art.youtube_video_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md shadow-red-600/30 transition"
+                                title="Watch published Short directly on YouTube channel @GloblePulseAi"
+                              >
+                                <Youtube className="w-3.5 h-3.5" />
+                                <span>Watch Short ↗</span>
+                              </a>
+                              <button
+                                onClick={() => handleQueueVideo(art.id)}
+                                disabled={isLoading}
+                                className="px-2 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white text-xs border border-neutral-700 transition"
+                                title="Re-render & re-upload video"
+                              >
+                                🔄
+                              </button>
+                            </div>
+                          ) : art.video_status && ["QUEUED", "VOICEOVER", "COMPOSING_FRAMES", "RENDERING_FFMPEG", "UPLOADING_YOUTUBE"].includes(art.video_status) ? (
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 text-xs font-mono font-bold animate-pulse shadow-md shadow-cyan-500/10">
+                              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                              <span>Rendering: {art.video_progress || 5}%</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleQueueVideo(art.id)}
+                              disabled={isLoading}
+                              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs shadow-md shadow-red-600/25 transition disabled:opacity-50"
+                              title={`Render ${videoFormatMode === "long" ? "16:9 HD" : "9:16 Shorts"} video locally and auto-upload to YouTube (@GloblePulseAi)`}
+                            >
+                              <Play className="w-3.5 h-3.5 text-yellow-300" />
+                              <span>🎬 Render & Upload Video</span>
+                            </button>
+                          )}
 
-                          {/* Dedicated Instant Publish (Publish Article Only) */}
+                          {/* Instant Publish if DRAFT */}
                           {art.status !== "PUBLISHED" && (
                             <button
                               onClick={() => handleInstantPublish(art.id)}
                               disabled={isLoading}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
-                              title="Instant Publish: Go live immediately on portal without waiting for video generation"
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
+                              title="Instant Publish: Go live on web portal immediately"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              {isLoading ? "Publishing..." : "Publish Article Only (Instant)"}
+                              Publish
                             </button>
                           )}
 
-                          {/* 1-Click Automated Pipeline: Generate Video & Publish to YouTube */}
-                          {art.status === "DRAFT" && (
-                            <button
-                              onClick={() => handleAutoPublish(art.id)}
-                              disabled={isLoading}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs shadow-md shadow-red-600/20 transition disabled:opacity-50"
-                              title={`Automated Pipeline: 1. Generate ${videoFormatMode === "long" ? "16:9 1080p Video" : "9:16 Shorts"} -> 2. Upload to YouTube -> 3. Mark as Published`}
-                            >
-                              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-                              {isLoading ? "Running Pipeline..." : `Generate Video & Publish (${videoFormatMode === "long" ? "16:9 HD" : "Shorts"})`}
-                            </button>
-                          )}
-
-                          {/* Separate Generate Video Action */}
-                          {art.status === "DRAFT" && (
-                            <button
-                              onClick={() => handleGenerateVideo(art.id)}
-                              disabled={isLoading}
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-cyan-900/60 hover:bg-cyan-800 text-cyan-300 border border-cyan-500/30 font-semibold text-xs transition disabled:opacity-50"
-                              title={`Render ${videoFormatMode === "long" ? "16:9 Widescreen HD Video" : "9:16 Vertical Short"}`}
-                            >
-                              <Video className="w-3 h-3" />
-                              {isLoading ? "..." : `Video (${videoFormatMode === "long" ? "16:9" : "9:16"})`}
-                            </button>
-                          )}
-
-                          {/* Approve & Publish Action for Video Ready */}
-                          {art.status === "VIDEO_READY" && (
-                            <button
-                              onClick={() => handlePublish(art.id)}
-                              disabled={isLoading}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              {isLoading ? "Publishing..." : `Publish to YouTube (${videoFormatMode === "long" ? "16:9 HD" : "Shorts"}) & Portal`}
-                            </button>
-                          )}
-
-
+                          {/* View Live Article Link if PUBLISHED */}
                           {art.status === "PUBLISHED" && (
                             <Link
                               href={`/news/${art.slug}`}
                               target="_blank"
                               className="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-cyan-400 font-semibold text-xs border border-neutral-700 transition inline-flex items-center gap-1"
                             >
-                              View Live <ExternalLink className="w-3 h-3" />
+                              <span>View Live</span>
+                              <ExternalLink className="w-3 h-3" />
                             </Link>
                           )}
                         </div>
                       </td>
+
                     </tr>
                   );
                 })}

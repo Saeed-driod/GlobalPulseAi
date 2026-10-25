@@ -56,14 +56,16 @@ def record_error(stage: str, error: Exception, article_id: Optional[int] = None)
 
 try:
     from .database import engine, Base, get_db, SessionLocal
-    from .models import Article, ArticleStatus, ArticleCategory
+    from .models import Article, ArticleStatus, ArticleCategory, WorkerHeartbeat
     from .schemas import (
         ArticleResponse,
         ArticleListResponse,
         AdminStatsResponse,
         ActionResponse,
         ArticleCreate,
-        ArticleUpdate
+        ArticleUpdate,
+        VideoProgressResponse,
+        WorkerStatusResponse
     )
     from .services.scraper import fetch_breaking_rss_news
     from .services.ai_service import process_raw_news
@@ -74,14 +76,16 @@ try:
     from .services.image_resolver import refresh_missing_images
 except (ImportError, ValueError):
     from database import engine, Base, get_db, SessionLocal
-    from models import Article, ArticleStatus, ArticleCategory
+    from models import Article, ArticleStatus, ArticleCategory, WorkerHeartbeat
     from schemas import (
         ArticleResponse,
         ArticleListResponse,
         AdminStatsResponse,
         ActionResponse,
         ArticleCreate,
-        ArticleUpdate
+        ArticleUpdate,
+        VideoProgressResponse,
+        WorkerStatusResponse
     )
     from services.scraper import fetch_breaking_rss_news
     from services.ai_service import process_raw_news
@@ -90,6 +94,7 @@ except (ImportError, ValueError):
     from services.pipeline import run_full_automation_pipeline
     from services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status
     from services.image_resolver import refresh_missing_images
+
 
 
 
@@ -368,6 +373,14 @@ def generate_video(
     article.status = ArticleStatus.PUBLISHED.value
     if not article.published_at:
         article.published_at = datetime.now(timezone.utc)
+    
+    # Mark video as QUEUED with progress tracking
+    article.video_status = "QUEUED"
+    article.video_progress = 5
+    article.video_stage_text = "Queued in database. Worker starting voiceover & video generation..."
+    article.video_eta = "~45s remaining"
+    article.video_error = None
+    article.video_updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(article)
 
@@ -377,14 +390,19 @@ def generate_video(
         return ActionResponse(
             success=True,
             message=(
-                f"Article #{article.id} is live! Heavy video generation is safely offloaded from Render's 512MB RAM to your Local PC Worker. "
-                "Run `python local_worker.py --daemon` on your PC to render and auto-upload with zero cloud RAM."
+                f"Article #{article.id} queued for Video Generation! Your Local PC Worker will render and auto-upload to YouTube Shorts. "
+                "Check the Live Progress Bar in Mission Control."
             ),
             article=article
         )
 
     # Execute Video Generator Service (only when cloud rendering is explicitly enabled)
     try:
+        article.video_status = "RENDERING_FFMPEG"
+        article.video_progress = 50
+        article.video_stage_text = "Rendering MP4 with neural voiceover..."
+        db.commit()
+
         result = compose_video(
             article_id=article.id,
             title=article.title,
@@ -396,6 +414,11 @@ def generate_video(
             video_format=format
         )
         article.video_path = result.get("video_path")
+        article.video_status = "COMPLETED"
+        article.video_progress = 100
+        article.video_stage_text = "Video rendered successfully!"
+        article.video_eta = "Done"
+        article.video_updated_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(article)
 
@@ -406,11 +429,148 @@ def generate_video(
             article=article
         )
     except Exception as e:
+        article.video_status = "FAILED"
+        article.video_error = str(e)
+        article.video_stage_text = f"Rendering error: {str(e)[:100]}"
+        article.video_updated_at = datetime.now(timezone.utc)
+        db.commit()
         record_error("generate_video", e, article_id=article.id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Video rendering error: {str(e)}. (Article was published live: check /api/debug/last-error)"
         )
+
+@app.post("/api/articles/{article_id}/queue-video", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
+def queue_video_endpoint(
+    article_id: int,
+    format: str = Query("short", pattern="^(long|short)$"),
+    db: Session = Depends(get_db)
+):
+    """
+    Queues an article for video rendering and YouTube upload.
+    Local worker will immediately pick it up and stream live progress back to Mission Control.
+    """
+    article = db.query(Article).filter(Article.id == article_id).first()
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    article.status = ArticleStatus.PUBLISHED.value
+    if not article.published_at:
+        article.published_at = datetime.now(timezone.utc)
+
+    article.video_status = "QUEUED"
+    article.video_progress = 5
+    article.video_stage_text = f"Queued for {'9:16 Shorts' if format == 'short' else '16:9 HD'} rendering & YouTube upload..."
+    article.video_eta = "~45s remaining"
+    article.video_error = None
+    article.video_updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(article)
+
+    return ActionResponse(
+        success=True,
+        message=f"Article #{article.id} queued for Video Generation! Local PC Worker will render and auto-upload.",
+        article=article
+    )
+
+@app.get("/api/video-progress/{article_id}", response_model=VideoProgressResponse)
+def get_video_progress_endpoint(article_id: int, db: Session = Depends(get_db)):
+    """Fetches real-time video generation percentage and current stage text."""
+    article = db.query(Article).filter(Article.id == article_id).first()
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+    return VideoProgressResponse(
+        article_id=article.id,
+        title=article.title,
+        category=article.category,
+        video_status=article.video_status or "IDLE",
+        video_progress=article.video_progress or 0,
+        video_stage_text=article.video_stage_text or "",
+        video_error=article.video_error,
+        video_eta=article.video_eta,
+        youtube_video_id=article.youtube_video_id,
+        video_path=article.video_path,
+        updated_at=article.video_updated_at
+    )
+
+@app.get("/api/worker/status", response_model=WorkerStatusResponse)
+def get_worker_status_endpoint(db: Session = Depends(get_db)):
+    """Checks whether the Local PC Worker is online, idle, or processing."""
+    heartbeat = db.query(WorkerHeartbeat).filter(WorkerHeartbeat.worker_name == "LOCAL_PC_WORKER").first()
+    if not heartbeat:
+        return WorkerStatusResponse(
+            online=False,
+            worker_name="LOCAL_PC_WORKER",
+            status="OFFLINE",
+            last_seen=None,
+            active_article_id=None,
+            active_article_title=None,
+            channel_name="@GloblePulseAi",
+            total_completed=0
+        )
+    
+    is_online = False
+    if heartbeat.last_seen:
+        now_utc = datetime.now(timezone.utc)
+        last_dt = heartbeat.last_seen if heartbeat.last_seen.tzinfo else heartbeat.last_seen.replace(tzinfo=timezone.utc)
+        diff = (now_utc - last_dt).total_seconds()
+        is_online = diff < 120
+    
+    return WorkerStatusResponse(
+        online=is_online,
+        worker_name=heartbeat.worker_name,
+        status="ONLINE" if is_online else "OFFLINE",
+        last_seen=heartbeat.last_seen,
+        active_article_id=heartbeat.active_article_id if is_online else None,
+        active_article_title=heartbeat.active_article_title if is_online else None,
+        channel_name=heartbeat.channel_name or "@GloblePulseAi",
+        total_completed=heartbeat.total_completed or 0
+    )
+
+@app.get("/api/worker/active-jobs")
+def get_active_jobs_endpoint(db: Session = Depends(get_db)):
+    """Returns currently processing video jobs and most recently completed jobs."""
+    active_statuses = ["QUEUED", "VOICEOVER", "COMPOSING_FRAMES", "RENDERING_FFMPEG", "UPLOADING_YOUTUBE"]
+    jobs = (
+        db.query(Article)
+        .filter(Article.video_status.in_(active_statuses))
+        .order_by(Article.video_updated_at.desc())
+        .all()
+    )
+    recent_completed = (
+        db.query(Article)
+        .filter(Article.video_status == "COMPLETED")
+        .order_by(Article.video_updated_at.desc())
+        .limit(3)
+        .all()
+    )
+    return {
+        "active_jobs": [
+            {
+                "article_id": j.id,
+                "title": j.title,
+                "category": j.category,
+                "video_status": j.video_status,
+                "video_progress": j.video_progress,
+                "video_stage_text": j.video_stage_text,
+                "video_eta": j.video_eta,
+                "youtube_video_id": j.youtube_video_id,
+                "video_error": j.video_error,
+                "updated_at": j.video_updated_at.isoformat() if j.video_updated_at else None
+            } for j in jobs
+        ],
+        "recent_completed": [
+            {
+                "article_id": c.id,
+                "title": c.title,
+                "category": c.category,
+                "video_status": c.video_status,
+                "video_progress": c.video_progress,
+                "youtube_video_id": c.youtube_video_id,
+                "updated_at": c.video_updated_at.isoformat() if c.video_updated_at else None
+            } for c in recent_completed
+        ]
+    }
 
 @app.post("/api/articles/{article_id}/compose-long", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
 def compose_long_endpoint(article_id: int, db: Session = Depends(get_db)):
@@ -423,6 +583,7 @@ def compose_short_endpoint(article_id: int, db: Session = Depends(get_db)):
     return generate_video(article_id=article_id, format="short", db=db)
 
 @app.post("/api/articles/{article_id}/publish", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
+
 def publish_article(
     article_id: int,
     format: Optional[str] = Query(None, pattern="^(long|short)$"),

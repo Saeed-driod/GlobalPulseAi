@@ -1024,7 +1024,8 @@ def compose_video(
     summary: str,
     content: str = "",
     image_url: Optional[str] = None,
-    video_format: str = "long"
+    video_format: str = "long",
+    progress_callback: Optional[Any] = None
 ) -> Dict[str, Any]:
     """
     Renders an authentic, broadcast-grade MP4 video:
@@ -1034,6 +1035,9 @@ def compose_video(
     """
     import gc
     is_long = (str(video_format).lower() == "long")
+
+    if progress_callback:
+        progress_callback(15, "VOICEOVER", "Step 1/4: Synthesizing broadcast neural voiceover (Edge-TTS)...", "~45s remaining")
 
     if is_long:
         clean_text = build_long_form_narration(title, category, summary, content, youtube_script)
@@ -1081,6 +1085,9 @@ def compose_video(
     spoken_sentences = segment_script_into_sentences(clean_text, fallback_title=title, count=7)
     required_scene_count = max(len(spoken_sentences), 4)
 
+    if progress_callback:
+        progress_callback(40, "COMPOSING_FRAMES", f"Step 2/4: Composing {required_scene_count} visual photo scenes & dynamic captions...", "~30s remaining")
+
     scene_images = fetch_scene_images(
         title=title,
         category=category,
@@ -1126,6 +1133,9 @@ def compose_video(
     ffmpeg_timeout = 360 if is_long else 180
     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 
+    if progress_callback:
+        progress_callback(70, "RENDERING_FFMPEG", f"Step 3/4: Encoding MP4 ({fmt_label}) with FFmpeg motion transitions...", "~15s remaining")
+
     compiled_successfully = False
 
     # Attempt 1: Smooth Crossfade Transitions via FFmpeg xfade filter
@@ -1133,6 +1143,7 @@ def compose_video(
         try:
             trans_dur = 0.5
             clip_dur = slide_dur + trans_dur
+
             xfade_inputs = []
             for s in slides:
                 xfade_inputs.extend(["-loop", "1", "-t", f"{clip_dur:.2f}", "-i", str(s.resolve())])
