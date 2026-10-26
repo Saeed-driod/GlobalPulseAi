@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 
-export type AdsterraUnitSize = "300x250" | "728x90";
+export type AdsterraUnitSize = "300x250" | "320x50" | "728x90";
 
 interface AdsterraBannerProps {
   className?: string;
@@ -15,16 +15,22 @@ const AD_CONFIGS: Record<
   { key: string; width: number; height: number; scriptSrc: string }
 > = {
   "300x250": {
-    key: "f9d768ccca70ee81246bd2b08139e9d0",
+    key: "f7126291d68f9df3872005cf005de9aa",
     width: 300,
     height: 250,
-    scriptSrc: "https://bicea.org/22/f9d768ccca70ee81246bd2b08139e9d0",
+    scriptSrc: "https://bauval.org/22/f7126291d68f9df3872005cf005de9aa",
+  },
+  "320x50": {
+    key: "4d84272ac95f2b5caebba6acca449427",
+    width: 320,
+    height: 50,
+    scriptSrc: "https://bauval.org/22/4d84272ac95f2b5caebba6acca449427",
   },
   "728x90": {
-    key: "3bc3e74ed16188abcebd4a602b8eeee5",
-    width: 728,
-    height: 90,
-    scriptSrc: "https://bicea.org/22/3bc3e74ed16188abcebd4a602b8eeee5",
+    key: "4d84272ac95f2b5caebba6acca449427",
+    width: 320,
+    height: 50,
+    scriptSrc: "https://bauval.org/22/4d84272ac95f2b5caebba6acca449427",
   },
 };
 
@@ -103,9 +109,8 @@ export const AdsterraBanner: React.FC<AdsterraBannerProps> = ({
   return (
     <div className={`flex flex-col items-center justify-center my-6 ${className}`}>
       <div
-        className={`${
-          isLeaderboard ? "w-full max-w-[728px]" : "w-[300px]"
-        } flex items-center justify-between mb-1.5 px-1`}
+        style={{ width: `${config.width}px` }}
+        className="max-w-full flex items-center justify-between mb-1.5 px-1"
       >
         <span className="text-[10px] font-mono tracking-widest text-neutral-500 uppercase">
           {label}

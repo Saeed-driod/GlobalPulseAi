@@ -96,9 +96,9 @@ export default function RootLayout({
           title="GlobalPulse AI RSS Feed"
           href="/rss.xml"
         />
-        {/* Adsterra Global Ad Script */}
+        {/* Bauval / Adsterra Global Social Bar */}
         <Script
-          src="https://bicea.org/14/2ba6590b2085013113c88dee06656a7a"
+          src="https://bauval.org/14/2f3481f5b47a88883b7506a69ee08e50"
           strategy="afterInteractive"
           data-cfasync="false"
         />

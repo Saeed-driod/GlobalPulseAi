@@ -403,6 +403,11 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
           </div>
         </header>
 
+        {/* Responsive 320x50 Sponsored Banner */}
+        <div className="flex justify-center -mt-2 mb-6">
+          <AdsterraBanner size="320x50" label="Sponsored Intelligence Alert" className="my-0" />
+        </div>
+
         {/* 2-Column Editorial Grid: Article Body (Left 8 Cols) + Sidebar (Right 4 Cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Main Article Content */}

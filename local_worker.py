@@ -105,6 +105,10 @@ def update_article_progress(db, article: Article, percent: int, status: str, sta
         db.refresh(article)
     except Exception as e:
         print(f"[Worker Progress DB Error] {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 def export_to_tiktok_package(article: Article, source_video_path: str):
@@ -359,45 +363,55 @@ def process_pending_articles(category: str = None, video_format: str = "short", 
             .limit(limit)
             .all()
         )
+        target_ids = []
         if queued_articles:
             print(f"\n⚡ [Worker Priority Queue] Processing {len(queued_articles)} article(s) queued from Mission Control:")
             for a in queued_articles:
                 print(f"  ▶ Article #{a.id} [{a.category}] {a.title[:50]}")
-                render_article_video(a.id, video_format=video_format, do_upload=do_upload)
-            return
-
-        # Priority 2: Scan for published articles needing video generation OR YouTube upload
-        pending = (
-            query
-            .filter(
-                (Article.video_path == None) | 
-                (Article.video_path == "") | 
-                (Article.youtube_video_id == None) | 
-                (Article.youtube_video_id == "") |
-                (Article.youtube_video_id == "dQw4w9WgXcQ")
+            target_ids = [a.id for a in queued_articles]
+        else:
+            # Priority 2: Scan for published articles needing video generation OR YouTube upload
+            pending = (
+                query
+                .filter(
+                    (Article.video_path == None) | 
+                    (Article.video_path == "") | 
+                    (Article.youtube_video_id == None) | 
+                    (Article.youtube_video_id == "") |
+                    (Article.youtube_video_id == "dQw4w9WgXcQ")
+                )
+                .order_by(Article.id.desc())
+                .limit(limit)
+                .all()
             )
-            .order_by(Article.id.desc())
-            .limit(limit)
-            .all()
-        )
 
-        if not pending:
-            return
-
-        print(f"\n[Worker] Found {len(pending)} articles needing video processing / YouTube upload:")
-        for a in pending:
-            vid_status = "READY" if a.video_path else "MISSING"
-            yt_status = f"https://youtu.be/{a.youtube_video_id}" if (a.youtube_video_id and a.youtube_video_id != "dQw4w9WgXcQ") else "PENDING UPLOAD"
-            print(f"  - Article #{a.id} [{a.category}] Video: {vid_status} | YT: {yt_status} | {a.title[:45]}")
-
-        for a in pending:
-            render_article_video(a.id, video_format=video_format, do_upload=do_upload)
+            if pending:
+                print(f"\n[Worker] Found {len(pending)} articles needing video processing / YouTube upload:")
+                for a in pending:
+                    vid_status = "READY" if a.video_path else "MISSING"
+                    yt_status = f"https://youtu.be/{a.youtube_video_id}" if (a.youtube_video_id and a.youtube_video_id != "dQw4w9WgXcQ") else "PENDING UPLOAD"
+                    print(f"  - Article #{a.id} [{a.category}] Video: {vid_status} | YT: {yt_status} | {a.title[:45]}")
+                target_ids = [a.id for a in pending]
 
     except Exception as e:
-        print(f"[Worker ERROR] Error processing pending articles: {e}")
+        print(f"[Worker ERROR] Error scanning pending articles: {e}")
         traceback.print_exc()
+        try:
+            db.rollback()
+        except Exception:
+            pass
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            pass
+
+    # Process rendering outside of the scanning database session to prevent idle timeouts
+    for article_id in target_ids:
+        try:
+            render_article_video(article_id, video_format=video_format, do_upload=do_upload)
+        except Exception as proc_err:
+            print(f"[Worker ERROR] Failed processing #{article_id}: {proc_err}")
 
 
 def list_recent_articles(limit: int = 15):
@@ -437,8 +451,12 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "short", d
     print(f"   Status                 : Watching for new articles... (Press Ctrl+C to stop)\n")
     try:
         while True:
-            send_worker_heartbeat(status="IDLE")
-            process_pending_articles(video_format=video_format, limit=2, do_upload=do_upload)
+            try:
+                send_worker_heartbeat(status="IDLE")
+                process_pending_articles(video_format=video_format, limit=2, do_upload=do_upload)
+            except Exception as loop_err:
+                print(f"[Worker Daemon Loop Warning] Transient error recovered: {loop_err}")
+                time.sleep(3)
             time.sleep(interval_seconds)
     except KeyboardInterrupt:
         send_worker_heartbeat(status="OFFLINE")
