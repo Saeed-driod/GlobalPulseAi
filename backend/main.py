@@ -77,7 +77,7 @@ try:
     from .services.scraper import fetch_breaking_rss_news
     from .services.ai_service import process_raw_news
     from .services.video_generator import compose_short_video, compose_video, compose_long_video
-    from .services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status
+    from .services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status, delete_video_from_youtube
     from .services.pipeline import run_full_automation_pipeline
     from .services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status
     from .services.image_resolver import refresh_missing_images
@@ -103,7 +103,7 @@ except (ImportError, ValueError):
     from services.scraper import fetch_breaking_rss_news
     from services.ai_service import process_raw_news
     from services.video_generator import compose_short_video, compose_video, compose_long_video
-    from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status
+    from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status, delete_video_from_youtube
     from services.pipeline import run_full_automation_pipeline
     from services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status
     from services.image_resolver import refresh_missing_images
@@ -641,6 +641,17 @@ def clean_duplicates_endpoint(db: Session = Depends(get_db)):
         "message": f"Successfully cleaned and linked {len(updated_articles)} duplicate article(s).",
         "updated_articles": updated_articles
     }
+
+@app.delete("/api/admin/youtube-video/{video_id}", dependencies=[Depends(verify_admin_secret)])
+def delete_youtube_video_endpoint(video_id: str):
+    """Deletes a video from the YouTube channel via YouTube Data API v3."""
+    success = delete_video_from_youtube(video_id)
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to delete video. Make sure OAuth credentials have 'https://www.googleapis.com/auth/youtube' scope granted."
+        )
+    return {"success": True, "message": f"Video {video_id} successfully deleted from YouTube channel."}
 
 @app.post("/api/articles/{article_id}/publish", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
 

@@ -71,8 +71,11 @@ def sync_render_credentials():
 # Materialize credentials if present in environment
 sync_render_credentials()
 
-# Scope for YouTube Video & Shorts Upload
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+# Scope for YouTube Video & Shorts Upload and Management
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube"
+]
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 
@@ -734,3 +737,20 @@ Subscribe to GlobalPulse AI for Tier-1 news and market analysis.
         "format": "short",
         "is_simulated": getattr(result, "is_simulated", False) if hasattr(result, "is_simulated") else result.get("is_simulated", False)
     }
+
+
+def delete_video_from_youtube(video_id: str) -> bool:
+    """
+    Deletes a video from the YouTube channel via YouTube Data API v3.
+    Requires 'https://www.googleapis.com/auth/youtube' scope.
+    """
+    if not video_id or video_id == "dQw4w9WgXcQ":
+        return False
+    try:
+        service = get_authenticated_service()
+        service.videos().delete(id=video_id).execute()
+        print(f"[YouTube Delete SUCCESS] Successfully deleted video ID: {video_id}")
+        return True
+    except Exception as e:
+        print(f"[YouTube Delete ERROR] Could not delete video {video_id}: {e}")
+        return False
