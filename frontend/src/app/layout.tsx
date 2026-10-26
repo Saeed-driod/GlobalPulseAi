@@ -145,6 +145,28 @@ export default function RootLayout({
             `,
           }}
         />
+
+        {/* Google Reader Revenue Manager (Subscribe with Google) */}
+        <Script
+          src="https://news.google.com/swg/js/v1/swg-basic.js"
+          strategy="afterInteractive"
+        />
+        <Script
+          id="google-rrm-init"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (self.SWG_BASIC = self.SWG_BASIC || []).push( basicSubscriptions => {
+                basicSubscriptions.init({
+                  type: "NewsArticle",
+                  isPartOfType: ["Product"],
+                  isPartOfProductId: "CAowgpHiCw:openaccess",
+                  clientOptions: { theme: "light", lang: "en" },
+                });
+              });
+            `,
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100 font-sans">
         <AnalyticsTracker />
