@@ -95,6 +95,11 @@ class WorkerStatusResponse(BaseModel):
     active_article_title: Optional[str] = None
     channel_name: str
     total_completed: int
+    shorts_today: int = 0
+    longs_today: int = 0
+    max_shorts: int = 3
+    max_longs: int = 1
+    daily_quota_status: str = "ACTIVE"
 
 
 class AnalyticsTrackRequest(BaseModel):

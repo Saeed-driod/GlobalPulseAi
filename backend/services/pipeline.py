@@ -13,6 +13,7 @@ try:
     from .ai_service import process_raw_news
     from .video_generator import compose_short_video, compose_video
     from .youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
+    from .youtube_quota import can_post_now, record_youtube_upload
 except (ImportError, ValueError):
     from database import get_db, SessionLocal
     from models import Article, ArticleStatus
@@ -20,6 +21,7 @@ except (ImportError, ValueError):
     from services.ai_service import process_raw_news
     from services.video_generator import compose_short_video, compose_video
     from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
+    from services.youtube_quota import can_post_now, record_youtube_upload
 
 
 def slugify(text: str) -> str:
@@ -184,28 +186,41 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                         db.refresh(article)
                         print(f"[Master Pipeline] Video rendered successfully: {article.video_path} ({video_res.get('resolution')})")
 
-                        # Step 4: Upload to YouTube (GloblePulseAi channel)
-                        print(f"\n[Step 4/5] Uploading {fmt_str} video to YouTube Data API v3 (channel: GloblePulseAi)...")
-                        video_disk_path = article.video_path or ""
-                        if video_disk_path.startswith("/static/"):
-                            backend_dir = Path(__file__).resolve().parent.parent
-                            video_disk_path = str(backend_dir / video_disk_path.lstrip("/"))
+                        # Step 4: Check Daily Limits & Upload to YouTube (GloblePulseAi channel)
+                        can_upload, quota_reason = can_post_now(db, video_format=video_format, ignore_cooldown=False)
+                        if not can_upload:
+                            print(f"[Master Pipeline DAILY QUOTA LIMIT] Skipping YouTube upload: {quota_reason}")
+                        else:
+                            print(f"\n[Step 4/5] Uploading {fmt_str} video to YouTube Data API v3 (channel: GloblePulseAi)...")
+                            video_disk_path = article.video_path or ""
+                            if video_disk_path.startswith("/static/"):
+                                backend_dir = Path(__file__).resolve().parent.parent
+                                video_disk_path = str(backend_dir / video_disk_path.lstrip("/"))
 
-                        upload_res = upload_short_to_youtube(
-                            video_filepath=video_disk_path,
-                            title=article.title,
-                            summary=article.summary,
-                            category=article.category,
-                            slug=article.slug,
-                            video_format=video_format
-                        )
+                            upload_res = upload_short_to_youtube(
+                                video_filepath=video_disk_path,
+                                title=article.title,
+                                summary=article.summary,
+                                category=article.category,
+                                slug=article.slug,
+                                video_format=video_format
+                            )
 
-                        # Step 5: Attach YouTube video ID
-                        video_id = upload_res.get("video_id") or upload_res.get("youtube_video_id") or "dQw4w9WgXcQ"
-                        article.youtube_video_id = video_id
-                        db.commit()
-                        db.refresh(article)
-                        print(f"[Master Pipeline] Article #{article.id} successfully attached YouTube Video ID: {video_id}")
+                            # Step 5: Attach YouTube video ID and record in daily quota ledger
+                            video_id = upload_res.get("video_id") or upload_res.get("youtube_video_id") or "dQw4w9WgXcQ"
+                            if video_id and video_id != "dQw4w9WgXcQ":
+                                article.youtube_video_id = video_id
+                                db.commit()
+                                db.refresh(article)
+                                record_youtube_upload(
+                                    db=db,
+                                    article_id=article.id,
+                                    youtube_video_id=video_id,
+                                    video_format=video_format,
+                                    title=article.title,
+                                    category=article.category
+                                )
+                                print(f"[Master Pipeline] Article #{article.id} successfully attached YouTube Video ID: {video_id}")
                     except Exception as vid_err:
                         print(f"[Master Pipeline WARNING] Video rendering/upload issue for article #{article.id}: {vid_err}")
                         traceback.print_exc()

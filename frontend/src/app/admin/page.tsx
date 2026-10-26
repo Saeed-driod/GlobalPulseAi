@@ -619,8 +619,25 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Local Worker Status Indicator */}
-            <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
+            {/* Local Worker Status & Daily YouTube Quota Indicator */}
+            <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
+              {/* Daily YouTube Quota Badge (Strict: Max 3 Shorts + 1 Long per day) */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neutral-900/90 border border-neutral-700/80 text-xs font-mono shadow-inner">
+                <span className="text-neutral-400">Daily YouTube:</span>
+                <span className={`font-bold ${(workerStatus?.shorts_today ?? 0) >= 3 ? "text-emerald-400" : "text-cyan-400"}`}>
+                  {workerStatus?.shorts_today ?? 0}/3 Shorts
+                </span>
+                <span className="text-neutral-600">|</span>
+                <span className={`font-bold ${(workerStatus?.longs_today ?? 0) >= 1 ? "text-emerald-400" : "text-purple-400"}`}>
+                  {workerStatus?.longs_today ?? 0}/1 Long
+                </span>
+                {(workerStatus?.shorts_today ?? 0) >= 3 && (workerStatus?.longs_today ?? 0) >= 1 && (
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                    CAP MET (4/4)
+                  </span>
+                )}
+              </div>
+
               {workerStatus?.online ? (
                 <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono text-xs shadow-lg shadow-emerald-500/10">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />

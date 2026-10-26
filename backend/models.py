@@ -70,6 +70,9 @@ class WorkerHeartbeat(Base):
     active_article_title = Column(String(300), nullable=True)
     channel_name = Column(String(100), default="@GloblePulseAi", nullable=False)
     total_completed = Column(Integer, default=0, nullable=False)
+    shorts_today = Column(Integer, default=0, nullable=False)
+    longs_today = Column(Integer, default=0, nullable=False)
+    daily_quota_status = Column(String(100), default="ACTIVE", nullable=True)
 
 
 class AnalyticsVisit(Base):
@@ -89,5 +92,17 @@ class AnalyticsVisit(Base):
     browser = Column(String(50), default="Chrome")
     ip_hash = Column(String(64), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+
+
+class YouTubeDailyUpload(Base):
+    __tablename__ = "youtube_daily_uploads"
+
+    id = Column(Integer, primary_key=True, index=True)
+    article_id = Column(Integer, index=True, nullable=True)
+    youtube_video_id = Column(String(100), index=True, nullable=False)
+    video_format = Column(String(20), index=True, nullable=False, default="short")  # "short" or "long"
+    title = Column(String(300), nullable=True)
+    category = Column(String(100), nullable=True)
+    uploaded_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
 
 

@@ -68,6 +68,11 @@ export interface WorkerStatusInfo {
   active_article_title?: string | null;
   channel_name: string;
   total_completed: number;
+  shorts_today?: number;
+  longs_today?: number;
+  max_shorts?: number;
+  max_longs?: number;
+  daily_quota_status?: string;
 }
 
 export interface AnalyticsSourceStat {

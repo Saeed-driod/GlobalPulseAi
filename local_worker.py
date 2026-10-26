@@ -50,20 +50,31 @@ load_dotenv(ROOT_DIR / ".env")
 
 try:
     from database import SessionLocal, engine, Base
-    from models import Article, ArticleStatus, ArticleCategory, WorkerHeartbeat
+    from models import Article, ArticleStatus, ArticleCategory, WorkerHeartbeat, YouTubeDailyUpload
     from services.video_generator import compose_video, compose_long_video, compose_short_video
     from services.scraper import fetch_breaking_rss_news
     from services.ai_service import process_raw_news
     from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, check_auth_status
+    from services.youtube_quota import (
+        get_daily_youtube_upload_counts,
+        record_youtube_upload,
+        can_post_now,
+        MAX_DAILY_SHORTS,
+        MAX_DAILY_LONGS,
+        MAX_DAILY_TOTAL,
+        MIN_HOURS_BETWEEN_SHORTS
+    )
 except ImportError as e:
     print(f"[Worker Error] Failed importing backend services: {e}")
     sys.exit(1)
 
 
-def send_worker_heartbeat(status: str = "IDLE", active_id: int = None, active_title: str = None, increment_completed: bool = False):
-    """Updates the WorkerHeartbeat record in the shared database so the web UI knows worker is online."""
+def send_worker_heartbeat(status: str = "IDLE", active_id: int = None, active_title: str = None, increment_completed: bool = False, quota_status: str = None):
+    """Updates the WorkerHeartbeat record in the shared database with live quota telemetry."""
     db = SessionLocal()
     try:
+        counts = get_daily_youtube_upload_counts(db)
+        resolved_quota_status = quota_status or counts.get("status", "ACTIVE")
         hb = db.query(WorkerHeartbeat).filter(WorkerHeartbeat.worker_name == "LOCAL_PC_WORKER").first()
         if not hb:
             hb = WorkerHeartbeat(
@@ -73,7 +84,10 @@ def send_worker_heartbeat(status: str = "IDLE", active_id: int = None, active_ti
                 active_article_id=active_id,
                 active_article_title=active_title[:290] if active_title else None,
                 channel_name="@GloblePulseAi",
-                total_completed=1 if increment_completed else 0
+                total_completed=1 if increment_completed else 0,
+                shorts_today=counts["shorts_today"],
+                longs_today=counts["longs_today"],
+                daily_quota_status=resolved_quota_status
             )
             db.add(hb)
         else:
@@ -81,6 +95,9 @@ def send_worker_heartbeat(status: str = "IDLE", active_id: int = None, active_ti
             hb.last_seen = datetime.now(timezone.utc)
             hb.active_article_id = active_id
             hb.active_article_title = active_title[:290] if active_title else None
+            hb.shorts_today = counts["shorts_today"]
+            hb.longs_today = counts["longs_today"]
+            hb.daily_quota_status = resolved_quota_status
             if increment_completed:
                 hb.total_completed = (hb.total_completed or 0) + 1
         db.commit()
@@ -158,7 +175,7 @@ def print_banner():
     """)
 
 
-def render_article_video(article_id: int, video_format: str = "short", do_upload: bool = True) -> bool:
+def render_article_video(article_id: int, video_format: str = "short", do_upload: bool = True, is_manual: bool = False) -> bool:
     """
     Renders a photo-rich broadcast video for an article using local FFmpeg and PIL.
     Directly updates the article record in the database with live progress percentage.
@@ -264,8 +281,19 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                     print(f"============================================================\n")
                     return True
 
-                print(f"[Worker] Uploading video to YouTube channel @GloblePulseAi...")
-                update_article_progress(db, article, 90, "UPLOADING_YOUTUBE", "Step 4/4: Uploading video directly to YouTube Shorts (@GloblePulseAi)...", eta="~5s remaining")
+                # Daily Upload Limit Gate (Max 3 Shorts, Max 1 Long Video per Day)
+                can_upload, quota_reason = can_post_now(db, video_format=video_format, ignore_cooldown=is_manual)
+                if not can_upload:
+                    print(f"\n[Worker DAILY QUOTA GATE] Skipping YouTube upload for #{article.id}:")
+                    print(f"  {quota_reason}")
+                    update_article_progress(db, article, 80, "PAUSED", f"Video ready locally. Daily YouTube limit reached ({quota_reason})", eta="Saved locally")
+                    send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
+                    print(f"============================================================\n")
+                    return True
+
+                target_dest = "16:9 Long-Form HD" if video_format == "long" else "9:16 Shorts"
+                print(f"[Worker] Uploading video to YouTube channel @GloblePulseAi ({target_dest})...")
+                update_article_progress(db, article, 90, "UPLOADING_YOUTUBE", f"Step 4/4: Uploading video directly to YouTube {target_dest} (@GloblePulseAi)...", eta="~5s remaining")
 
                 upload_disk_path = video_path or ""
                 if upload_disk_path.startswith("/static/"):
@@ -286,7 +314,15 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                         yt_id = upload_res.get("video_id") or upload_res.get("youtube_video_id")
                         if yt_id and yt_id != "dQw4w9WgXcQ":
                             article.youtube_video_id = yt_id
-                            update_article_progress(db, article, 100, "COMPLETED", "Completed! Video successfully published to YouTube Shorts.", eta="Done")
+                            update_article_progress(db, article, 100, "COMPLETED", f"Completed! Video successfully published to YouTube ({target_dest}).", eta="Done")
+                            record_youtube_upload(
+                                db=db,
+                                article_id=article.id,
+                                youtube_video_id=yt_id,
+                                video_format=video_format,
+                                title=article.title,
+                                category=article.category
+                            )
                             send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, increment_completed=True)
                             print(f"[Worker SUCCESS] Uploaded to YouTube in {upload_elapsed:.1f}s!")
                             print(f"  YouTube Link: https://youtu.be/{yt_id}")
@@ -297,9 +333,9 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                     except Exception as yt_err:
                         err_str = str(yt_err)
                         if "Quota exceeded" in err_str or "rateLimitExceeded" in err_str or "429" in err_str:
-                            print(f"\n[Worker YOUTUBE NOTICE] Daily YouTube video upload quota reached. Video saved locally.")
-                            update_article_progress(db, article, 80, "PAUSED", "Daily YouTube upload limit reached. Saved locally for next cycle.", error="YouTube daily quota reached")
-                            send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
+                            print(f"\n[Worker YOUTUBE 429 NOTICE] YouTube daily upload quota exhausted by Google API. Video saved locally.")
+                            update_article_progress(db, article, 80, "PAUSED", "YouTube daily upload limit reached (429). Saved locally for next day cycle.", error="YouTube daily quota reached")
+                            send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, quota_status="YOUTUBE_RATE_LIMITED")
                             return False
                         else:
                             raise yt_err
@@ -390,18 +426,28 @@ def fetch_and_publish_news(target_category: str = "Global Sports", video_format:
         db.close()
 
 
-def process_pending_articles(category: str = None, video_format: str = "short", limit: int = 10, do_upload: bool = True):
+def process_pending_articles(category: str = None, video_format: str = "auto", limit: int = 1, do_upload: bool = True):
     """
-    Scans the database for articles queued by the user in Admin dashboard,
-    or published articles that don't have a valid video file OR have not been uploaded to YouTube yet.
+    Intelligent daily scheduler enforcing:
+    - Maximum 3 YouTube Shorts per calendar day (UTC)
+    - Maximum 1 Long-Form Video (16:9 HD) per calendar day (UTC)
+    - Total maximum 4 uploads per day (Zero duplicate or excessive uploads).
+    - Automated pacing and priority queue execution.
     """
     db = SessionLocal()
+    target_tasks = []  # list of tuples: (article_id, format, is_manual)
+
     try:
+        counts = get_daily_youtube_upload_counts(db)
+        shorts_today = counts["shorts_today"]
+        longs_today = counts["longs_today"]
+        total_today = counts["total_today"]
+
         query = db.query(Article)
         if category:
             query = query.filter(Article.category.ilike(f"%{category}%"))
 
-        # Priority 1: Articles explicitly queued from Mission Control Web Admin
+        # Priority 1: Articles explicitly queued by user from Mission Control Web Admin
         queued_articles = (
             query
             .filter(Article.video_status == "QUEUED")
@@ -409,19 +455,48 @@ def process_pending_articles(category: str = None, video_format: str = "short", 
             .limit(limit)
             .all()
         )
-        target_ids = []
+
         if queued_articles:
-            print(f"\n⚡ [Worker Priority Queue] Processing {len(queued_articles)} article(s) queued from Mission Control:")
+            print(f"\n⚡ [Worker Priority Queue] Processing {len(queued_articles)} article(s) manually queued from Mission Control:")
             for a in queued_articles:
-                print(f"  ▶ Article #{a.id} [{a.category}] {a.title[:50]}")
-            target_ids = [a.id for a in queued_articles]
+                target_fmt = "long" if ("long" in (a.video_path or "").lower() or video_format == "long") else "short"
+                print(f"  ▶ Article #{a.id} [{a.category}] ({target_fmt}) {a.title[:50]}")
+                target_tasks.append((a.id, target_fmt, True))
         else:
-            # Priority 2: Scan for published articles needing video generation OR YouTube upload
+            # Automated Pipeline Mode: Enforce strict daily quota: 3 Shorts + 1 Long
+            if counts["quota_exhausted"]:
+                print(f"\n[Worker DAILY QUOTA LIMIT] Today's YouTube upload quota COMPLETE:")
+                print(f"  ✔ Shorts uploaded today: {shorts_today}/{MAX_DAILY_SHORTS}")
+                print(f"  ✔ Longs uploaded today : {longs_today}/{MAX_DAILY_LONGS}")
+                print(f"  ✔ Total uploaded today : {total_today}/{MAX_DAILY_TOTAL}")
+                print(f"  Sleeping until tomorrow (00:00 UTC). Zero automated spam.")
+                send_worker_heartbeat(status="QUOTA_REACHED", active_title="Daily quota complete (3 Shorts, 1 Long)")
+                return
+
+            # Determine which format the channel needs next:
+            # Rule: 1 Long video per day, and 3 Shorts per day.
+            target_fmt = None
+            if video_format in ("short", "long"):
+                target_fmt = video_format
+            elif counts["can_upload_long"] and longs_today < MAX_DAILY_LONGS:
+                # Slot open for the Daily Long Video!
+                target_fmt = "long"
+            elif counts["can_upload_short"] and shorts_today < MAX_DAILY_SHORTS:
+                target_fmt = "short"
+            else:
+                target_fmt = "short"
+
+            # Check if this format can post now
+            can_post, reason = can_post_now(db, video_format=target_fmt, min_hours_gap=MIN_HOURS_BETWEEN_SHORTS, ignore_cooldown=False)
+            if not can_post:
+                print(f"[Worker Pacing Gate] {reason}")
+                send_worker_heartbeat(status="IDLE", active_title=f"Pacing: {reason[:80]}")
+                return
+
+            # Scan for published articles that don't have a YouTube video ID yet
             pending = (
                 query
                 .filter(
-                    (Article.video_path == None) | 
-                    (Article.video_path == "") | 
                     (Article.youtube_video_id == None) | 
                     (Article.youtube_video_id == "") |
                     (Article.youtube_video_id == "dQw4w9WgXcQ")
@@ -432,15 +507,18 @@ def process_pending_articles(category: str = None, video_format: str = "short", 
             )
 
             if pending:
-                print(f"\n[Worker] Found {len(pending)} articles needing video processing / YouTube upload:")
-                for a in pending:
-                    vid_status = "READY" if a.video_path else "MISSING"
-                    yt_status = f"https://youtu.be/{a.youtube_video_id}" if (a.youtube_video_id and a.youtube_video_id != "dQw4w9WgXcQ") else "PENDING UPLOAD"
-                    print(f"  - Article #{a.id} [{a.category}] Video: {vid_status} | YT: {yt_status} | {a.title[:45]}")
-                target_ids = [a.id for a in pending]
+                candidate = pending[0]
+                print(f"\n[Worker Auto-Schedule] Selected Article #{candidate.id} for daily {target_fmt.upper()}: '{candidate.title[:50]}'")
+                print(f"  Daily Quota Status: Shorts {shorts_today}/{MAX_DAILY_SHORTS} | Longs {longs_today}/{MAX_DAILY_LONGS}")
+                target_tasks.append((candidate.id, target_fmt, False))
+            else:
+                # No published articles in DB need videos! Fetch fresh breaking news for the day
+                print(f"\n[Worker Auto-Schedule] All articles uploaded. Fetching fresh breaking RSS news for daily {target_fmt.upper()}...")
+                fetch_and_publish_news(target_category=category or "AI & Tech", video_format=target_fmt, do_upload=do_upload)
+                return
 
     except Exception as e:
-        print(f"[Worker ERROR] Error scanning pending articles: {e}")
+        print(f"[Worker ERROR] Error in process_pending_articles: {e}")
         traceback.print_exc()
         try:
             db.rollback()
@@ -452,12 +530,12 @@ def process_pending_articles(category: str = None, video_format: str = "short", 
         except Exception:
             pass
 
-    # Process rendering outside of the scanning database session to prevent idle timeouts
-    for article_id in target_ids:
+    # Process rendering & upload outside the scanning DB session
+    for art_id, fmt, is_manual in target_tasks:
         try:
-            render_article_video(article_id, video_format=video_format, do_upload=do_upload)
+            render_article_video(art_id, video_format=fmt, do_upload=do_upload, is_manual=is_manual)
         except Exception as proc_err:
-            print(f"[Worker ERROR] Failed processing #{article_id}: {proc_err}")
+            print(f"[Worker ERROR] Failed processing #{art_id}: {proc_err}")
 
 
 def list_recent_articles(limit: int = 15):
@@ -481,16 +559,24 @@ def list_recent_articles(limit: int = 15):
         db.close()
 
 
-def run_daemon_worker(interval_seconds: int = 30, video_format: str = "short", do_upload: bool = True):
+def run_daemon_worker(interval_seconds: int = 30, video_format: str = "auto", do_upload: bool = True):
     """
     Continuously monitors the shared database and auto-renders & uploads videos
-    using your local PC hardware. Zero memory usage on Render!
+    using your local PC hardware with strict daily quotas (3 Shorts + 1 Long).
     """
     auth = check_auth_status()
     channel = auth.get("channel", "GloblePulseAi")
+    db = SessionLocal()
+    try:
+        counts = get_daily_youtube_upload_counts(db)
+    finally:
+        db.close()
+
     print(f"\n🚀 [LOCAL WORKER DAEMON ACTIVE]")
     print(f"   Target YouTube Channel : @{channel}")
-    print(f"   Target Video Format    : {'9:16 YouTube Shorts' if video_format == 'short' else '16:9 Long-Form HD'}")
+    print(f"   Daily YouTube Limits   : Max 3 Shorts + 1 Long Video (Total: 4/day)")
+    print(f"   Today's Quota Progress : {counts['shorts_today']}/3 Shorts | {counts['longs_today']}/1 Longs")
+    print(f"   Target Video Mode      : {'AUTO (3 Shorts + 1 Long Daily)' if video_format == 'auto' else video_format.upper()}")
     print(f"   YouTube Auto-Upload    : {'ENABLED' if do_upload else 'DISABLED'}")
     print(f"   Database Poll Interval : Every {interval_seconds} seconds")
     print(f"   Cloud RAM Impact       : 0 MB (100% offloaded to your Local PC!)")
@@ -499,7 +585,7 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "short", d
         while True:
             try:
                 send_worker_heartbeat(status="IDLE")
-                process_pending_articles(video_format=video_format, limit=2, do_upload=do_upload)
+                process_pending_articles(video_format=video_format, limit=1, do_upload=do_upload)
             except Exception as loop_err:
                 print(f"[Worker Daemon Loop Warning] Transient error recovered: {loop_err}")
                 time.sleep(3)
@@ -507,6 +593,7 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "short", d
     except KeyboardInterrupt:
         send_worker_heartbeat(status="OFFLINE")
         print("\n[Worker Daemon] Stopped cleanly by user.")
+
 
 
 
@@ -564,7 +651,7 @@ def interactive_menu():
 def main():
     parser = argparse.ArgumentParser(description="GlobalPulse AI Local Video Offloading Worker")
     parser.add_argument("--article", type=int, help="Render video for a specific article ID")
-    parser.add_argument("--format", choices=["long", "short"], default="short", help="Video format (default: short)")
+    parser.add_argument("--format", choices=["auto", "long", "short"], default="auto", help="Video format: auto (3 shorts + 1 long daily), short (9:16), long (16:9)")
     parser.add_argument("--upload", action="store_true", help="Force auto-upload to YouTube upon completion")
     parser.add_argument("--no-upload", action="store_true", help="Disable YouTube upload even if authenticated")
     parser.add_argument("--fetch", type=str, nargs="?", const="Global Sports", help="Fetch breaking news now for category (default: 'Global Sports')")

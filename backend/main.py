@@ -78,6 +78,7 @@ try:
     from .services.ai_service import process_raw_news
     from .services.video_generator import compose_short_video, compose_video, compose_long_video
     from .services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status, delete_video_from_youtube
+    from .services.youtube_quota import get_daily_youtube_upload_counts, MAX_DAILY_SHORTS, MAX_DAILY_LONGS
     from .services.pipeline import run_full_automation_pipeline
     from .services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status
     from .services.image_resolver import refresh_missing_images
@@ -104,6 +105,7 @@ except (ImportError, ValueError):
     from services.ai_service import process_raw_news
     from services.video_generator import compose_short_video, compose_video, compose_long_video
     from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status, delete_video_from_youtube
+    from services.youtube_quota import get_daily_youtube_upload_counts, MAX_DAILY_SHORTS, MAX_DAILY_LONGS
     from services.pipeline import run_full_automation_pipeline
     from services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status
     from services.image_resolver import refresh_missing_images
@@ -508,7 +510,8 @@ def get_video_progress_endpoint(article_id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/worker/status", response_model=WorkerStatusResponse)
 def get_worker_status_endpoint(db: Session = Depends(get_db)):
-    """Checks whether the Local PC Worker is online, idle, or processing."""
+    """Checks whether the Local PC Worker is online, idle, or processing, and returns daily YouTube upload limits."""
+    counts = get_daily_youtube_upload_counts(db)
     heartbeat = db.query(WorkerHeartbeat).filter(WorkerHeartbeat.worker_name == "LOCAL_PC_WORKER").first()
     if not heartbeat:
         return WorkerStatusResponse(
@@ -519,7 +522,12 @@ def get_worker_status_endpoint(db: Session = Depends(get_db)):
             active_article_id=None,
             active_article_title=None,
             channel_name="@GloblePulseAi",
-            total_completed=0
+            total_completed=0,
+            shorts_today=counts["shorts_today"],
+            longs_today=counts["longs_today"],
+            max_shorts=MAX_DAILY_SHORTS,
+            max_longs=MAX_DAILY_LONGS,
+            daily_quota_status=counts["status"]
         )
     
     is_online = False
@@ -537,7 +545,12 @@ def get_worker_status_endpoint(db: Session = Depends(get_db)):
         active_article_id=heartbeat.active_article_id if is_online else None,
         active_article_title=heartbeat.active_article_title if is_online else None,
         channel_name=heartbeat.channel_name or "@GloblePulseAi",
-        total_completed=heartbeat.total_completed or 0
+        total_completed=heartbeat.total_completed or 0,
+        shorts_today=counts["shorts_today"],
+        longs_today=counts["longs_today"],
+        max_shorts=MAX_DAILY_SHORTS,
+        max_longs=MAX_DAILY_LONGS,
+        daily_quota_status=counts["status"]
     )
 
 @app.get("/api/worker/active-jobs")

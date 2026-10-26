@@ -65,6 +65,7 @@ dist/
 # Media artifacts & Generated Videos (Avoid large binary blobs in Git)
 backend/static/videos/*
 !backend/static/videos/.gitkeep
+exports/
 *.mp4
 *.wav
 *.mp3
