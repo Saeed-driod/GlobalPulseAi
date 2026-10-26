@@ -68,6 +68,10 @@ except ImportError as e:
     print(f"[Worker Error] Failed importing backend services: {e}")
     sys.exit(1)
 
+# In-memory tracking of YouTube API server-side rate limits
+YOUTUBE_RATE_LIMIT_HIT_DATE = None
+
+
 
 def send_worker_heartbeat(status: str = "IDLE", active_id: int = None, active_title: str = None, increment_completed: bool = False, quota_status: str = None):
     """Updates the WorkerHeartbeat record in the shared database with live quota telemetry."""
@@ -333,9 +337,11 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                     except Exception as yt_err:
                         err_str = str(yt_err)
                         if "Quota exceeded" in err_str or "rateLimitExceeded" in err_str or "429" in err_str:
-                            print(f"\n[Worker YOUTUBE 429 NOTICE] YouTube daily upload quota exhausted by Google API. Video saved locally.")
+                            global YOUTUBE_RATE_LIMIT_HIT_DATE
+                            YOUTUBE_RATE_LIMIT_HIT_DATE = datetime.now(timezone.utc).date()
+                            print(f"\n[Worker YOUTUBE 429 NOTICE] YouTube daily upload quota exhausted by Google API. Automated uploads paused until tomorrow.")
                             update_article_progress(db, article, 80, "PAUSED", "YouTube daily upload limit reached (429). Saved locally for next day cycle.", error="YouTube daily quota reached")
-                            send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, quota_status="YOUTUBE_RATE_LIMITED")
+                            send_worker_heartbeat(status="QUOTA_REACHED", active_id=None, active_title="YouTube 429 Limit Active - Resets Tomorrow", quota_status="YOUTUBE_RATE_LIMITED")
                             return False
                         else:
                             raise yt_err
@@ -463,6 +469,13 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
                 print(f"  ▶ Article #{a.id} [{a.category}] ({target_fmt}) {a.title[:50]}")
                 target_tasks.append((a.id, target_fmt, True))
         else:
+            # Check if YouTube API returned 429 earlier today
+            global YOUTUBE_RATE_LIMIT_HIT_DATE
+            today_date = datetime.now(timezone.utc).date()
+            if YOUTUBE_RATE_LIMIT_HIT_DATE == today_date:
+                send_worker_heartbeat(status="QUOTA_REACHED", active_title="YouTube 429 Limit Active - Resets Tomorrow", quota_status="YOUTUBE_RATE_LIMITED")
+                return
+
             # Automated Pipeline Mode: Enforce strict daily quota: 3 Shorts + 1 Long
             if counts["quota_exhausted"]:
                 print(f"\n[Worker DAILY QUOTA LIMIT] Today's YouTube upload quota COMPLETE:")
@@ -493,7 +506,7 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
                 send_worker_heartbeat(status="IDLE", active_title=f"Pacing: {reason[:80]}")
                 return
 
-            # Scan for published articles that don't have a YouTube video ID yet
+            # Scan for published articles that don't have a YouTube video ID yet (excluding PAUSED)
             pending = (
                 query
                 .filter(
@@ -501,6 +514,7 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
                     (Article.youtube_video_id == "") |
                     (Article.youtube_video_id == "dQw4w9WgXcQ")
                 )
+                .filter(Article.video_status != "PAUSED")
                 .order_by(Article.id.desc())
                 .limit(limit)
                 .all()
