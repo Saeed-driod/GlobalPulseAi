@@ -677,6 +677,35 @@ Subscribe to GlobalPulse AI on YouTube (@GloblePulseAi) for cutting-edge AI, geo
         raise
 
 
+def generate_viral_youtube_tags(title: str, category: str) -> List[str]:
+    """Generates 12-16 high-ranking, topic-specific SEO tags for YouTube Shorts."""
+    import re
+    base_tags = ["GlobalPulse AI", "Shorts", "Trending", "Viral", "News"]
+    
+    # Extract significant keywords from headline (e.g. Nvidia, Tesla, Grok, Apple, F1)
+    clean_words = [w.capitalize() for w in re.sub(r'[^a-zA-Z0-9\s]', ' ', title).split() if len(w) > 3 and w.lower() not in {"this", "that", "with", "from", "have", "been", "says", "said", "will", "what"}]
+    
+    category_tags = {
+        "Global Sports": ["Sports News", "Highlights", "Football", "Soccer", "F1", "Formula 1", "Premier League", "Champions League", "Cricket"],
+        "AI & Tech": ["Artificial Intelligence", "AI News", "Tech News", "Technology", "Future Tech", "Silicon Valley", "Innovation", "Robotics"],
+        "Global Markets": ["Stock Market", "Economy", "Finance", "Crypto", "Wall Street", "Investing", "Trading", "Global Economy"],
+        "Geopolitics": ["World News", "Breaking News", "Geopolitics", "Global Affairs", "Diplomacy", "International Relations"],
+        "Future Science": ["Science", "Space", "NASA", "Astronomy", "Deep Space", "Innovation", "Physics", "Quantum"]
+    }
+    
+    cat_specific = category_tags.get(category, ["World News", "Technology"])
+    combined = base_tags + clean_words[:7] + cat_specific + [category]
+    
+    seen = set()
+    result = []
+    for tag in combined:
+        tag_clean = tag.strip()
+        if tag_clean and tag_clean.lower() not in seen and len(tag_clean) < 30:
+            seen.add(tag_clean.lower())
+            result.append(tag_clean)
+    return result[:18]
+
+
 def upload_short_to_youtube(
     video_filepath: str,
     title: str,
@@ -701,25 +730,39 @@ def upload_short_to_youtube(
     clean_summary = summary.replace("•", "-")
     website_url = f"{PUBLIC_SITE_URL}/news/{slug}"
 
-    description = f"""{clean_summary}
+    description = f"""⚡ {title}
+
+{clean_summary}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 Read Full Detailed Investigation on GlobalPulse AI:
 👉 {website_url}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Stay ahead of global shifts with daily 60-second intelligence briefings.
-Subscribe to GlobalPulse AI for Tier-1 news and market analysis.
+🔔 Subscribe to @GloblePulseAi for daily 60-second global intelligence briefings!
+Daily AI breakthroughs, financial markets, geopolitics & sports highlights.
 
-#GlobalPulseAI #News #Technology #Shorts #GlobalMarkets #{category.replace(' ', '').replace('&', '')}
+#GlobalPulseAI #News #Shorts #viral #trending #{category.replace(' ', '').replace('&', '')}
 """
 
-    tags = ["GlobalPulse AI", category, "Breaking News", "Shorts", "Tech", "Markets"]
+    tags = generate_viral_youtube_tags(title, category)
     cat_id = get_category_id(category)
+
+    # Viral hook formatting with category specific hashtags
+    cat_tag = {
+        "AI & Tech": "#AI #Tech",
+        "Global Sports": "#Sports #Football",
+        "Global Markets": "#Finance #Crypto",
+        "Geopolitics": "#WorldNews",
+        "Future Science": "#Science #Space"
+    }.get(category, "#News")
+
+    clean_t = re.sub(r"(?i)\s*#shorts\b", "", title).strip()
+    formatted_title = f"{clean_t} #shorts {cat_tag}"[:100]
 
     result = upload_video_to_youtube(
         video_path=video_filepath,
-        title=title,
+        title=formatted_title,
         description=description,
         tags=tags,
         category_id=cat_id,
