@@ -71,3 +71,23 @@ class WorkerHeartbeat(Base):
     channel_name = Column(String(100), default="@GloblePulseAi", nullable=False)
     total_completed = Column(Integer, default=0, nullable=False)
 
+
+class AnalyticsVisit(Base):
+    __tablename__ = "analytics_visits"
+
+    id = Column(Integer, primary_key=True, index=True)
+    path = Column(String(255), index=True, nullable=False, default="/")
+    article_id = Column(Integer, nullable=True, index=True)
+    article_slug = Column(String(255), nullable=True, index=True)
+    article_title = Column(String(300), nullable=True)
+    referrer = Column(String(500), nullable=True)
+    referrer_source = Column(String(100), index=True, default="Direct")  # TikTok, YouTube, Google, Twitter/X, Direct, etc.
+    country_code = Column(String(10), index=True, default="US")  # ISO 2-letter e.g. US, GB, PK
+    country_name = Column(String(100), default="United States")
+    city = Column(String(100), nullable=True)
+    device = Column(String(50), default="Mobile")  # Mobile, Desktop, Tablet
+    browser = Column(String(50), default="Chrome")
+    ip_hash = Column(String(64), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+
+

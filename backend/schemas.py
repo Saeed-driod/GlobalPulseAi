@@ -97,3 +97,59 @@ class WorkerStatusResponse(BaseModel):
     total_completed: int
 
 
+class AnalyticsTrackRequest(BaseModel):
+    path: str
+    article_slug: Optional[str] = None
+    referrer: Optional[str] = None
+    device: Optional[str] = "Mobile"
+    browser: Optional[str] = "Chrome"
+
+
+class AnalyticsSourceStat(BaseModel):
+    source: str
+    count: int
+    percent: float
+
+
+class AnalyticsCountryStat(BaseModel):
+    country_code: str
+    country_name: str
+    flag: str
+    count: int
+    percent: float
+
+
+class AnalyticsTopArticle(BaseModel):
+    id: int
+    title: str
+    slug: str
+    category: str
+    views: int
+
+
+class AnalyticsLiveVisit(BaseModel):
+    id: int
+    path: str
+    article_title: Optional[str] = None
+    source: str
+    country_code: str
+    country_name: str
+    flag: str
+    device: str
+    time_ago: str
+
+
+class AnalyticsSummaryResponse(BaseModel):
+    total_views: int
+    views_today: int
+    unique_visitors_today: int
+    mobile_percent: float
+    desktop_percent: float
+    top_source: str
+    top_country: str
+    sources: List[AnalyticsSourceStat]
+    countries: List[AnalyticsCountryStat]
+    top_articles: List[AnalyticsTopArticle]
+    recent_visits: List[AnalyticsLiveVisit]
+
+

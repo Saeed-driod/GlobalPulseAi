@@ -70,3 +70,51 @@ export interface WorkerStatusInfo {
   total_completed: number;
 }
 
+export interface AnalyticsSourceStat {
+  source: string;
+  count: number;
+  percent: number;
+}
+
+export interface AnalyticsCountryStat {
+  country_code: string;
+  country_name: string;
+  flag: string;
+  count: number;
+  percent: number;
+}
+
+export interface AnalyticsTopArticle {
+  id: number;
+  title: string;
+  slug: string;
+  category: string;
+  views: number;
+}
+
+export interface AnalyticsLiveVisit {
+  id: number;
+  path: string;
+  article_title?: string | null;
+  source: string;
+  country_code: string;
+  country_name: string;
+  flag: string;
+  device: string;
+  time_ago: string;
+}
+
+export interface AnalyticsSummary {
+  total_views: number;
+  views_today: number;
+  unique_visitors_today: number;
+  mobile_percent: number;
+  desktop_percent: number;
+  top_source: string;
+  top_country: string;
+  sources: AnalyticsSourceStat[];
+  countries: AnalyticsCountryStat[];
+  top_articles: AnalyticsTopArticle[];
+  recent_visits: AnalyticsLiveVisit[];
+}
+

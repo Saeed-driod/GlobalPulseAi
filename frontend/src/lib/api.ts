@@ -1,4 +1,4 @@
-import { Article, AdminStats, ArticleListResponse, ActionResponse, VideoProgressInfo, WorkerStatusInfo } from "../types/article";
+import { Article, AdminStats, ArticleListResponse, ActionResponse, VideoProgressInfo, WorkerStatusInfo, AnalyticsSummary } from "../types/article";
 
 
 export function getApiBase(): string {
@@ -476,6 +476,21 @@ export async function getSchedulerStatus(): Promise<SchedulerStatusResponse | nu
     console.error("Failed to fetch scheduler status:", err);
   }
   return null;
+}
+
+export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary | null> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/analytics/summary`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    return null;
+  } catch (err) {
+    console.error("Failed to fetch analytics summary:", err);
+    return null;
+  }
 }
 
 
