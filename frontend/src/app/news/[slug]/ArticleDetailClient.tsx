@@ -507,21 +507,33 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                     <Link
                       key={rel.id}
                       href={`/news/${rel.slug}`}
-                      className="group flex flex-col justify-between p-4 rounded-xl bg-white/[0.03] hover:bg-cyan-500/[0.08] border border-white/[0.06] hover:border-cyan-500/40 transition-all duration-200"
+                      className="group flex flex-col justify-between rounded-xl bg-white/[0.03] hover:bg-cyan-500/[0.08] border border-white/[0.06] hover:border-cyan-500/40 transition-all duration-200 overflow-hidden"
                     >
-                      <div>
-                        <span className="text-[10px] uppercase font-mono font-bold text-cyan-400">
-                          {rel.category}
-                        </span>
-                        <h4 className="text-xs sm:text-sm font-semibold text-white group-hover:text-cyan-300 transition line-clamp-2 mt-1 mb-2 leading-snug">
-                          {rel.title}
-                        </h4>
-                      </div>
-                      <div className="text-[10px] text-neutral-400 font-mono flex items-center justify-between pt-2 border-t border-white/[0.05]">
-                        <span>{rel.views.toLocaleString()} reads</span>
-                        <span className="text-cyan-400 group-hover:translate-x-1 transition font-bold">
-                          Read Dossier →
-                        </span>
+                      {rel.image_url && (
+                        <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-900">
+                          <img
+                            src={rel.image_url}
+                            alt={rel.title}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      <div className="p-3.5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-mono font-bold text-cyan-400">
+                            {rel.category}
+                          </span>
+                          <h4 className="text-xs sm:text-sm font-semibold text-white group-hover:text-cyan-300 transition line-clamp-2 mt-1 mb-2 leading-snug">
+                            {rel.title}
+                          </h4>
+                        </div>
+                        <div className="text-[10px] text-neutral-400 font-mono flex items-center justify-between pt-2 border-t border-white/[0.05]">
+                          <span>{rel.views.toLocaleString()} reads</span>
+                          <span className="text-cyan-400 group-hover:translate-x-1 transition font-bold">
+                            Read Story →
+                          </span>
+                        </div>
                       </div>
                     </Link>
                   ))}
@@ -638,6 +650,80 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
             </div>
           </aside>
         </div>
+
+        {/* Full-Width Continuous Wire & Recommended Stories Grid */}
+        {allArticles.filter((a) => a.id !== article.id).length > 0 && (
+          <section className="mt-16 pt-12 border-t border-white/10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
+              <div>
+                <span className="text-[11px] font-mono uppercase font-bold tracking-widest text-cyan-400 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  Live Wire Radar
+                </span>
+                <h3 className="text-xl sm:text-2xl font-bold font-serif text-white mt-1">
+                  Trending Stories You May Like
+                </h3>
+              </div>
+              <Link
+                href="/"
+                className="text-xs font-mono text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1.5 group"
+              >
+                <span>Browse All Intelligence Dossiers</span>
+                <span className="group-hover:translate-x-1 transition font-mono">→</span>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {allArticles
+                .filter((a) => a.id !== article.id)
+                .slice(0, 4)
+                .map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/news/${item.slug}`}
+                    className="group flex flex-col justify-between rounded-2xl glass-panel border border-white/[0.08] hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all duration-300 overflow-hidden"
+                  >
+                    <div>
+                      {item.image_url ? (
+                        <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-900">
+                          <img
+                            src={item.image_url}
+                            alt={item.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-transparent to-transparent" />
+                          <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-neutral-950/80 backdrop-blur-md text-[10px] font-mono font-bold uppercase text-cyan-300 border border-white/10">
+                            {item.category}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="p-4 pb-0">
+                          <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-[10px] font-mono font-bold uppercase text-cyan-300 border border-cyan-500/20">
+                            {item.category}
+                          </span>
+                        </div>
+                      )}
+                      <div className="p-4">
+                        <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition line-clamp-2 leading-snug">
+                          {item.title}
+                        </h4>
+                        <p className="text-xs text-neutral-400 line-clamp-2 mt-2 leading-relaxed">
+                          {item.summary.replace(/^[•▸*-\s]+/gm, " ").trim()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 border-t border-white/[0.06] flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                      <span>{item.views.toLocaleString()} reads</span>
+                      <span className="text-cyan-400 font-bold group-hover:translate-x-1 transition">
+                        Read Story →
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Sticky Bottom Ad Banner */}

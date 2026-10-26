@@ -10,7 +10,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://globlepulseai.onrender.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app"),
   title: {
     default: "GlobalPulse AI | Tier-1 Global Newsroom & Video Intelligence",
     template: "%s | GlobalPulse AI",
@@ -28,13 +28,13 @@ export const metadata: Metadata = {
     "Automated Journalism",
     "YouTube Shorts Intelligence",
   ],
-  authors: [{ name: "GlobalPulse AI Editorial Bureau", url: process.env.NEXT_PUBLIC_SITE_URL || "https://globlepulseai.onrender.com" }],
+  authors: [{ name: "GlobalPulse AI Editorial Bureau", url: process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app" }],
   creator: "GlobalPulse AI Media Network Inc.",
   publisher: "GlobalPulse AI",
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: process.env.NEXT_PUBLIC_SITE_URL || "https://globlepulseai.onrender.com",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app",
     siteName: "GlobalPulse AI",
     title: "GlobalPulse AI | Tier-1 Global Newsroom & Video Intelligence",
     description: "Automated AI-powered global news, geopolitical telemetry, and 60-second video briefings for decision makers.",
@@ -102,6 +102,48 @@ export default function RootLayout({
           src="https://bauval.org/14/2f3481f5b47a88883b7506a69ee08e50"
           strategy="afterInteractive"
           data-cfasync="false"
+        />
+
+        {/* OneSignal Web Push Notifications (Free Global Audience Retention) */}
+        <Script
+          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+          strategy="afterInteractive"
+          defer
+        />
+        <Script
+          id="onesignal-init"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.OneSignalDeferred = window.OneSignalDeferred || [];
+              OneSignalDeferred.push(async function(OneSignal) {
+                await OneSignal.init({
+                  appId: "${process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'b848c2ec-c840-4e20-9dc4-1b0b5be8ef9b'}",
+                  notifyButton: {
+                    enable: true,
+                    position: 'bottom-left',
+                    size: 'medium',
+                    theme: 'dark',
+                    text: {
+                      'tip.state.unsubscribed': 'Subscribe to Breaking News Alerts',
+                      'tip.state.subscribed': "You're subscribed to Breaking Alerts",
+                      'tip.state.blocked': "Notifications blocked",
+                      'message.prenotify': 'Click to subscribe to GlobalPulse AI breaking intelligence',
+                      'message.action.subscribed': "Thanks for subscribing!",
+                      'message.action.resubscribed': "You're subscribed to breaking alerts",
+                      'message.action.unsubscribed': "You won't receive breaking alerts",
+                      'dialog.main.title': 'Manage Breaking News Alerts',
+                      'dialog.main.button.subscribe': 'SUBSCRIBE',
+                      'dialog.main.button.unsubscribe': 'UNSUBSCRIBE',
+                      'dialog.blocked.title': 'Unblock Notifications',
+                      'dialog.blocked.message': "Follow instructions to allow notifications:"
+                    }
+                  },
+                  allowLocalhostAsSecureOrigin: true,
+                });
+              });
+            `,
+          }}
         />
       </head>
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100 font-sans">
