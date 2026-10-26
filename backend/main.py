@@ -595,6 +595,53 @@ def compose_short_endpoint(article_id: int, db: Session = Depends(get_db)):
     """Convenience endpoint to render a 9:16 Shorts Video for an article."""
     return generate_video(article_id=article_id, format="short", db=db)
 
+@app.post("/api/admin/clean-duplicates", dependencies=[Depends(verify_admin_secret)])
+def clean_duplicates_endpoint(db: Session = Depends(get_db)):
+    """
+    Scans all articles in the database, identifies duplicate stories,
+    and links any un-uploaded duplicates to their already-uploaded master YouTube ID.
+    Marks duplicates as COMPLETED (100%) so that no video is ever uploaded multiple times.
+    """
+    articles = db.query(Article).order_by(Article.id.asc()).all()
+    seen_titles = {}
+    updated_articles = []
+
+    for a in articles:
+        norm_title = re.sub(r'[^a-zA-Z0-9\s]', '', a.title.lower()).strip()
+        words = tuple(sorted(set(w for w in norm_title.split() if len(w) > 3)))
+
+        if not words:
+            continue
+
+        master = seen_titles.get(norm_title) or seen_titles.get(words)
+        if master and master.id != a.id:
+            if master.youtube_video_id and (not a.youtube_video_id or a.youtube_video_id == "dQw4w9WgXcQ"):
+                a.youtube_video_id = master.youtube_video_id
+                a.video_status = "COMPLETED"
+                a.video_progress = 100
+                a.video_stage_text = f"Linked to YouTube ({master.youtube_video_id})"
+                updated_articles.append({"id": a.id, "linked_to": master.id, "yt_id": master.youtube_video_id, "title": a.title[:45]})
+            elif not master.youtube_video_id and a.youtube_video_id and a.youtube_video_id != "dQw4w9WgXcQ":
+                master.youtube_video_id = a.youtube_video_id
+                master.video_status = "COMPLETED"
+                master.video_progress = 100
+                updated_articles.append({"id": master.id, "linked_from": a.id, "yt_id": a.youtube_video_id, "title": master.title[:45]})
+            elif master.youtube_video_id and a.youtube_video_id:
+                a.video_status = "COMPLETED"
+                a.video_progress = 100
+        else:
+            seen_titles[norm_title] = a
+            seen_titles[words] = a
+
+    if updated_articles:
+        db.commit()
+
+    return {
+        "success": True,
+        "message": f"Successfully cleaned and linked {len(updated_articles)} duplicate article(s).",
+        "updated_articles": updated_articles
+    }
+
 @app.post("/api/articles/{article_id}/publish", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
 
 def publish_article(

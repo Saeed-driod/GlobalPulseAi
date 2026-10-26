@@ -231,6 +231,39 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                 update_article_progress(db, article, 100, "COMPLETED", "Video already published to YouTube.", eta="Done")
                 send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, increment_completed=True)
             else:
+                # Deduplication Gate: Check if this same story/title was already uploaded on another article record
+                existing_yt = db.query(Article).filter(
+                    Article.title == article.title,
+                    Article.youtube_video_id != None,
+                    Article.youtube_video_id != "",
+                    Article.youtube_video_id != "dQw4w9WgXcQ",
+                    Article.id != article.id
+                ).first()
+
+                if not existing_yt:
+                    import re
+                    clean_target = set(w for w in re.sub(r'[^a-zA-Z0-9\s]', '', article.title.lower()).split() if len(w) > 3)
+                    if len(clean_target) >= 3:
+                        recent_yt_articles = db.query(Article).filter(
+                            Article.youtube_video_id != None,
+                            Article.youtube_video_id != "",
+                            Article.youtube_video_id != "dQw4w9WgXcQ",
+                            Article.id != article.id
+                        ).order_by(Article.id.desc()).limit(100).all()
+                        for prev_a in recent_yt_articles:
+                            prev_words = set(w for w in re.sub(r'[^a-zA-Z0-9\s]', '', prev_a.title.lower()).split() if len(w) > 3)
+                            if prev_words and (len(clean_target.intersection(prev_words)) / max(len(clean_target), len(prev_words))) >= 0.70:
+                                existing_yt = prev_a
+                                break
+
+                if existing_yt:
+                    print(f"[Worker DEDUPLICATION GATE] Story already uploaded to YouTube on Article #{existing_yt.id}: https://youtu.be/{existing_yt.youtube_video_id}")
+                    article.youtube_video_id = existing_yt.youtube_video_id
+                    update_article_progress(db, article, 100, "COMPLETED", f"Linked to existing YouTube upload ({existing_yt.youtube_video_id})", eta="Done")
+                    send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, increment_completed=True)
+                    print(f"============================================================\n")
+                    return True
+
                 print(f"[Worker] Uploading video to YouTube channel @GloblePulseAi...")
                 update_article_progress(db, article, 90, "UPLOADING_YOUTUBE", "Step 4/4: Uploading video directly to YouTube Shorts (@GloblePulseAi)...", eta="~5s remaining")
 
@@ -240,26 +273,36 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
 
                 if os.path.exists(upload_disk_path):
                     upload_start = time.time()
-                    upload_res = upload_short_to_youtube(
-                        video_filepath=upload_disk_path,
-                        title=article.title,
-                        summary=article.summary,
-                        category=article.category,
-                        slug=article.slug,
-                        video_format=video_format
-                    )
-                    upload_elapsed = time.time() - upload_start
-                    yt_id = upload_res.get("video_id") or upload_res.get("youtube_video_id")
-                    if yt_id and yt_id != "dQw4w9WgXcQ":
-                        article.youtube_video_id = yt_id
-                        update_article_progress(db, article, 100, "COMPLETED", "Completed! Video successfully published to YouTube Shorts.", eta="Done")
-                        send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, increment_completed=True)
-                        print(f"[Worker SUCCESS] Uploaded to YouTube in {upload_elapsed:.1f}s!")
-                        print(f"  YouTube Link: https://youtu.be/{yt_id}")
-                    else:
-                        print(f"[Worker Warning] YouTube upload notice: {upload_res}")
-                        update_article_progress(db, article, 85, "FAILED", f"YouTube upload notice: {str(upload_res)[:100]}", error=str(upload_res))
-                        send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
+                    try:
+                        upload_res = upload_short_to_youtube(
+                            video_filepath=upload_disk_path,
+                            title=article.title,
+                            summary=article.summary,
+                            category=article.category,
+                            slug=article.slug,
+                            video_format=video_format
+                        )
+                        upload_elapsed = time.time() - upload_start
+                        yt_id = upload_res.get("video_id") or upload_res.get("youtube_video_id")
+                        if yt_id and yt_id != "dQw4w9WgXcQ":
+                            article.youtube_video_id = yt_id
+                            update_article_progress(db, article, 100, "COMPLETED", "Completed! Video successfully published to YouTube Shorts.", eta="Done")
+                            send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, increment_completed=True)
+                            print(f"[Worker SUCCESS] Uploaded to YouTube in {upload_elapsed:.1f}s!")
+                            print(f"  YouTube Link: https://youtu.be/{yt_id}")
+                        else:
+                            print(f"[Worker Warning] YouTube upload notice: {upload_res}")
+                            update_article_progress(db, article, 85, "FAILED", f"YouTube upload notice: {str(upload_res)[:100]}", error=str(upload_res))
+                            send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
+                    except Exception as yt_err:
+                        err_str = str(yt_err)
+                        if "Quota exceeded" in err_str or "rateLimitExceeded" in err_str or "429" in err_str:
+                            print(f"\n[Worker YOUTUBE NOTICE] Daily YouTube video upload quota reached. Video saved locally.")
+                            update_article_progress(db, article, 80, "PAUSED", "Daily YouTube upload limit reached. Saved locally for next cycle.", error="YouTube daily quota reached")
+                            send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
+                            return False
+                        else:
+                            raise yt_err
                 else:
                     print(f"[Worker Warning] Could not find video file on disk: {upload_disk_path}")
                     update_article_progress(db, article, 80, "FAILED", f"Video file missing on disk: {upload_disk_path}", error="File missing")
@@ -313,9 +356,12 @@ def fetch_and_publish_news(target_category: str = "Global Sports", video_format:
             import re
             base_slug = re.sub(r'[^a-zA-Z0-9\s-]', '', ai_data["title"]).strip().lower()
             base_slug = re.sub(r'[\s]+', '-', base_slug)[:80]
-            existing = db.query(Article).filter(Article.slug == base_slug).first()
+            existing = db.query(Article).filter(
+                (Article.slug == base_slug) | (Article.title == ai_data["title"])
+            ).first()
             if existing:
-                base_slug = f"{base_slug}-{int(time.time()) % 10000}"
+                print(f"[Worker] Story '{ai_data['title'][:45]}' already indexed (#{existing.id}). Skipping duplicate.")
+                continue
 
             new_article = Article(
                 title=ai_data["title"],

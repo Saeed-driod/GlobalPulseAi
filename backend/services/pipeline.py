@@ -29,6 +29,32 @@ def slugify(text: str) -> str:
     return re.sub(r'[\s-]+', '-', text).strip('-')
 
 
+def is_story_duplicate(db: Session, raw_title: str, source_url: Optional[str] = None) -> bool:
+    """Checks if a story is a duplicate by URL, exact title, or semantic word overlap."""
+    if source_url:
+        clean_url = source_url.split("?")[0].rstrip("/")
+        if db.query(Article).filter(Article.source_url.ilike(f"{clean_url}%")).first():
+            return True
+
+    clean_raw = re.sub(r'[^a-zA-Z0-9\s]', '', raw_title.lower()).split()
+    words = set(w for w in clean_raw if len(w) > 3)
+    if not words:
+        return False
+
+    recent_articles = db.query(Article).order_by(Article.id.desc()).limit(150).all()
+    for art in recent_articles:
+        if art.title.lower().strip() == raw_title.lower().strip():
+            return True
+        art_words = set(w for w in re.sub(r'[^a-zA-Z0-9\s]', '', art.title.lower()).split() if len(w) > 3)
+        if not art_words:
+            continue
+        common = words.intersection(art_words)
+        overlap = len(common) / max(len(words), len(art_words))
+        if overlap >= 0.65:
+            return True
+    return False
+
+
 def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, video_format: str = "long") -> Dict[str, Any]:
     """
     Unified Master Automation Pipeline:
@@ -64,21 +90,21 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 "articles": []
             }
 
-        # Find fresh stories not yet published
+        # Find fresh stories not yet published (Strict deduplication gate)
         candidate_items = []
         for item in raw_items:
-            existing = None
-            if item.get("source_url"):
-                existing = db.query(Article).filter(Article.source_url == item["source_url"]).first()
-            if not existing and item.get("raw_title"):
-                existing = db.query(Article).filter(Article.title == item["raw_title"]).first()
-            if not existing:
+            if not is_story_duplicate(db, item.get("raw_title", ""), item.get("source_url")):
                 candidate_items.append(item)
 
-        # If all stories from this fetch cycle already exist in DB, take latest to produce a fresh update
-        if not candidate_items and raw_items:
-            print("[Master Pipeline] All active wires previously indexed. Generating fresh update from latest wire...")
-            candidate_items = raw_items[:limit]
+        # If all stories from this fetch cycle already exist in DB, STOP. NEVER re-publish duplicate stories!
+        if not candidate_items:
+            print("[Master Pipeline] All active wires previously indexed. Zero duplicates generated.")
+            return {
+                "success": True,
+                "message": "All current RSS news items are already published. No duplicates generated.",
+                "processed_count": 0,
+                "articles": []
+            }
 
         published_articles: List[Article] = []
 
@@ -97,13 +123,18 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     raw_image_url=item.get("raw_image_url")
                 )
 
+                # Secondary check: verify synthesized title doesn't already exist
+                existing_synth = db.query(Article).filter(Article.title == ai_data["title"]).first()
+                if existing_synth:
+                    print(f"[Master Pipeline] Synthesized story '{ai_data['title'][:50]}' already in DB. Skipping duplicate.")
+                    continue
+
                 # Generate unique SEO slug
                 base_slug = slugify(ai_data["title"])
                 slug = base_slug
-                counter = 1
-                while db.query(Article).filter(Article.slug == slug).first():
-                    slug = f"{base_slug}-{counter}"
-                    counter += 1
+                if db.query(Article).filter(Article.slug == slug).first():
+                    print(f"[Master Pipeline] Slug '{slug}' already exists. Skipping duplicate story.")
+                    continue
 
                 # Save initial article as IMMEDIATELY PUBLISHED in DB so it goes live on website first!
                 article = Article(

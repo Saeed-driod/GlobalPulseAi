@@ -77,7 +77,7 @@ CATEGORY_ACCENTS: Dict[str, Tuple[int, int, int]] = {
     "Global Sports": (239, 68, 68),      # Stadium Crimson Red
 }
 
-# Curated High-Definition Topic-Specific Photos (7 distinct scenes per category)
+# Curated High-Definition Topic-Specific Photos (15+ diverse scenes per category)
 CATEGORY_CURATED_PHOTOS: Dict[str, List[str]] = {
     "Global Sports": [
         "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1280&q=80",  # Floodlit Stadium arena
@@ -87,6 +87,13 @@ CATEGORY_CURATED_PHOTOS: Dict[str, List[str]] = {
         "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1280&q=80",  # Championship track victory
         "https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1280&q=80",  # Stadium fans celebration
         "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1280&q=80",  # Iconic ground lights
+        "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1280&q=80",  # Football stadium pitch
+        "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1280&q=80",  # Basketball arena action
+        "https://images.unsplash.com/photo-1587280501635-68a0e82cd5ff?auto=format&fit=crop&w=1280&q=80",  # Formula 1 race track
+        "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1280&q=80",  # Tennis championship court
+        "https://images.unsplash.com/photo-1569517282132-25d22f4573e6?auto=format&fit=crop&w=1280&q=80",  # Boxing arena spotlights
+        "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1280&q=80",  # Athletic athlete training
+        "https://images.unsplash.com/photo-1471295253337-3ceaaedca402?auto=format&fit=crop&w=1280&q=80",  # Stadium night panorama
     ],
     "AI & Tech": [
         "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1280&q=80",  # Neural computing nodes
@@ -96,6 +103,13 @@ CATEGORY_CURATED_PHOTOS: Dict[str, List[str]] = {
         "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1280&q=80",  # AI engineering team briefing
         "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1280&q=80",  # Robotics hardware laboratory
         "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1280&q=80",  # High-tech command console
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1280&q=80",  # Global digital matrix
+        "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1280&q=80",  # Cyber security network
+        "https://images.unsplash.com/photo-1535378917042-10a22c95931a?auto=format&fit=crop&w=1280&q=80",  # Futuristic artificial intelligence
+        "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=1280&q=80",  # AI neural synapse
+        "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1280&q=80",  # Tech laboratory research
+        "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1280&q=80",  # Smart cloud interface
+        "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1280&q=80",  # Software engineer workstation
     ],
     "Global Markets": [
         "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1280&q=80",  # Financial analytics display
@@ -105,6 +119,11 @@ CATEGORY_CURATED_PHOTOS: Dict[str, List[str]] = {
         "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1280&q=80",  # Institutional asset management
         "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1280&q=80",  # Enterprise telemetry dashboard
         "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1280&q=80",  # Interconnected global capital
+        "https://images.unsplash.com/photo-1535320903710-d993d3d77d29?auto=format&fit=crop&w=1280&q=80",  # Stock telemetry monitors
+        "https://images.unsplash.com/photo-1642543492481-44e81e3914a7?auto=format&fit=crop&w=1280&q=80",  # Financial trading screens
+        "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1280&q=80",  # Container cargo shipping port
+        "https://images.unsplash.com/photo-1579532537598-459ecdaf39cc?auto=format&fit=crop&w=1280&q=80",  # Financial charting report
+        "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=1280&q=80",  # Global commercial trade
     ],
     "Geopolitics": [
         "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1280&q=80",  # International summit hall
@@ -114,6 +133,10 @@ CATEGORY_CURATED_PHOTOS: Dict[str, List[str]] = {
         "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1280&q=80",  # Press briefing conference podium
         "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?auto=format&fit=crop&w=1280&q=80",  # Global metropolis architecture
         "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1280&q=80",  # Strategic intelligence operations
+        "https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?auto=format&fit=crop&w=1280&q=80",  # Diplomatic negotiation chamber
+        "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1280&q=80",  # International multilateral assembly
+        "https://images.unsplash.com/photo-1532375810709-75b1da00537c?auto=format&fit=crop&w=1280&q=80",  # United Nations assembly hall
+        "https://images.unsplash.com/photo-1569025743873-ea3a9ade89f9?auto=format&fit=crop&w=1280&q=80",  # Government press room
     ],
     "Future Science": [
         "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=1280&q=80",  # Deep space telescope view
@@ -123,6 +146,11 @@ CATEGORY_CURATED_PHOTOS: Dict[str, List[str]] = {
         "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1280&q=80",  # Nanoscale quantum physics
         "https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&w=1280&q=80",  # Autonomous robotic exploration
         "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1280&q=80",  # Earth orbital telemetry
+        "https://images.unsplash.com/photo-1447433819943-74a20887a81e?auto=format&fit=crop&w=1280&q=80",  # Cosmic nebula cluster
+        "https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?auto=format&fit=crop&w=1280&q=80",  # Galaxy deep cosmic space
+        "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1280&q=80",  # Genetics bio-molecular research
+        "https://images.unsplash.com/photo-1507668077129-56e32842fceb?auto=format&fit=crop&w=1280&q=80",  # Quantum laser physics
+        "https://images.unsplash.com/photo-1517976487502-5f6902888879?auto=format&fit=crop&w=1280&q=80",  # Space rocket launch
     ]
 }
 
@@ -627,11 +655,12 @@ def fetch_scene_images(
 ) -> List[Path]:
     """
     Fetches 5 to 7 distinct, topic-relevant HD photos for video scenes:
-    - Scene 1: Primary article photo (or category-curated lead HD photo).
-    - Scenes 2..N: Dynamic topic-specific queries via Pollinations AI or category curated pool.
-    - Fallback: Multi-focal cropped/zoomed variants from base image.
-    Ensures 100% photo-rich dynamic visuals for both Shorts (9:16) and Long-Form (16:9).
+    - If article has a genuine story photo: Generates cinematic multi-focal crops and alternates
+      with uniquely randomized curated category scenes.
+    - If fallback: Uses a deterministically shuffled pool of 15-20 category photos seeded by article_id,
+      guaranteeing that no two videos in the platform ever share the same images or image sequence.
     """
+    import random
     target_w = 1280 if is_widescreen else 720
     target_h = 720 if is_widescreen else 1280
     scene_paths: List[Path] = []
@@ -639,16 +668,26 @@ def fetch_scene_images(
     primary_img_path = output_dir / f"scene_1_{article_id}.jpg"
     primary_downloaded = False
 
-    curated_pool = CATEGORY_CURATED_PHOTOS.get(category, CATEGORY_CURATED_PHOTOS.get("AI & Tech", []))
-    lead_curated_url = curated_pool[0] if curated_pool else None
+    raw_pool = CATEGORY_CURATED_PHOTOS.get(category, CATEGORY_CURATED_PHOTOS.get("AI & Tech", []))
+    # Deterministically shuffle curated pool based on article_id so every article gets a 100% unique sequence!
+    rng = random.Random(article_id * 7919 + 53)
+    shuffled_pool = list(raw_pool)
+    rng.shuffle(shuffled_pool)
 
-    # Step 1: Download Primary Image (if valid and not generic placeholder)
-    if main_image_url and main_image_url.startswith("http") and "photo-1618005182384" not in main_image_url:
-        primary_downloaded = download_web_image(main_image_url, primary_img_path, timeout=3.0)
+    # Step 1: Download Primary Image if valid and not a generic placeholder
+    is_generic = False
+    if main_image_url:
+        generic_markers = ["photo-1618005182384", "photo-1611974789855", "photo-1578575437130", "photo-1507413245164", "photo-1508098682722"]
+        is_generic = any(m in main_image_url for m in generic_markers)
 
-    # Step 2: Fallback to Curated Lead Photo for this category (Fast Unsplash CDN)
-    if not primary_downloaded and lead_curated_url:
-        primary_downloaded = download_web_image(lead_curated_url, primary_img_path, timeout=3.0)
+    if main_image_url and main_image_url.startswith("http") and not is_generic:
+        primary_downloaded = download_web_image(main_image_url, primary_img_path, timeout=3.5)
+
+    # Step 2: Fallback to a unique lead photo for this specific article from shuffled pool
+    if not primary_downloaded:
+        lead_url = shuffled_pool[0] if shuffled_pool else None
+        if lead_url:
+            primary_downloaded = download_web_image(lead_url, primary_img_path, timeout=3.5)
 
     # Step 3: Ultimate Fallback: High-contrast styled category backdrop
     if not primary_downloaded or not primary_img_path.exists():
@@ -662,23 +701,26 @@ def fetch_scene_images(
 
     scene_paths.append(primary_img_path)
 
-    # Open base image for generating in-memory scene variants if needed
     try:
         base_pil = Image.open(primary_img_path).convert("RGB")
     except Exception:
         base_pil = Image.new("RGB", (target_w, target_h), (15, 23, 42))
 
-    # Fast Concurrent Scene Image Retrieval (Direct Unsplash CDNs or Multi-Focal Variants - 0 slow AI delays!)
+    # Compose subsequent scenes (idx = 2..count)
+    # If the article has a REAL story image, alternate between real-story multi-focal camera angles and unique category photos
     for idx in range(2, count + 1):
         scene_file = output_dir / f"scene_{idx}_{article_id}.jpg"
         scene_downloaded = False
 
-        # Fast direct CDN download from curated pool
-        if curated_pool and len(curated_pool) >= idx:
-            curated_url = curated_pool[idx - 1]
-            scene_downloaded = download_web_image(curated_url, scene_file, timeout=2.0)
+        # If primary image is a REAL news photo (not generic), use focal variants on even scenes to keep focus on the breaking subject!
+        use_focal_variant = (primary_downloaded and not is_generic and (idx % 2 == 0 or idx == count))
 
-        # Instant local focal crop/zoom variation of base image
+        if not use_focal_variant:
+            # Download unique photo from shuffled pool
+            pool_idx = (idx - 1) % len(shuffled_pool)
+            curated_url = shuffled_pool[pool_idx]
+            scene_downloaded = download_web_image(curated_url, scene_file, timeout=2.5)
+
         if not scene_downloaded or not scene_file.exists():
             variant = create_focal_variant(base_pil, idx, target_w, target_h)
             variant.save(scene_file, "JPEG", quality=85)
@@ -1247,13 +1289,25 @@ def compose_video(
 
     print(f"[Video Generator SUCCESS] Verified & saved {output_video_path.name} ({video_size:,} bytes, {final_duration:.2f}s duration)")
 
-    # Clean up temporary concat, slide, and scene image artifacts
-    concat_list_file.unlink(missing_ok=True)
-    temp_raw_img.unlink(missing_ok=True)
+    # Clean up temporary concat, slide, and scene image artifacts safely
+    try:
+        concat_list_file.unlink(missing_ok=True)
+    except Exception:
+        pass
+    try:
+        temp_raw_img.unlink(missing_ok=True)
+    except Exception:
+        pass
     for s in slides:
-        s.unlink(missing_ok=True)
+        try:
+            s.unlink(missing_ok=True)
+        except Exception:
+            pass
     for sc in scene_images:
-        sc.unlink(missing_ok=True)
+        try:
+            sc.unlink(missing_ok=True)
+        except Exception:
+            pass
     gc.collect()
 
     return {
