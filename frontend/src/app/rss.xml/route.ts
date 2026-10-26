@@ -11,7 +11,10 @@ function escapeXml(unsafe: string): string {
     .replace(/'/g, "&apos;");
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const category = searchParams.get("category") || undefined;
+
   const siteUrl = (
     process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
@@ -21,7 +24,7 @@ export async function GET() {
 
   let articles: any[] = [];
   try {
-    const res = await fetchArticles({ limit: 100 });
+    const res = await fetchArticles({ limit: 100, category });
     articles = res.items || [];
   } catch (err) {
     console.error("[RSS Feed] Failed to fetch articles:", err);
@@ -61,15 +64,25 @@ export async function GET() {
     })
     .join("");
 
+  const feedTitle = category
+    ? `GlobalPulse AI - ${escapeXml(category)} News`
+    : "GlobalPulse AI | Tier-1 Global Newsroom & Video Intelligence";
+  const feedDesc = category
+    ? `Real-time ${escapeXml(category)} coverage and intelligence reports from GlobalPulse AI.`
+    : "Automated AI-powered global news, geopolitical telemetry, and video intelligence for Tier-1 decision makers.";
+  const feedSelf = category
+    ? `${siteUrl}/rss.xml?category=${encodeURIComponent(category)}`
+    : `${siteUrl}/rss.xml`;
+
   const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>GlobalPulse AI | Tier-1 Global Newsroom &amp; Video Intelligence</title>
+    <title>${feedTitle}</title>
     <link>${siteUrl}</link>
-    <description>Automated AI-powered global news, geopolitical telemetry, and video intelligence for Tier-1 decision makers.</description>
+    <description>${feedDesc}</description>
     <language>en-us</language>
     <lastBuildDate>${buildDate}</lastBuildDate>
-    <atom:link href="${siteUrl}/rss.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="${feedSelf}" rel="self" type="application/rss+xml" />
     ${itemsXml}
   </channel>
 </rss>`;
