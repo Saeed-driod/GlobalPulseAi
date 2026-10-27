@@ -68,6 +68,7 @@ export const AdsterraBanner: React.FC<AdsterraBannerProps> = ({
           <html>
             <head>
               <meta charset="utf-8">
+              <meta name="referrer" content="no-referrer-when-downgrade">
               <base target="_blank">
               <style>
                 html, body {

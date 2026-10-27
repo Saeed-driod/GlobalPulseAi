@@ -104,6 +104,13 @@ export default function RootLayout({
           data-cfasync="false"
         />
 
+        {/* Adsterra High-CPM Popunder / OnClick */}
+        <Script
+          src="https://abscloud.org/1/b6de09199dd702d82a7aea2cab99fa04"
+          strategy="afterInteractive"
+          data-cfasync="false"
+        />
+
         {/* OneSignal Web Push Notifications (Free Global Audience Retention) */}
         <Script
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"

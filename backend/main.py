@@ -242,11 +242,8 @@ def get_article_by_slug(slug: str, db: Session = Depends(get_db)):
             detail=f"Article with slug '{slug}' not found"
         )
     
-    # Increment views
-    article.views += 1
-    db.commit()
-    db.refresh(article)
     return article
+
 
 @app.post("/api/admin/verify")
 def verify_admin_key(is_valid: bool = Depends(verify_admin_secret)):
