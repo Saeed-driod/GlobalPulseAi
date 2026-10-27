@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { getApiBase } from "../lib/api";
 
 export function AnalyticsTracker() {
   const pathname = usePathname();
@@ -39,7 +40,7 @@ export function AnalyticsTracker() {
       browser,
     };
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://globlepulseai.onrender.com";
+    const apiUrl = getApiBase();
     try {
       fetch(`${apiUrl}/api/analytics/track`, {
         method: "POST",

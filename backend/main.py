@@ -245,6 +245,12 @@ def get_article_by_slug(slug: str, db: Session = Depends(get_db)):
             detail=f"Article with slug '{slug}' not found"
         )
     
+    article.views = (article.views or 0) + 1
+    try:
+        db.commit()
+        db.refresh(article)
+    except Exception:
+        db.rollback()
     return article
 
 
