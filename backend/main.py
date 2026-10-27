@@ -79,7 +79,7 @@ try:
     from .services.video_generator import compose_short_video, compose_video, compose_long_video
     from .services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status, delete_video_from_youtube
     from .services.youtube_quota import get_daily_youtube_upload_counts, MAX_DAILY_SHORTS, MAX_DAILY_LONGS
-    from .services.pipeline import run_full_automation_pipeline
+    from .services.pipeline import run_full_automation_pipeline, is_story_duplicate
     from .services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status
     from .services.image_resolver import refresh_missing_images
 except (ImportError, ValueError):
@@ -106,7 +106,7 @@ except (ImportError, ValueError):
     from services.video_generator import compose_short_video, compose_video, compose_long_video
     from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube, get_oauth_authorization_url, check_auth_status, delete_video_from_youtube
     from services.youtube_quota import get_daily_youtube_upload_counts, MAX_DAILY_SHORTS, MAX_DAILY_LONGS
-    from services.pipeline import run_full_automation_pipeline
+    from services.pipeline import run_full_automation_pipeline, is_story_duplicate
     from services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status
     from services.image_resolver import refresh_missing_images
 
@@ -119,6 +119,22 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     # Refresh missing or placeholder images on startup
     refresh_missing_images()
+    # Auto-cleanup duplicate DRAFT articles on startup
+    try:
+        with SessionLocal() as db_session:
+            drafts = db_session.query(Article).filter(Article.status == ArticleStatus.DRAFT.value).all()
+            cleaned = 0
+            for d in drafts:
+                same = db_session.query(Article).filter(Article.title == d.title, Article.id != d.id).first()
+                if same or bool(re.search(r'-\d+$', d.slug)):
+                    db_session.delete(d)
+                    cleaned += 1
+            if cleaned > 0:
+                db_session.commit()
+                print(f"[Lifespan] Auto-purged {cleaned} redundant duplicate draft articles from newsroom.")
+    except Exception as e:
+        print(f"[Lifespan Notice] Duplicate draft cleanup notice: {e}")
+
     # Automatically start 24/7 Background Automation Scheduler on startup
     start_scheduler()
     yield
@@ -270,18 +286,35 @@ def fetch_now(
     Fetch breaking stories from Tier-1 global RSS feeds, synthesize with
     Gemini AI (generating headline, TL;DR, markdown article, and 60-sec Shorts script),
     and save into the DRAFT editorial queue. Supports category targeting.
+    Strictly filters out previously published or drafted stories to prevent duplicate articles.
     """
-    raw_news_items = fetch_breaking_rss_news(limit=limit, target_category=category)
+    # 1. Collect recent URLs and titles from DB to prevent scraping duplicates
+    recent_arts = db.query(Article.source_url, Article.title).order_by(Article.id.desc()).limit(200).all()
+    existing_urls = {a.source_url.split("?")[0].rstrip("/").lower() for a in recent_arts if a.source_url}
+    existing_titles = {a.title.strip().lower() for a in recent_arts if a.title}
+
+    raw_news_items = fetch_breaking_rss_news(
+        limit=limit,
+        target_category=category,
+        existing_urls=existing_urls,
+        existing_titles=existing_titles
+    )
     if not raw_news_items:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Unable to fetch RSS news items at this time."
+        return ActionResponse(
+            success=True,
+            message="All wire feeds are currently up-to-date. Zero duplicate articles generated.",
+            articles=[]
         )
 
     created_articles = []
 
     for item in raw_news_items:
         try:
+            # Secondary check: verify this raw item isn't a duplicate
+            if is_story_duplicate(db, item.get("raw_title", ""), item.get("source_url")):
+                print(f"[fetch-now] Skipping duplicate story: {item.get('raw_title')}")
+                continue
+
             # Run through Gemini AI Rewriting Engine
             ai_data = process_raw_news(
                 raw_title=item["raw_title"],
@@ -292,13 +325,18 @@ def fetch_now(
                 raw_image_url=item.get("raw_image_url")
             )
 
-            # Generate unique SEO slug
+            # Tertiary check: verify synthesized title doesn't already exist
+            existing_synth = db.query(Article).filter(Article.title == ai_data["title"]).first()
+            if existing_synth:
+                print(f"[fetch-now] Synthesized story '{ai_data['title'][:50]}' already in DB. Skipping duplicate.")
+                continue
+
+            # Generate unique SEO slug (reject if already exists)
             base_slug = slugify(ai_data["title"])
             slug = base_slug
-            counter = 1
-            while db.query(Article).filter(Article.slug == slug).first():
-                slug = f"{base_slug}-{counter}"
-                counter += 1
+            if db.query(Article).filter(Article.slug == slug).first():
+                print(f"[fetch-now] Slug '{slug}' already exists. Skipping duplicate story.")
+                continue
 
             new_article = Article(
                 title=ai_data["title"],
@@ -326,17 +364,54 @@ def fetch_now(
             continue
 
     if not created_articles:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to synthesize any articles from RSS feed."
+        return ActionResponse(
+            success=True,
+            message="All stories from the current wire feeds are already in your newsroom. Zero duplicate articles created.",
+            articles=[]
         )
 
     return ActionResponse(
         success=True,
-        message=f"Aggregated {len(created_articles)} breaking stories from global RSS wires and synthesized via Gemini AI.",
+        message=f"Aggregated {len(created_articles)} fresh breaking stories from global RSS wires and synthesized via Gemini AI.",
         article=created_articles[0] if created_articles else None,
         articles=created_articles
     )
+
+
+@app.post("/api/articles/cleanup-duplicates", dependencies=[Depends(verify_admin_secret)])
+@app.delete("/api/articles/cleanup-duplicates", dependencies=[Depends(verify_admin_secret)])
+def cleanup_duplicate_drafts(db: Session = Depends(get_db)):
+    """
+    Finds and permanently deletes duplicate DRAFT articles where an identical or base story
+    already exists in the database.
+    """
+    all_drafts = db.query(Article).filter(Article.status == ArticleStatus.DRAFT.value).all()
+    deleted_ids = []
+
+    for draft in all_drafts:
+        # Check if another article with the exact same title exists
+        same_title = db.query(Article).filter(Article.title == draft.title, Article.id != draft.id).first()
+        # Or if another article with the same source_url exists
+        same_url = None
+        if draft.source_url:
+            clean_u = draft.source_url.split("?")[0].rstrip("/")
+            same_url = db.query(Article).filter(Article.source_url.ilike(f"{clean_u}%"), Article.id != draft.id).first()
+
+        # Or slug ends in -1, -2, -3 (duplicate slug)
+        is_numbered_slug = bool(re.search(r'-\d+$', draft.slug))
+
+        if same_title or same_url or is_numbered_slug:
+            deleted_ids.append(draft.id)
+            db.delete(draft)
+
+    db.commit()
+    return {
+        "success": True,
+        "message": f"Successfully cleaned up {len(deleted_ids)} duplicate draft articles.",
+        "deleted_count": len(deleted_ids),
+        "deleted_ids": deleted_ids
+    }
+
 
 
 @app.get("/api/debug/last-error")

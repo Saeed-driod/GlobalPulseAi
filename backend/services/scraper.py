@@ -129,11 +129,17 @@ def clean_html(raw_html: str) -> str:
     clean_text = html.unescape(clean_text)
     return " ".join(clean_text.split())
 
-def fetch_breaking_rss_news(limit: int = 5, target_category: Optional[str] = None) -> List[Dict[str, Any]]:
+def fetch_breaking_rss_news(
+    limit: int = 5,
+    target_category: Optional[str] = None,
+    existing_urls: Optional[Any] = None,
+    existing_titles: Optional[Any] = None
+) -> List[Dict[str, Any]]:
     """
     Fetch breaking stories from across top Tier-1 RSS feeds.
     Provides balanced round-robin sampling across all 5 core categories
     (including Global Sports and World Politics) or focuses on target_category if specified.
+    Deep-scans feed entries and filters out already published stories to prevent duplicates.
     """
     extracted_items: List[Dict[str, Any]] = []
 
@@ -176,7 +182,9 @@ def fetch_breaking_rss_news(limit: int = 5, target_category: Optional[str] = Non
             if not parsed.entries:
                 continue
 
-            for entry in parsed.entries[:per_feed_limit]:
+            feed_extracted = 0
+            # Scan top 20 entries to find fresh, unpublished stories (prevents repeat duplicates)
+            for entry in parsed.entries[:20]:
                 title = getattr(entry, "title", "").strip()
                 link = getattr(entry, "link", "").strip()
                 summary = getattr(entry, "summary", "") or getattr(entry, "description", "")
@@ -185,8 +193,18 @@ def fetch_breaking_rss_news(limit: int = 5, target_category: Optional[str] = Non
                 if not title or len(title) < 10:
                     continue
 
-                # Avoid duplicate titles in the same batch
+                # Avoid duplicate titles in the current in-memory batch
                 if any(item["raw_title"].lower() == title.lower() for item in extracted_items):
+                    continue
+
+                # Deduplication Check 1: Check against known existing URLs
+                if existing_urls and link:
+                    clean_link = link.split("?")[0].rstrip("/").lower()
+                    if clean_link in existing_urls:
+                        continue
+
+                # Deduplication Check 2: Check against known existing Titles
+                if existing_titles and title.lower().strip() in existing_titles:
                     continue
 
                 # Sports keyword matching for dynamic classification
@@ -213,7 +231,8 @@ def fetch_breaking_rss_news(limit: int = 5, target_category: Optional[str] = Non
                     "raw_image_url": resolved_img,
                 })
 
-                if len(extracted_items) >= limit:
+                feed_extracted += 1
+                if feed_extracted >= per_feed_limit or len(extracted_items) >= limit:
                     break
         except Exception as e:
             print(f"Notice: Failed to fetch RSS from {source_name} ({feed_url}): {e}")
