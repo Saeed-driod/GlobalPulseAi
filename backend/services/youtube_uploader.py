@@ -73,8 +73,7 @@ sync_render_credentials()
 
 # Scope for YouTube Video & Shorts Upload and Management
 SCOPES = [
-    "https://www.googleapis.com/auth/youtube.upload",
-    "https://www.googleapis.com/auth/youtube"
+    "https://www.googleapis.com/auth/youtube.upload"
 ]
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
