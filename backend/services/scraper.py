@@ -67,16 +67,31 @@ RSS_FEEDS = [
         "name": "CoinDesk",
         "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
     },
-    # 4. Geopolitics & World Affairs
+    # 4. World Politics & Global Affairs (Elections, World Leaders, Diplomacy, Defense)
     {
-        "category": "Geopolitics",
+        "category": "World Politics",
+        "name": "Politico Politics",
+        "url": "https://rss.politico.com/politics-news.xml",
+    },
+    {
+        "category": "World Politics",
+        "name": "The Guardian World",
+        "url": "https://www.theguardian.com/world/rss",
+    },
+    {
+        "category": "World Politics",
         "name": "BBC World News",
         "url": "http://feeds.bbci.co.uk/news/world/rss.xml",
     },
     {
-        "category": "Geopolitics",
+        "category": "World Politics",
         "name": "NPR World",
         "url": "https://feeds.npr.org/1004/rss.xml",
+    },
+    {
+        "category": "World Politics",
+        "name": "Al Jazeera World",
+        "url": "https://www.aljazeera.com/xml/rss/all.xml",
     },
     # 5. Future Science & Space Exploration
     {
@@ -104,7 +119,7 @@ SPORTS_KEYWORDS = [
     "arteta", "athletics", "olympic", "paralympic"
 ]
 
-ALL_CATEGORIES = ["Global Sports", "AI & Tech", "Global Markets", "Geopolitics", "Future Science"]
+ALL_CATEGORIES = ["Global Sports", "AI & Tech", "Global Markets", "World Politics", "Future Science"]
 
 def clean_html(raw_html: str) -> str:
     """Strip HTML tags and unescape entities."""
@@ -118,13 +133,14 @@ def fetch_breaking_rss_news(limit: int = 5, target_category: Optional[str] = Non
     """
     Fetch breaking stories from across top Tier-1 RSS feeds.
     Provides balanced round-robin sampling across all 5 core categories
-    (including Global Sports) or focuses on target_category if specified.
+    (including Global Sports and World Politics) or focuses on target_category if specified.
     """
     extracted_items: List[Dict[str, Any]] = []
 
     # 1. Filter or organize feeds by category
     if target_category:
-        active_feeds = [f for f in RSS_FEEDS if f["category"].lower() == target_category.lower()]
+        clean_cat = "World Politics" if target_category.lower() in ("geopolitics", "world politics", "politics") else target_category
+        active_feeds = [f for f in RSS_FEEDS if f["category"].lower() == clean_cat.lower()]
         if not active_feeds:
             active_feeds = RSS_FEEDS
         per_feed_limit = 3

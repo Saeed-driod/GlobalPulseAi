@@ -66,6 +66,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
           badge: "bg-emerald-500/15 text-emerald-300 border-emerald-400/40 shadow-[0_0_12px_rgba(16,185,129,0.25)]",
           accent: "text-emerald-400",
         };
+      case "World Politics":
       case "Geopolitics":
         return {
           badge: "bg-amber-500/15 text-amber-300 border-amber-400/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]",

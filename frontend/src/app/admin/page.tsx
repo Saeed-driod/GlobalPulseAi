@@ -346,7 +346,11 @@ export default function AdminPage() {
 
   const filteredArticles = articles.filter((a) => {
     const matchesStatus = filterStatus === "ALL" || a.status === filterStatus;
-    const matchesCategory = filterCategory === "ALL" || a.category === filterCategory;
+    const matchesCategory =
+      filterCategory === "ALL" ||
+      a.category === filterCategory ||
+      (filterCategory === "World Politics" && a.category === "Geopolitics") ||
+      (filterCategory === "Geopolitics" && a.category === "World Politics");
     return matchesStatus && matchesCategory;
   });
 
@@ -1002,7 +1006,7 @@ export default function AdminPage() {
                 { name: "ALL", label: "All Categories" },
                 { name: "AI & Tech", label: "AI & Tech" },
                 { name: "Global Markets", label: "Global Markets" },
-                { name: "Geopolitics", label: "Geopolitics" },
+                { name: "World Politics", label: "World Politics" },
                 { name: "Future Science", label: "Future Science" },
                 { name: "Global Sports", label: "Global Sports", icon: Trophy },
               ].map((c) => {
@@ -1069,7 +1073,7 @@ export default function AdminPage() {
                             ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/30"
                             : art.category === "Global Markets"
                             ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                            : art.category === "Geopolitics"
+                            : art.category === "World Politics" || art.category === "Geopolitics"
                             ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
                             : art.category === "Future Science"
                             ? "bg-purple-500/15 text-purple-300 border-purple-500/30"

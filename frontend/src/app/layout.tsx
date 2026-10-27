@@ -21,6 +21,7 @@ export const metadata: Metadata = {
     "Global News",
     "AI Technology",
     "Global Markets",
+    "World Politics",
     "Geopolitics",
     "Future Science",
     "Global Sports",

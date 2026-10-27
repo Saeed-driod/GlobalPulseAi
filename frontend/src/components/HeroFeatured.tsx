@@ -27,6 +27,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
           glow: "from-emerald-500/20 via-transparent to-transparent",
           hoverText: "group-hover:text-emerald-300",
         };
+      case "World Politics":
       case "Geopolitics":
         return {
           badge: "bg-amber-500/15 text-amber-300 border-amber-400/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]",

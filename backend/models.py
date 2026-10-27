@@ -14,7 +14,8 @@ class ArticleStatus(str, enum.Enum):
 class ArticleCategory(str, enum.Enum):
     AI_TECH = "AI & Tech"
     GLOBAL_MARKETS = "Global Markets"
-    GEOPOLITICS = "Geopolitics"
+    WORLD_POLITICS = "World Politics"
+    GEOPOLITICS = "World Politics"  # Legacy backward-compatible alias
     FUTURE_SCIENCE = "Future Science"
     GLOBAL_SPORTS = "Global Sports"
 

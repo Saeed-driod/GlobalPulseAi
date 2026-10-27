@@ -197,7 +197,10 @@ def get_articles(
     if status:
         query = query.filter(Article.status == status.upper())
     if category:
-        query = query.filter(Article.category == category)
+        if category in ("World Politics", "Geopolitics"):
+            query = query.filter(Article.category.in_(["World Politics", "Geopolitics"]))
+        else:
+            query = query.filter(Article.category == category)
     if search:
         search_filter = f"%{search}%"
         query = query.filter(

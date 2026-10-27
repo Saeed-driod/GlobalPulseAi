@@ -475,12 +475,17 @@ def upload_video_to_youtube(
             upload_title = clean_t[:95]
             if category_id == "17":
                 default_tags = ["GlobalPulse AI", "GloblePulseAi", "Global Sports", "Sports", "Match Analysis", "Highlights"]
+            elif "politics" in str(category).lower() or "geopolitics" in str(category).lower():
+                default_tags = ["GlobalPulse AI", "GloblePulseAi", "World Politics", "Politics", "Elections", "Breaking News", "Diplomacy", "Geopolitics", "World Leaders"]
             else:
                 default_tags = ["GlobalPulse AI", "GloblePulseAi", "News", "Technology", "World News", "Market Analysis"]
         else:
             raw_title = f"{title.strip()} #shorts" if "#shorts" not in title.lower() else title.strip()
             upload_title = raw_title[:100]
-            default_tags = ["GlobalPulse AI", "GloblePulseAi", "News", "Technology", "Shorts"]
+            if "politics" in str(category).lower() or "geopolitics" in str(category).lower():
+                default_tags = ["GlobalPulse AI", "GloblePulseAi", "World Politics", "Shorts", "Politics", "Elections", "Breaking News", "Diplomacy"]
+            else:
+                default_tags = ["GlobalPulse AI", "GloblePulseAi", "News", "Technology", "Shorts"]
 
         body = {
             "snippet": {

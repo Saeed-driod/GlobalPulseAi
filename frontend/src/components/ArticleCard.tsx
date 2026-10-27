@@ -22,6 +22,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
           hoverBorder: "hover:border-emerald-500/40 hover:shadow-emerald-500/10",
           hoverTitle: "group-hover:text-emerald-300",
         };
+      case "World Politics":
       case "Geopolitics":
         return {
           badge: "bg-amber-500/15 text-amber-300 border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]",

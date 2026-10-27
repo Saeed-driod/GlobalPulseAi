@@ -48,7 +48,7 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <Link href="/" className="hover:text-cyan-400 transition-colors">
-                  Geopolitics & Defense Telemetry
+                  World Politics & Global Diplomacy
                 </Link>
               </li>
               <li>

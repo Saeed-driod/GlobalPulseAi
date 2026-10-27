@@ -16,7 +16,7 @@ export const CATEGORIES = [
   { name: "All Stories", icon: Newspaper, color: "from-cyan-500 to-blue-500", glow: "hover:shadow-cyan-500/20" },
   { name: "AI & Tech", icon: Sparkles, color: "from-cyan-400 to-blue-500", glow: "hover:shadow-cyan-500/20" },
   { name: "Global Markets", icon: BarChart3, color: "from-emerald-400 to-teal-500", glow: "hover:shadow-emerald-500/20" },
-  { name: "Geopolitics", icon: Globe, color: "from-amber-400 to-orange-500", glow: "hover:shadow-amber-500/20" },
+  { name: "World Politics", icon: Globe, color: "from-amber-400 to-orange-500", glow: "hover:shadow-amber-500/20" },
   { name: "Future Science", icon: Zap, color: "from-purple-400 to-pink-500", glow: "hover:shadow-purple-500/20" },
   { name: "Global Sports", icon: Trophy, color: "from-red-500 to-rose-600", glow: "hover:shadow-red-500/20" },
 ];
@@ -106,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search breaking wires, markets, geopolitics..."
+              placeholder="Search breaking wires, markets, world politics..."
               className="w-full bg-slate-900/60 border border-white/10 focus:border-cyan-400 text-xs sm:text-sm text-neutral-100 placeholder-neutral-500 rounded-xl pl-10 pr-12 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all duration-200 backdrop-blur-md"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-neutral-400 pointer-events-none">
