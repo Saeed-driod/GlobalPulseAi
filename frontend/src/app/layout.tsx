@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { AnalyticsTracker } from "../components/AnalyticsTracker";
+import { PushNotificationPrompt } from "../components/PushNotificationPrompt";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -178,6 +179,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100 font-sans">
         <AnalyticsTracker />
+        <PushNotificationPrompt />
         {children}
       </body>
     </html>

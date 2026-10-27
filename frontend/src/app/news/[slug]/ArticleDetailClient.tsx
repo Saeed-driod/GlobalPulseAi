@@ -10,6 +10,7 @@ import { AdBanner } from "../../../components/AdBanner";
 import { AdsterraBanner } from "../../../components/AdsterraBanner";
 import { NewsletterBox } from "../../../components/NewsletterBox";
 import { Footer } from "../../../components/Footer";
+import { AudioArticlePlayer } from "../../../components/AudioArticlePlayer";
 import {
   ArrowLeft,
   Share2,
@@ -402,6 +403,14 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
               E-E-A-T Verified
             </span>
           </div>
+
+          {/* AI Audio Story Briefing Player (Dwell-time booster & Hands-free listening) */}
+          <AudioArticlePlayer
+            title={article.title}
+            content={article.content}
+            category={article.category}
+            author={article.author_name}
+          />
         </header>
 
         {/* Responsive 320x50 Sponsored Banner */}
