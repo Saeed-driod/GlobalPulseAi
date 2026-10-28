@@ -1067,9 +1067,31 @@ def auth_youtube():
 
 
 @app.get("/api/auth-youtube/status")
-def auth_youtube_status():
-    """Check whether token.json exists and is valid."""
-    return check_auth_status()
+def auth_youtube_status(db: Session = Depends(get_db)):
+    """
+    Check whether YouTube is authenticated.
+    Checks:
+    1. Direct token.json if available on the server.
+    2. Shared database heartbeat from LOCAL_PC_WORKER (which holds the authenticated token locally).
+    """
+    status_res = check_auth_status()
+    if status_res.get("authenticated"):
+        return status_res
+
+    # Check if Local PC Worker is online in the shared database
+    heartbeat = db.query(WorkerHeartbeat).filter(WorkerHeartbeat.worker_name == "LOCAL_PC_WORKER").first()
+    if heartbeat and heartbeat.last_seen:
+        now_utc = datetime.now(timezone.utc)
+        last_dt = heartbeat.last_seen if heartbeat.last_seen.tzinfo else heartbeat.last_seen.replace(tzinfo=timezone.utc)
+        if (now_utc - last_dt).total_seconds() < 120:
+            return {
+                "authenticated": True,
+                "message": "Authenticated with YouTube via Local PC Worker!",
+                "channel": heartbeat.channel_name or "@GloblePulseAi",
+                "worker_online": True
+            }
+
+    return status_res
 
 
 @app.post("/api/pipeline/run", dependencies=[Depends(verify_admin_secret)])

@@ -540,14 +540,14 @@ export default function AdminPage() {
                 : `🚀 Run Full Auto Pipeline (${videoFormatMode === "long" ? "16:9 HD" : "Shorts"})`}
             </button>
 
-            {ytAuthStatus?.authenticated ? (
+            {(ytAuthStatus?.authenticated || workerStatus?.online) ? (
               <div
                 className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold text-xs shadow-lg shadow-emerald-500/20"
                 title="Channel GloblePulseAi is connected and authorized for automated Shorts publishing"
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <Youtube className="w-4 h-4 text-red-500" />
-                <span>Connected: {ytAuthStatus.channel || "GloblePulseAi"}</span>
+                <span>Connected: {ytAuthStatus?.channel || workerStatus?.channel_name || "@GloblePulseAi"}</span>
               </div>
             ) : (
               <button
