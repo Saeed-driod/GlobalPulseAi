@@ -17,6 +17,8 @@ echo  Daily Auto-Schedule: 3 Shorts + 1 Long Video distributed across peak hours
 echo  When you click "Render & Upload Video" in Admin, this worker renders it
 echo  and streams real-time progress (%%, ETA, step) directly to your screen!
 echo.
+echo  TIP: If YouTube token expires, double-click REAUTH_YOUTUBE.bat to renew it!
+echo.
 echo  Starting worker daemon loop... (Press Ctrl+C to stop)
 echo -------------------------------------------------------------------------------
 echo.

@@ -207,12 +207,16 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
             update_article_progress(db, article, pct, stage_code, stage_text, eta=eta)
             print(f"  [Progress {pct}%] {stage_text} ({eta})")
 
-        # Check if valid video file already exists on disk
+        # Check if valid video file already exists on disk and matches requested format
         video_disk_path = article.video_path or ""
         if video_disk_path.startswith("/static/"):
             video_disk_path = str(BACKEND_DIR / video_disk_path.lstrip("/"))
 
-        video_exists = bool(video_disk_path and os.path.exists(video_disk_path) and os.path.getsize(video_disk_path) >= 100_000)
+        is_requested_long = (str(video_format).lower() == "long")
+        existing_is_long = "long_" in str(video_disk_path).lower()
+        format_matches = (is_requested_long == existing_is_long) if video_disk_path else False
+
+        video_exists = bool(video_disk_path and os.path.exists(video_disk_path) and os.path.getsize(video_disk_path) >= 100_000 and format_matches)
 
         if not video_exists:
             print(f"[Worker] Generating fresh video on Local PC (Render cloud RAM: 0 MB used)...")
@@ -235,7 +239,7 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
             print(f"[Worker SUCCESS] Rendered {result.get('runtime_seconds')}s video in {elapsed:.1f}s!")
             print(f"  Local file: {video_path} ({result.get('file_size_bytes', 0):,} bytes)")
         else:
-            print(f"[Worker INFO] Video already exists on disk: {video_disk_path}")
+            print(f"[Worker INFO] Video already exists on disk ({'Long' if existing_is_long else 'Short'}): {video_disk_path}")
             video_path = article.video_path
             update_article_progress(db, article, 80, "RENDERING_FFMPEG", "Existing video verified on disk. Ready for YouTube upload.", eta="~10s remaining")
 
@@ -285,8 +289,12 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                     print(f"============================================================\n")
                     return True
 
-                # Daily Upload Limit Gate (Max 3 Shorts, Max 1 Long Video per Day)
-                can_upload, quota_reason = can_post_now(db, video_format=video_format, ignore_cooldown=is_manual)
+                # Determine exact video format from the actual generated video file
+                actual_format = "long" if "long_" in str(video_path).lower() else "short"
+                target_dest = "16:9 Long-Form HD" if actual_format == "long" else "9:16 Shorts"
+
+                # Daily Upload Limit Gate (Max 4 Shorts, Max 1 Long Video per Day)
+                can_upload, quota_reason = can_post_now(db, video_format=actual_format, ignore_cooldown=is_manual, is_manual=is_manual)
                 if not can_upload:
                     print(f"\n[Worker DAILY QUOTA GATE] Skipping YouTube upload for #{article.id}:")
                     print(f"  {quota_reason}")
@@ -295,7 +303,6 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                     print(f"============================================================\n")
                     return True
 
-                target_dest = "16:9 Long-Form HD" if video_format == "long" else "9:16 Shorts"
                 print(f"[Worker] Uploading video to YouTube channel @GloblePulseAi ({target_dest})...")
                 update_article_progress(db, article, 90, "UPLOADING_YOUTUBE", f"Step 4/4: Uploading video directly to YouTube {target_dest} (@GloblePulseAi)...", eta="~5s remaining")
 
@@ -312,7 +319,7 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                             summary=article.summary,
                             category=article.category,
                             slug=article.slug,
-                            video_format=video_format
+                            video_format=actual_format
                         )
                         upload_elapsed = time.time() - upload_start
                         yt_id = upload_res.get("video_id") or upload_res.get("youtube_video_id")
@@ -323,7 +330,7 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                                 db=db,
                                 article_id=article.id,
                                 youtube_video_id=yt_id,
-                                video_format=video_format,
+                                video_format=actual_format,
                                 title=article.title,
                                 category=article.category
                             )
@@ -344,7 +351,10 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                             send_worker_heartbeat(status="QUOTA_REACHED", active_id=None, active_title="YouTube 429 Limit Active - Resets Tomorrow", quota_status="YOUTUBE_RATE_LIMITED")
                             return False
                         else:
-                            raise yt_err
+                            print(f"[Worker ERROR] YouTube upload issue: {yt_err}")
+                            update_article_progress(db, article, 80, "PAUSED", f"Video ready locally. Upload pending: {str(yt_err)[:100]}", error=str(yt_err))
+                            send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
+                            return False
                 else:
                     print(f"[Worker Warning] Could not find video file on disk: {upload_disk_path}")
                     update_article_progress(db, article, 80, "FAILED", f"Video file missing on disk: {upload_disk_path}", error="File missing")
@@ -507,7 +517,7 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
                 return
 
             # Scan for published articles that don't have a YouTube video ID yet (excluding PAUSED)
-            pending = (
+            pending_pool = (
                 query
                 .filter(
                     (Article.youtube_video_id == None) | 
@@ -516,13 +526,28 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
                 )
                 .filter(Article.video_status != "PAUSED")
                 .order_by(Article.id.desc())
-                .limit(limit)
+                .limit(20)
                 .all()
             )
 
-            if pending:
-                candidate = pending[0]
-                print(f"\n[Worker Auto-Schedule] Selected Article #{candidate.id} for daily {target_fmt.upper()}: '{candidate.title[:50]}'")
+            if pending_pool:
+                # Rank candidates to select the highest-quality story for YouTube:
+                # (HD image available + rich summary + formatted script + length)
+                def get_article_quality_score(art):
+                    score = 0
+                    if art.image_url and str(art.image_url).startswith("http"):
+                        score += 50
+                    if art.summary and len(str(art.summary).strip()) > 80:
+                        score += 20
+                    if art.youtube_script and len(str(art.youtube_script).strip()) > 40:
+                        score += 15
+                    if art.content and len(str(art.content).strip()) > 200:
+                        score += 10
+                    return score
+
+                sorted_candidates = sorted(pending_pool, key=get_article_quality_score, reverse=True)
+                candidate = sorted_candidates[0]
+                print(f"\n[Worker Auto-Schedule] Selected Top-Tier Article #{candidate.id} for daily {target_fmt.upper()}: '{candidate.title[:50]}'")
                 print(f"  Daily Quota Status: Shorts {shorts_today}/{MAX_DAILY_SHORTS} | Longs {longs_today}/{MAX_DAILY_LONGS}")
                 target_tasks.append((candidate.id, target_fmt, False))
             else:
@@ -611,6 +636,38 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "auto", do
 
 
 
+def reauthenticate_youtube() -> bool:
+    """Launches local OAuth browser flow to re-authorize YouTube channel credentials."""
+    print("\n============================================================")
+    print("  GLOBALPULSE AI - YOUTUBE CHANNEL OAUTH RE-AUTHORIZATION")
+    print("============================================================")
+    try:
+        from google_auth_oauthlib.flow import InstalledAppFlow
+        try:
+            from services.youtube_uploader import CLIENT_SECRETS_FILE, TOKEN_FILE, SCOPES
+        except ImportError:
+            from backend.services.youtube_uploader import CLIENT_SECRETS_FILE, TOKEN_FILE, SCOPES
+
+        if not CLIENT_SECRETS_FILE.exists():
+            print(f"[Error] client_secret.json not found at {CLIENT_SECRETS_FILE}")
+            return False
+
+        print(f"Starting local authorization flow...")
+        print(f"Scopes: {SCOPES}")
+        print("A browser window will open. Sign in with your YouTube channel Google account (@GloblePulseAi) and click 'Allow'.\n")
+
+        flow = InstalledAppFlow.from_client_secrets_file(str(CLIENT_SECRETS_FILE), SCOPES)
+        creds = flow.run_local_server(port=8088, prompt="consent")
+        with open(TOKEN_FILE, "w", encoding="utf-8") as f:
+            f.write(creds.to_json())
+
+        print(f"\n✔ [SUCCESS] YouTube OAuth token renewed and saved to {TOKEN_FILE}!")
+        return True
+    except Exception as e:
+        print(f"[Error] Re-authorization failed: {e}")
+        return False
+
+
 def interactive_menu():
     """CLI interactive menu for ease of use without memorizing flags."""
     print_banner()
@@ -625,9 +682,10 @@ def interactive_menu():
         print("  [3] Process All Pending Articles (Missing Videos)")
         print("  [4] Start Background Daemon / Watchdog Mode")
         print("  [5] List Recent Articles & Media Status")
-        print("  [6] Exit")
+        print("  [6] Re-Authorize YouTube Channel (@GloblePulseAi)")
+        print("  [7] Exit")
 
-        choice = input("\nEnter choice [1-6]: ").strip()
+        choice = input("\nEnter choice [1-7]: ").strip()
         if choice == "1":
             fmt = input("Select format: 'long' (16:9 HD) or 'short' (9:16 Shorts) [default: short]: ").strip().lower() or "short"
             u_in = input(f"Auto-upload to YouTube ({auth.get('channel', 'GloblePulseAi')})? (y/n) [default: {default_upload}]: ").strip().lower()
@@ -656,10 +714,15 @@ def interactive_menu():
         elif choice == "5":
             list_recent_articles()
         elif choice == "6":
+            reauthenticate_youtube()
+            auth = check_auth_status()
+            is_auth = bool(auth and auth.get("authenticated"))
+            default_upload = "y" if is_auth else "n"
+        elif choice == "7":
             print("Exiting worker. Goodbye!")
             break
         else:
-            print("Invalid choice, please select 1-6.")
+            print("Invalid choice, please select 1-7.")
 
 
 def main():
@@ -668,6 +731,7 @@ def main():
     parser.add_argument("--format", choices=["auto", "long", "short"], default="auto", help="Video format: auto (3 shorts + 1 long daily), short (9:16), long (16:9)")
     parser.add_argument("--upload", action="store_true", help="Force auto-upload to YouTube upon completion")
     parser.add_argument("--no-upload", action="store_true", help="Disable YouTube upload even if authenticated")
+    parser.add_argument("--auth", action="store_true", help="Interactive OAuth authorization for YouTube channel")
     parser.add_argument("--fetch", type=str, nargs="?", const="Global Sports", help="Fetch breaking news now for category (default: 'Global Sports')")
     parser.add_argument("--pending", action="store_true", help="Process all pending articles missing videos")
     parser.add_argument("--category", type=str, help="Filter category when processing pending articles")
@@ -676,6 +740,11 @@ def main():
     parser.add_argument("--interval", type=int, default=60, help="Daemon polling interval in seconds (default: 60)")
 
     args = parser.parse_args()
+
+    # If --auth passed, run reauthentication directly
+    if args.auth:
+        reauthenticate_youtube()
+        return
 
     # If no flags passed, launch interactive menu
     if len(sys.argv) == 1:
@@ -688,10 +757,18 @@ def main():
     is_auth = bool(auth and auth.get("authenticated"))
     should_upload = False if args.no_upload else (True if (args.upload or is_auth) else False)
 
+    if not is_auth:
+        print("\n" + "!" * 78)
+        print(" [WARNING] YouTube token is EXPIRED or REVOKED by Google OAuth.")
+        print(f" Message: {auth.get('message')}")
+        print(" Videos will be rendered locally, but CANNOT be uploaded to YouTube.")
+        print(" TO FIX: Run 'REAUTH_YOUTUBE.bat' or 'python local_worker.py --auth' to log in.")
+        print("!" * 78 + "\n")
+
     if should_upload:
         print(f"[Worker] YouTube Auto-Upload is ACTIVE for channel '{auth.get('channel', 'GloblePulseAi')}'.")
     else:
-        print("[Worker] YouTube Auto-Upload is DISABLED for this run.")
+        print("[Worker] YouTube Auto-Upload is PAUSED (Authentication required).")
 
     if args.list:
         list_recent_articles()

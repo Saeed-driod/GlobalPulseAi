@@ -22,11 +22,11 @@ try:
 except (ImportError, ValueError):
     from models import YouTubeDailyUpload, Article, WorkerHeartbeat
 
-# Strict daily limits requested by user
-MAX_DAILY_SHORTS = 3
+# Optimized daily limits for maximum reach & zero API quota overflow
+MAX_DAILY_SHORTS = 4
 MAX_DAILY_LONGS = 1
-MAX_DAILY_TOTAL = 4
-MIN_HOURS_BETWEEN_SHORTS = 3.0  # Spacing between automated shorts (morning, afternoon, evening)
+MAX_DAILY_TOTAL = 5
+MIN_HOURS_BETWEEN_SHORTS = 2.5  # Spacing between automated shorts (morning, mid-day, afternoon, prime evening)
 
 
 def get_utc_day_boundaries(target_date: Optional[datetime] = None) -> Tuple[datetime, datetime]:
@@ -49,6 +49,16 @@ def record_youtube_upload(
     Persists a verified successful YouTube upload to the daily tracking ledger.
     """
     fmt = "long" if "long" in str(video_format).lower() else "short"
+    if article_id:
+        try:
+            art = db.query(Article).filter(Article.id == article_id).first()
+            if art and art.video_path:
+                if "short_" in str(art.video_path).lower():
+                    fmt = "short"
+                elif "long_" in str(art.video_path).lower():
+                    fmt = "long"
+        except Exception:
+            pass
     clean_id = (youtube_video_id or "").strip()
     if not clean_id or clean_id == "dQw4w9WgXcQ":
         return None
@@ -177,24 +187,33 @@ def can_post_now(
     db: Session,
     video_format: str = "short",
     min_hours_gap: float = MIN_HOURS_BETWEEN_SHORTS,
-    ignore_cooldown: bool = False
+    ignore_cooldown: bool = False,
+    is_manual: bool = False
 ) -> Tuple[bool, str]:
     """
-    Evaluates whether an automated YouTube upload can proceed right now.
+    Evaluates whether a YouTube upload can proceed right now.
     Checks:
-    1. Daily limits (3 shorts, 1 long).
-    2. Cooldown spacing between automated uploads (e.g. 3 hours) so videos are not spammed.
+    1. If manual admin upload: allows override of daily automated soft caps up to Google API hard limit (6 total).
+    2. Automated daily limits (4 shorts, 1 long).
+    3. Cooldown spacing between automated uploads (2.5 hours) to distribute across peak viewing windows.
     """
     counts = get_daily_youtube_upload_counts(db)
     is_long = "long" in str(video_format).lower()
 
+    if is_manual:
+        # User manually triggered this video from Mission Control Admin.
+        # Allow it unless Google API 10,000 units quota (6 uploads = 9,600 units) is about to overflow.
+        if counts["total_today"] >= 6:
+            return False, f"Google YouTube API Hard Quota Safe Guard: {counts['total_today']}/6 videos uploaded today. Exceeding 6 would crash your API quota with 429 quotaExceeded."
+        return True, f"Manual admin upload authorized ({counts['total_today']}/6 total uploads today)."
+
     if is_long:
         if counts["longs_today"] >= MAX_DAILY_LONGS:
-            return False, f"Daily limit reached for Long-form video ({counts['longs_today']}/{MAX_DAILY_LONGS} today). Cap is 1 per day."
+            return False, f"Daily limit reached for Long-form video ({counts['longs_today']}/{MAX_DAILY_LONGS} today). Cap is {MAX_DAILY_LONGS} per day."
         return True, f"Slot available for daily Long video ({counts['longs_today']}/{MAX_DAILY_LONGS} uploaded)."
     else:
         if counts["shorts_today"] >= MAX_DAILY_SHORTS:
-            return False, f"Daily limit reached for YouTube Shorts ({counts['shorts_today']}/{MAX_DAILY_SHORTS} today). Cap is 3 per day."
+            return False, f"Daily limit reached for YouTube Shorts ({counts['shorts_today']}/{MAX_DAILY_SHORTS} today). Cap is {MAX_DAILY_SHORTS} per day."
 
         # Check cooldown / pacing spacing
         if not ignore_cooldown and counts["last_upload_time"]:
@@ -205,6 +224,6 @@ def can_post_now(
             elapsed_hours = (now_utc - last_dt).total_seconds() / 3600.0
             if elapsed_hours < min_hours_gap:
                 wait_min = int((min_hours_gap - elapsed_hours) * 60)
-                return False, f"Pacing cooldown active: Last upload was {elapsed_hours:.1f}h ago. Next automated Short eligible in ~{wait_min} min (spreads 3 Shorts across the day)."
+                return False, f"Pacing cooldown active: Last upload was {elapsed_hours:.1f}h ago. Next automated Short eligible in ~{wait_min} min (spreads {MAX_DAILY_SHORTS} Shorts across peak audience hours)."
 
         return True, f"Slot available for YouTube Short ({counts['shorts_today']}/{MAX_DAILY_SHORTS} uploaded)."

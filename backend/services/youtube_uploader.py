@@ -290,10 +290,38 @@ def check_auth_status() -> Dict[str, Any]:
         }
     try:
         from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
         creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
+        if not creds:
+            return {"authenticated": False, "message": "token.json is empty or invalid."}
+        if creds.valid:
+            return {
+                "authenticated": True,
+                "message": "Authenticated with YouTube!",
+                "token_file": str(TOKEN_FILE),
+                "channel": "GloblePulseAi"
+            }
+        if creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())
+                with open(TOKEN_FILE, "w") as token:
+                    token.write(creds.to_json())
+                return {
+                    "authenticated": True,
+                    "message": "Authenticated with YouTube (Token refreshed)!",
+                    "token_file": str(TOKEN_FILE),
+                    "channel": "GloblePulseAi"
+                }
+            except Exception as ref_err:
+                return {
+                    "authenticated": False,
+                    "message": f"YouTube token expired or revoked ({ref_err}). Please re-authorize.",
+                    "token_file": str(TOKEN_FILE),
+                    "channel": "GloblePulseAi"
+                }
         return {
-            "authenticated": bool(creds and (creds.valid or creds.refresh_token)),
-            "message": "Authenticated with YouTube!",
+            "authenticated": False,
+            "message": "YouTube token is invalid or missing refresh token.",
             "token_file": str(TOKEN_FILE),
             "channel": "GloblePulseAi"
         }
