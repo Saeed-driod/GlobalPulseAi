@@ -408,7 +408,8 @@ def upload_video_to_youtube(
     tags: Optional[List[str]] = None,
     category_id: str = "28",
     video_format: str = "long",
-    interactive: bool = False
+    interactive: bool = False,
+    category: Optional[str] = None
 ) -> YouTubeUploadResult:
     """
     Upload an MP4 video file to YouTube via YouTube Data API v3.
@@ -501,16 +502,18 @@ def upload_video_to_youtube(
             # Long-Form Title: DO NOT append #shorts! Use title[:95]
             clean_t = re.sub(r"(?i)\s*#shorts\b", "", title).strip()
             upload_title = clean_t[:95]
+            cat_str = str(category or "").lower()
             if category_id == "17":
                 default_tags = ["GlobalPulse AI", "GloblePulseAi", "Global Sports", "Sports", "Match Analysis", "Highlights"]
-            elif "politics" in str(category).lower() or "geopolitics" in str(category).lower():
+            elif "politics" in cat_str or "geopolitics" in cat_str:
                 default_tags = ["GlobalPulse AI", "GloblePulseAi", "World Politics", "Politics", "Elections", "Breaking News", "Diplomacy", "Geopolitics", "World Leaders"]
             else:
                 default_tags = ["GlobalPulse AI", "GloblePulseAi", "News", "Technology", "World News", "Market Analysis"]
         else:
             raw_title = f"{title.strip()} #shorts" if "#shorts" not in title.lower() else title.strip()
             upload_title = raw_title[:100]
-            if "politics" in str(category).lower() or "geopolitics" in str(category).lower():
+            cat_str = str(category or "").lower()
+            if "politics" in cat_str or "geopolitics" in cat_str:
                 default_tags = ["GlobalPulse AI", "GloblePulseAi", "World Politics", "Shorts", "Politics", "Elections", "Breaking News", "Diplomacy"]
             else:
                 default_tags = ["GlobalPulse AI", "GloblePulseAi", "News", "Technology", "Shorts"]
@@ -690,7 +693,8 @@ Subscribe to GlobalPulse AI on YouTube (@GloblePulseAi) for cutting-edge AI, geo
             tags=tags,
             category_id=cat_id,
             video_format="long",
-            interactive=False
+            interactive=False,
+            category=category
         )
 
         video_id = str(result)
@@ -799,7 +803,8 @@ Daily AI breakthroughs, financial markets, geopolitics & sports highlights.
         tags=tags,
         category_id=cat_id,
         video_format="short",
-        interactive=False
+        interactive=False,
+        category=category
     )
 
     video_id = str(result)

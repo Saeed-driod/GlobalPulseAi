@@ -26,9 +26,9 @@ echo.
 cd /d "%~dp0"
 
 IF EXIST "backend\venv\Scripts\python.exe" (
-    "backend\venv\Scripts\python.exe" local_worker.py --daemon --watch --format auto --interval 15
+    "backend\venv\Scripts\python.exe" local_worker.py --daemon --watch --format auto --interval 15 --upload
 ) ELSE (
-    python local_worker.py --daemon --watch --format auto --interval 15
+    python local_worker.py --daemon --watch --format auto --interval 15 --upload
 )
 
 echo.

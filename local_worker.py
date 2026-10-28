@@ -623,8 +623,12 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "auto", do
     try:
         while True:
             try:
+                # Dynamically re-verify YouTube auth on every loop tick so renewed tokens take effect immediately
+                live_auth = check_auth_status()
+                effective_upload = do_upload or bool(live_auth and live_auth.get("authenticated"))
+
                 send_worker_heartbeat(status="IDLE")
-                process_pending_articles(video_format=video_format, limit=1, do_upload=do_upload)
+                process_pending_articles(video_format=video_format, limit=1, do_upload=effective_upload)
             except Exception as loop_err:
                 print(f"[Worker Daemon Loop Warning] Transient error recovered: {loop_err}")
                 time.sleep(3)
