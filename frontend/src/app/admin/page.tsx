@@ -97,7 +97,7 @@ export default function AdminPage() {
   };
 
   const handleAuthYouTube = () => {
-    showToast("Launching Google YouTube sign-in window...");
+    showToast("Opening YouTube Channel Authorization Guide...");
     window.open(`${getApiBase()}/api/auth-youtube`, "_blank");
   };
 

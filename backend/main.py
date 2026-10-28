@@ -7,7 +7,7 @@ from typing import Optional, List
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Header, status, BackgroundTasks, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -929,16 +929,141 @@ def auth_youtube():
     """
     Direct Browser YouTube OAuth2 Authorization flow.
     Instantly returns a 307 redirect to Google's OAuth consent screen
-    so the browser opens Google login immediately without spinning.
+    if credentials exist, or provides an interactive guidance page when on Render Cloud.
     """
     try:
         auth_url = get_oauth_authorization_url()
         return RedirectResponse(url=auth_url, status_code=307)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"OAuth initialization error: {str(e)}"
-        )
+        html_content = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube Channel Authentication - GlobalPulse AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0a0a0c;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      max-width: 620px;
+      margin: 20px;
+      padding: 36px;
+      background: #121318;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 40px rgba(6, 182, 212, 0.1);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 999px;
+      font-family: monospace;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 12px 0;
+      color: #ffffff;
+      font-weight: 800;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0 0 18px 0;
+    }
+    .step-box {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .step-title {
+      color: #38bdf8;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    code {
+      background: #020617;
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: #34d399;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      border: 1px solid #1e293b;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #06b6d4, #3b82f6);
+      color: #030712;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 13px;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">&#9679; YOUTUBE OAUTH STATUS: RE-AUTHORIZATION NEEDED</div>
+    <h1>Connect YouTube Channel (@GloblePulseAi)</h1>
+    <p>
+      GlobalPulse AI uses <strong>Local PC Hardware Offloading</strong> for video generation and YouTube publishing. This prevents Render Cloud memory crashes (512MB RAM cap) and ensures high-definition video rendering.
+    </p>
+
+    <div class="step-box">
+      <div class="step-title">&#9889; Quick 1-Click Fix (Local PC Worker):</div>
+      <p style="margin: 0; color: #cbd5e1; font-size: 13px; line-height: 1.8;">
+        1. On your PC, open your project folder: <code>d:\Global English Audience</code><br>
+        2. Double-click <code>REAUTH_YOUTUBE.bat</code> (or run <code>local_worker.py --auth</code>).<br>
+        3. Sign in to your Google Account (<strong>@GloblePulseAi</strong>) and click <em>Allow</em>.<br>
+        4. Done! Double-click <code>START_VIDEO_WORKER.bat</code> to resume auto-uploads.
+      </p>
+    </div>
+
+    <div class="step-box" style="border-color: rgba(147, 51, 234, 0.3); background: rgba(88, 28, 135, 0.1);">
+      <div class="step-title" style="color: #c084fc;">&#9729;&#65039; Optional: Render Cloud Deployment</div>
+      <p style="margin: 0; color: #cbd5e1; font-size: 12px;">
+        If you also want Render Cloud to retain credentials, add <code>YOUTUBE_CLIENT_SECRET_JSON</code> and <code>YOUTUBE_TOKEN_JSON</code> in your Render Dashboard under <em>Environment Variables</em>.
+      </p>
+    </div>
+
+    <div style="text-align: right; margin-top: 20px;">
+      <a href="/admin" class="btn">&#8592; Return to Mission Control</a>
+    </div>
+  </div>
+</body>
+</html>"""
+        return HTMLResponse(content=html_content, status_code=200)
 
 
 @app.get("/api/auth-youtube/status")
