@@ -625,6 +625,18 @@ export default function AdminPage() {
 
             {/* Local Worker Status & Daily YouTube Quota Indicator */}
             <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
+              {/* 24/7 Cloud Auto-Pilot Indicator */}
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900/90 border border-neutral-700/80 text-xs font-mono shadow-inner"
+                title={`24/7 Cloud Auto-Pilot: Automatically scrapes, rewrites & publishes breaking stories every ${schedulerInfo?.interval_minutes || 15} minutes`}
+              >
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="text-neutral-400">Auto-Pilot:</span>
+                <span className="font-bold text-cyan-300">
+                  Every {schedulerInfo?.interval_minutes || 15}m
+                </span>
+              </div>
+
               {/* Daily YouTube Quota Badge (Optimized: Max 4 Shorts + 1 Long per day) */}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neutral-900/90 border border-neutral-700/80 text-xs font-mono shadow-inner">
                 <span className="text-neutral-400">Daily YouTube:</span>

@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -39,7 +39,7 @@ def scheduled_pipeline_job():
 def start_scheduler() -> BackgroundScheduler:
     """
     Initialize and start the 24/7 Background Automation Scheduler.
-    Runs every N hours (default: 6 hours, configurable via AUTO_PIPELINE_INTERVAL_HOURS).
+    Runs every 15 minutes (configurable via AUTO_PIPELINE_INTERVAL_MINUTES).
     """
     global scheduler
 
@@ -52,23 +52,28 @@ def start_scheduler() -> BackgroundScheduler:
         print("[Scheduler] Scheduler is already active.")
         return scheduler
 
-    # Configure interval (hours or minutes)
-    interval_hours = float(os.getenv("AUTO_PIPELINE_INTERVAL_HOURS", "6"))
-    interval_minutes = os.getenv("AUTO_PIPELINE_INTERVAL_MINUTES")
+    # Configure interval (default: 15 minutes)
+    interval_hours = os.getenv("AUTO_PIPELINE_INTERVAL_HOURS")
+    interval_minutes = os.getenv("AUTO_PIPELINE_INTERVAL_MINUTES", "15")
 
     scheduler = BackgroundScheduler(daemon=True)
 
-    if interval_minutes:
+    if interval_hours:
+        hours = float(interval_hours)
+        trigger = IntervalTrigger(hours=hours)
+        interval_desc = f"every {hours} hours"
+    else:
         minutes = float(interval_minutes)
         trigger = IntervalTrigger(minutes=minutes)
         interval_desc = f"every {minutes} minutes"
-    else:
-        trigger = IntervalTrigger(hours=interval_hours)
-        interval_desc = f"every {interval_hours} hours"
+
+    # Kick off the first automated story 20 seconds after server boot, then recurringly every 15 minutes
+    initial_run_time = datetime.now(timezone.utc) + timedelta(seconds=20)
 
     scheduler.add_job(
         scheduled_pipeline_job,
         trigger=trigger,
+        next_run_time=initial_run_time,
         id="master_news_video_youtube_pipeline",
         name="GlobalPulse AI 24/7 Master News & YouTube Pipeline",
         replace_existing=True,
@@ -79,7 +84,7 @@ def start_scheduler() -> BackgroundScheduler:
     print(f"============================================================")
     print(f"[Scheduler] 24/7 BACKGROUND AUTOMATION ACTIVE ({interval_desc})")
     print(f"   Target YouTube Channel: 'GloblePulseAi'")
-    print(f"   Next Scheduled Run: {trigger.get_next_fire_time(None, datetime.now(timezone.utc))}")
+    print(f"   First Run: In 20 seconds, then recurring {interval_desc}")
     print(f"============================================================")
 
     return scheduler
@@ -106,14 +111,14 @@ def get_scheduler_status() -> Dict[str, Any]:
         if job and job.next_run_time:
             next_run = job.next_run_time.isoformat()
 
-    interval_hours = float(os.getenv("AUTO_PIPELINE_INTERVAL_HOURS", "6"))
-    interval_minutes = os.getenv("AUTO_PIPELINE_INTERVAL_MINUTES")
+    interval_hours = float(os.getenv("AUTO_PIPELINE_INTERVAL_HOURS")) if os.getenv("AUTO_PIPELINE_INTERVAL_HOURS") else None
+    interval_minutes = float(os.getenv("AUTO_PIPELINE_INTERVAL_MINUTES", "15"))
 
     return {
         "is_running": is_running,
         "enabled": os.getenv("AUTO_PIPELINE_ENABLED", "true").lower() in ("true", "1", "yes"),
         "interval_hours": interval_hours,
-        "interval_minutes": float(interval_minutes) if interval_minutes else None,
+        "interval_minutes": interval_minutes,
         "next_run_time": next_run,
         "last_run_time": last_run_info["last_run_time"],
         "last_run_status": last_run_info["last_run_status"],
