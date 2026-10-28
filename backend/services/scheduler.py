@@ -34,6 +34,9 @@ def scheduled_pipeline_job():
         print(f"[Scheduler] Error during scheduled automation job: {e}")
         last_run_info["last_run_time"] = datetime.now(timezone.utc).isoformat()
         last_run_info["last_run_status"] = f"Error: {str(e)}"
+    finally:
+        import gc
+        gc.collect()
 
 
 def start_scheduler() -> BackgroundScheduler:
