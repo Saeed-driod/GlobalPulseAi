@@ -284,7 +284,7 @@ def fetch_now(
 ):
     """
     Fetch breaking stories from Tier-1 global RSS feeds, synthesize with
-    Gemini AI (generating headline, TL;DR, markdown article, and 60-sec Shorts script),
+    Gemini AI (generating headline, TL;DR, markdown article, and 65s+ TikTok/Shorts script [minimum 1 minute 5 seconds]),
     and save into the DRAFT editorial queue. Supports category targeting.
     Strictly filters out previously published or drafted stories to prevent duplicate articles.
     """

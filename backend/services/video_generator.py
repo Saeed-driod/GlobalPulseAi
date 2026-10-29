@@ -185,10 +185,18 @@ def wrap_text(text: str, max_chars: int = 24) -> List[str]:
         lines.append(" ".join(current_line))
     return lines
 
-def clean_script_for_voiceover(youtube_script: str, fallback_title: str = "", fallback_summary: str = "") -> str:
+def clean_script_for_voiceover(
+    youtube_script: str,
+    fallback_title: str = "",
+    fallback_summary: str = "",
+    fallback_content: str = "",
+    category: str = "",
+    min_words: int = 170
+) -> str:
     """
     Cleans raw script by removing director cues, timing brackets, fractions, and markdown artifacts.
     Guarantees pure, natural spoken broadcaster dialogue with ZERO visual instructions read aloud.
+    Enforces minimum 1 minute 5 seconds (65s) duration by ensuring >= 175 spoken words (~68-82s audio).
     """
     text = youtube_script or ""
     # 1. Remove bracketed and parenthetical notes e.g. [00:00 - 00:05] or [HOOK:] or [VISUAL: ...]
@@ -238,6 +246,54 @@ def clean_script_for_voiceover(youtube_script: str, fallback_title: str = "", fa
     if len(cleaned) < 40:
         cleaned = f"{fallback_title}. {fallback_summary}. Follow GlobalPulse AI for breaking developments."
 
+    # Enforce minimum 1 minute 5 seconds (65s) duration:
+    # At standard 140-150 words/minute TTS, 175 words produces 70-82 seconds of audio.
+    words = cleaned.split()
+    if len(words) < min_words:
+        enrichment_parts = []
+
+        # Step A: Enrich from summary bullet points if available
+        if fallback_summary:
+            for s_line in fallback_summary.split("\n"):
+                s_clean = re.sub(r"[•▸*`#>]", "", s_line).strip()
+                if len(s_clean) > 20 and s_clean.lower() not in cleaned.lower():
+                    enrichment_parts.append(s_clean.rstrip(".") + ".")
+                    if (len(words) + sum(len(p.split()) for p in enrichment_parts)) >= min_words:
+                        break
+
+        # Step B: Enrich from article content if still under minimum words
+        if fallback_content and (len(words) + sum(len(p.split()) for p in enrichment_parts)) < min_words:
+            for para in fallback_content.split("\n\n"):
+                p_clean = re.sub(r"[#*`>|]", "", para).strip()
+                if len(p_clean) > 40 and not p_clean.startswith("###") and not p_clean.startswith("Q:") and not p_clean.startswith("A:"):
+                    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", p_clean) if len(s.strip()) > 20]
+                    for s in sentences:
+                        if s.lower() not in cleaned.lower() and not any(bad in s.lower() for bad in ["table", "http", "unsplash"]):
+                            enrichment_parts.append(s.rstrip(".") + ".")
+                            if (len(words) + sum(len(p.split()) for p in enrichment_parts)) >= min_words:
+                                break
+                if (len(words) + sum(len(p.split()) for p in enrichment_parts)) >= min_words:
+                    break
+
+        # Step C: Append strategic conclusion & audience engagement CTA if still under minimum words
+        if (len(words) + sum(len(p.split()) for p in enrichment_parts)) < min_words:
+            if category == "Global Sports":
+                enrichment_parts.append(
+                    "This high-stakes outcome directly impacts championship qualification pathways and tournament standings. "
+                    "What was the most decisive play that dictated the result? Share your predictions in the comments below, "
+                    "and follow GlobalPulse AI for comprehensive daily sports coverage."
+                )
+            else:
+                enrichment_parts.append(
+                    "Industry analysts project that this milestone will drive substantial operational momentum and realign competitive benchmarks worldwide. "
+                    "How do you foresee these developments impacting future market dynamics? Let us know your perspective in the comments below, "
+                    "and subscribe to GlobalPulse AI for verified daily intelligence."
+                )
+
+        if enrichment_parts:
+            cleaned = cleaned.rstrip(".") + ". " + " ".join(enrichment_parts)
+            cleaned = " ".join(cleaned.split()).strip()
+
     return cleaned
 
 def prepare_text_for_tts(clean_text: str) -> str:
@@ -279,8 +335,8 @@ def segment_script_into_sentences(text: str, fallback_title: str = "", count: in
             "Stay tuned to GlobalPulse AI for comprehensive live updates."
         ]
 
-    # Target 6 to 8 sentences
-    return sentences[:8]
+    # Target 8 to 14 punchy sentences for dynamic 65s+ TikTok/Shorts pacing
+    return sentences[:14]
 
 def build_long_form_narration(
     title: str,
@@ -1056,7 +1112,7 @@ def compose_video(
     """
     Renders an authentic, broadcast-grade MP4 video:
     - video_format='long' (Default): 16:9 widescreen 720p HD (1280x720) with cinematic full-bleed frames & captions
-    - video_format='short': 9:16 vertical (1080x1920) 60-second YouTube Short with dynamic TikTok-style captions
+    - video_format='short': 9:16 vertical (1080x1920) 65s+ TikTok/Shorts video (min 1m 5s) with dynamic captions
     Optimized strictly for Render 512MB RAM with single-threaded ultrafast FFmpeg encoding and gTTS fallback.
     """
     import gc
@@ -1070,7 +1126,14 @@ def compose_video(
         video_filename = f"long_article_{article_id}.mp4"
         audio_filename = f"voiceover_long_article_{article_id}.mp3"
     else:
-        clean_text = clean_script_for_voiceover(youtube_script, fallback_title=title, fallback_summary=summary)
+        clean_text = clean_script_for_voiceover(
+            youtube_script,
+            fallback_title=title,
+            fallback_summary=summary,
+            fallback_content=content,
+            category=category,
+            min_words=170
+        )
         video_filename = f"short_article_{article_id}.mp4"
         audio_filename = f"voiceover_article_{article_id}.mp3"
 
@@ -1309,6 +1372,49 @@ def compose_video(
         except Exception:
             pass
     gc.collect()
+
+    # Auto-Export ready-to-post package for TikTok (Video + Caption TXT file)
+    if not is_long:
+        try:
+            import shutil
+            root_dir = Path(__file__).resolve().parent.parent.parent  # D:\Global English Audience
+            tiktok_dir = root_dir / "exports" / "tiktok"
+            tiktok_dir.mkdir(parents=True, exist_ok=True)
+
+            slug = re.sub(r"[^\w\s-]", "", title.lower()).strip()
+            slug = re.sub(r"[-\s]+", "-", slug)[:30]
+            clean_name = f"TikTok_{article_id}_{slug}"
+            dest_video = tiktok_dir / f"{clean_name}.mp4"
+            dest_caption = tiktok_dir / f"{clean_name}_caption.txt"
+
+            shutil.copy2(str(output_video_path.resolve()), str(dest_video.resolve()))
+
+            clean_summary = summary.strip()
+            if category == "Global Sports":
+                hashtags = "#Sports #Football #Highlights #Championship #GlobalPulseAI #fyp #foryou #viral #trending"
+            elif category == "AI & Tech":
+                hashtags = "#AI #TechNews #ArtificialIntelligence #FutureTech #GlobalPulseAI #fyp #foryou #viral #trending"
+            elif category == "Global Markets":
+                hashtags = "#Finance #Stocks #Economy #Markets #BusinessNews #GlobalPulseAI #fyp #foryou #viral #trending"
+            elif category == "Future Science":
+                hashtags = "#Science #Space #Quantum #DeepTech #Future #GlobalPulseAI #fyp #foryou #viral #trending"
+            else:
+                hashtags = "#News #BreakingNews #WorldNews #GlobalPulseAI #fyp #foryou #viral #trending"
+
+            caption_content = (
+                f"⚡ {title}\n\n"
+                f"{clean_summary}\n\n"
+                f"👇 Follow @globalpulseai for daily global updates!\n"
+                f"🌐 Full story & analysis: https://globalpulseai.vercel.app\n\n"
+                f"{hashtags}\n"
+            )
+
+            with open(dest_caption, "w", encoding="utf-8") as f:
+                f.write(caption_content)
+
+            print(f"[TikTok Export] Saved ready-to-post package: {dest_video.name} and {dest_caption.name}")
+        except Exception as export_err:
+            print(f"[TikTok Export Notice] Failed saving tiktok package: {export_err}")
 
     return {
         "success": True,

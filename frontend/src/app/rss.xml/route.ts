@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { fetchArticles } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 1800;
+
 function escapeXml(unsafe: string): string {
   if (!unsafe) return "";
-  return unsafe
+  // Strip XML-illegal control characters (0x00-0x08, 0x0B-0x0C, 0x0E-0x1F)
+  const clean = unsafe.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+  return clean
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -64,15 +69,18 @@ export async function GET(request: Request) {
     })
     .join("");
 
-  const feedTitle = category
-    ? `GlobalPulse AI - ${escapeXml(category)} News`
+  const rawTitle = category
+    ? `GlobalPulse AI - ${category} News`
     : "GlobalPulse AI | Tier-1 Global Newsroom & Video Intelligence";
-  const feedDesc = category
-    ? `Real-time ${escapeXml(category)} coverage and intelligence reports from GlobalPulse AI.`
+  const rawDesc = category
+    ? `Real-time ${category} coverage and intelligence reports from GlobalPulse AI.`
     : "Automated AI-powered global news, geopolitical telemetry, and video intelligence for Tier-1 decision makers.";
   const feedSelf = category
     ? `${siteUrl}/rss.xml?category=${encodeURIComponent(category)}`
     : `${siteUrl}/rss.xml`;
+
+  const feedTitle = escapeXml(rawTitle);
+  const feedDesc = escapeXml(rawDesc);
 
   const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">

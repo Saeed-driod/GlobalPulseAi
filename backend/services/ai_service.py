@@ -72,7 +72,7 @@ def process_raw_news(
     - High-clickthrough SEO headline
     - Key takeaways (TL;DR bullet points)
     - Comprehensive 500-800 word markdown article
-    - 60-second YouTube Shorts script (hook, visual cues, body, CTA)
+    - 65-85 second TikTok & Shorts script (minimum 1 minute 5 seconds for TikTok Creator Rewards monetization)
     - Relevant, topic-specific image URL using 3-tier resolution
     """
     gemini_api_key = os.getenv("GEMINI_API_KEY")
@@ -119,7 +119,7 @@ Return ONLY a valid JSON object with the following keys:
   "author_name": "Muhammad Saeed (Chief Editor, GlobalPulse AI)",
   "summary": "3-4 concise, impactful bullet points starting with • summarizing key verified numbers, turning points, and consequences",
   "content": "A comprehensive 600-900 word human investigative markdown article containing the mandatory sections specified above",
-  "youtube_script": "A high-energy, 100% spoken narration script for a human voiceover broadcaster. Write ONLY the exact words the presenter will say out loud across 6 to 8 punchy sentences (Hook -> What Happened -> Why It Matters -> Outro). STRICT CONSTRAINT: ZERO visual directions, ZERO camera angles, ZERO sound cues, ZERO brackets like [VISUAL] or [00:00], and ZERO fractions like '9.4/10' (write 'nine out of ten').",
+  "youtube_script": "A high-energy, 100% spoken narration script for a human voiceover broadcaster engineered for TikTok & Shorts monetization (MANDATORY DURATION: AT LEAST 1 MINUTE 5 SECONDS / minimum 65 seconds long). Write ONLY the exact words the presenter will say out loud across 10 to 14 punchy sentences (STRICT LENGTH: 175 to 220 words. ABSOLUTELY NEVER generate fewer than 170 words so audio duration safely exceeds 65 seconds). Structure: Hook (0-5s) -> Fast Context (5-25s) -> In-depth Revelations & Breakdown (25-50s) -> Impact & Strategic Implication (50-60s) -> Engaging Outro Question (60-68s). STRICT CONSTRAINTS: ZERO visual directions, ZERO camera angles, ZERO sound cues, ZERO brackets like [VISUAL] or [00:00], and ZERO fractions like '9.4/10' (write 'nine out of ten').",
   "image_url": "A high-resolution image URL matching the topic"
 }}"""
 
@@ -193,11 +193,15 @@ A: The victory reinforces aggregate standing and seeds the team in prime positio
 A: Full verified reporting is updated live on **GlobalPulse AI**, with broadcast intelligence syndicated on our official YouTube channel **@GloblePulseAi**."""
 
         youtube_script = f"""A massive showdown just sent shockwaves through the sports world! {refined_title}.
-In breaking action, decisive tactical momentum completely shifted the game.
-Relentless pressure and standout individual brilliance dismantled the opponent's defensive structure.
-With crucial points and tournament standing on the line, this victory redefines the championship race.
-Fans and analysts are calling this one of the most electric performances of the entire season.
-Subscribe to GlobalPulse AI on YouTube at GloblePulseAi for more breaking sports breakdowns, and read our complete tactical analysis on GlobalPulse AI."""
+In breaking action from today's contest, decisive tactical momentum completely shifted the balance of power on the field.
+Relentless defensive counter-pressing and standout individual brilliance systematically dismantled the opponent's strategy during high-pressure minutes.
+Every possession carried massive championship stakes, forcing both coaching staffs into urgent in-game adjustments as tension peaked across the arena.
+With crucial league standing and knockout qualification directly on the line, this landmark victory fundamentally redefines the entire tournament bracket.
+Fans and seasoned analysts across the globe are already praising this as one of the most electric, technically dominant performances of the entire season.
+Tactical metrics indicate that the winning squad capitalized on key spatial overloads, turning defensive stops into rapid-fire scoring opportunities.
+Both rosters pushed their physical limits down the final stretch, creating heart-stopping drama until the final whistle confirmed the outcome.
+What do you think was the turning point that decided this game? Drop your match predictions in the comments below.
+Make sure to subscribe to GlobalPulse AI on YouTube at GloblePulseAi for fast-paced analytical breakdowns, and read our comprehensive tactical report live on GlobalPulse AI."""
     else:
         summary = f"""• Verified dispatches from {source_name} confirm an accelerating operational transition across {category}.
 • Primary metrics validate a 38% efficiency dividend, superseding legacy infrastructure bottlenecks.
@@ -245,12 +249,16 @@ A: Capital is shifting away from redundant custom architectures toward modular, 
 **Q: Where can readers verify the underlying documentation and source dispatches?**  
 A: The primary reporting was initially documented by **{source_name}**, with comprehensive telemetry models and continuous analytical briefings tracked live on **GlobalPulse AI**."""
 
-        youtube_script = f"""A major shift just shook {category}, and the global implications are monumental.
+        youtube_script = f"""A major shift just shook {category}, and the international implications are monumental.
 {refined_title}.
-Verified reporting confirms a decisive transition that directly impacts global markets and modern infrastructure.
-Industry leaders are eliminating critical friction points, delivering higher efficiency and immediate strategic advantages.
-This development is now triggering a chain reaction across international financial and tech corridors.
-Subscribe to GlobalPulse AI on YouTube at GloblePulseAi for rapid intelligence updates, and explore the full investigation on GlobalPulse AI."""
+Verified intelligence dispatches confirm a decisive structural transition that directly impacts global markets, technology stacks, and enterprise capital allocators.
+Key industry leaders and institutional operators are eliminating long-standing friction points, delivering higher operational efficiency and immediate competitive advantages across borders.
+According to verified telemetry, early adopters are observing measurable margin improvements, while organizations tethered to legacy infrastructure face mounting compliance friction.
+This critical development is now triggering a rapid chain reaction across international financial networks, modern trade corridors, and supply ecosystems worldwide.
+Strategic analysts emphasize that organizations moving quickly will capture significant market share over the next twelve to twenty-four months.
+Market participants are closely tracking how regulatory bodies and enterprise stakeholders respond as deployment timelines accelerate across major hubs.
+How will this transformation impact your industry? Let us know your perspective in the comments below.
+Subscribe to GlobalPulse AI on YouTube at GloblePulseAi for rapid intelligence briefings, and explore the complete investigative dossier live on GlobalPulse AI."""
 
     return {
         "title": refined_title,

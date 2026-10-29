@@ -775,7 +775,7 @@ def upload_short_to_youtube(
 👉 {website_url}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔔 Subscribe to @GloblePulseAi for daily 60-second global intelligence briefings!
+🔔 Subscribe to @GloblePulseAi for daily global intelligence briefings!
 Daily AI breakthroughs, financial markets, geopolitics & sports highlights.
 
 #GlobalPulseAI #News #Shorts #viral #trending #{category.replace(' ', '').replace('&', '')}
