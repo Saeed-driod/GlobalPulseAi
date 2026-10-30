@@ -1,7 +1,9 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { Article } from "../types/article";
-import { Eye, Clock, Video, Sparkles, ChevronRight, Zap } from "./Icons";
+import { Eye, Clock, Video, Sparkles, ChevronRight } from "./Icons";
 
 interface HeroFeaturedProps {
   articles: Article[];
@@ -12,50 +14,6 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
 
   const primary = articles[0];
   const secondary = articles.slice(1, 3);
-
-  const getCategoryTheme = (cat: string) => {
-    switch (cat) {
-      case "AI & Tech":
-        return {
-          badge: "bg-cyan-500/15 text-cyan-300 border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.25)]",
-          glow: "from-cyan-500/20 via-transparent to-transparent",
-          hoverText: "group-hover:text-cyan-300",
-        };
-      case "Global Markets":
-        return {
-          badge: "bg-emerald-500/15 text-emerald-300 border-emerald-400/40 shadow-[0_0_12px_rgba(16,185,129,0.25)]",
-          glow: "from-emerald-500/20 via-transparent to-transparent",
-          hoverText: "group-hover:text-emerald-300",
-        };
-      case "World Politics":
-      case "Geopolitics":
-        return {
-          badge: "bg-amber-500/15 text-amber-300 border-amber-400/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]",
-          glow: "from-amber-500/20 via-transparent to-transparent",
-          hoverText: "group-hover:text-amber-300",
-        };
-      case "Future Science":
-        return {
-          badge: "bg-purple-500/15 text-purple-300 border-purple-400/40 shadow-[0_0_12px_rgba(168,85,247,0.25)]",
-          glow: "from-purple-500/20 via-transparent to-transparent",
-          hoverText: "group-hover:text-purple-300",
-        };
-      case "Global Sports":
-        return {
-          badge: "bg-red-500/15 text-red-300 border-red-400/40 shadow-[0_0_12px_rgba(239,68,68,0.25)]",
-          glow: "from-red-500/20 via-transparent to-transparent",
-          hoverText: "group-hover:text-red-300",
-        };
-      default:
-        return {
-          badge: "bg-neutral-800 text-neutral-300 border-neutral-700",
-          glow: "from-blue-500/20 via-transparent to-transparent",
-          hoverText: "group-hover:text-cyan-300",
-        };
-    }
-  };
-
-  const primaryTheme = getCategoryTheme(primary.category);
 
   // Parse TL;DR bullets
   const summaryBullets = primary.summary
@@ -92,153 +50,149 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2.5">
           <div className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1a8cff] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#1a8cff]"></span>
           </div>
-          <h2 className="text-xs uppercase font-mono font-bold tracking-widest text-cyan-300">
+          <h2 className="text-xs uppercase font-mono font-bold tracking-widest text-[#1a8cff]">
             Lead Global Intelligence • Priority 1 Dispatch
           </h2>
         </div>
-        <div className="hidden sm:flex items-center gap-2 text-xs text-neutral-400 font-mono">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="hidden sm:flex items-center gap-2 text-xs text-[#718096] font-mono">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span>SYNTHESIZED REAL-TIME BY TIER-1 AI ENGINE</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main Hero Card (8 Cols) */}
-        <div className="lg:col-span-8 group relative rounded-2xl overflow-hidden glass-panel-glow hover:border-cyan-500/40 transition-all duration-500 flex flex-col justify-end min-h-[480px] sm:min-h-[540px] hover:shadow-[0_0_35px_rgba(6,182,212,0.18)]">
-          {/* Background Image with Zoom */}
-          <img
-            src={primaryImgSrc}
-            alt={primary.title}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-            onError={() => {
-              if (primaryImgSrc !== primaryFallback) {
-                setPrimaryImgSrc(primaryFallback);
-              }
-            }}
-          />
+        <div className="lg:col-span-8 group neu-flat p-6 sm:p-8 flex flex-col justify-between transition-all duration-300">
+          <div>
+            {/* Top Inset Thumbnail Container */}
+            <Link
+              href={`/news/${primary.slug}`}
+              className="relative h-64 sm:h-80 w-full neu-pressed p-2 overflow-hidden block rounded-2xl mb-6 group/img"
+            >
+              <div className="w-full h-full rounded-xl overflow-hidden relative">
+                <img
+                  src={primaryImgSrc}
+                  alt={primary.title}
+                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/img:scale-105"
+                  onError={() => {
+                    if (primaryImgSrc !== primaryFallback) {
+                      setPrimaryImgSrc(primaryFallback);
+                    }
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
 
-          {/* Deep Obsidian Overlay with subtle bottom-up vignette */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent" />
+                <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
+                  <span className="neu-sm px-3 py-1 text-xs uppercase font-bold text-[#1a8cff]">
+                    {primary.category}
+                  </span>
+                  {primary.youtube_video_id && (
+                    <span className="neu-sm px-2.5 py-1 text-[11px] font-bold text-red-600 flex items-center gap-1.5">
+                      <Video className="w-3.5 h-3.5" />
+                      Shorts Ready
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Link>
 
-          {/* Hero Content */}
-          <div className="relative p-6 sm:p-9 z-10">
-            {/* Meta tags */}
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-4">
-              <span
-                className={`text-[11px] uppercase font-bold tracking-wider px-3 py-1 rounded-full border backdrop-blur-md ${primaryTheme.badge}`}
-              >
-                {primary.category}
+            {/* Meta Row */}
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-3 text-xs text-[#718096] font-mono">
+              <span className="neu-sm px-2.5 py-1 flex items-center gap-1 text-[#2d3748] font-bold">
+                <Clock className="w-3.5 h-3.5 text-[#1a8cff]" /> 3 min read
               </span>
-
-              {primary.youtube_video_id && (
-                <span className="flex items-center gap-1.5 text-[11px] font-bold bg-gradient-to-r from-red-600 to-rose-600 text-white px-3 py-0.5 rounded-full shadow-[0_0_12px_rgba(239,68,68,0.4)]">
-                  <Video className="w-3.5 h-3.5" />
-                  Shorts Video Ready
-                </span>
-              )}
-
-              <span className="text-xs text-neutral-400 font-mono flex items-center gap-1.5 bg-black/40 px-2.5 py-0.5 rounded-md border border-white/5">
-                <Clock className="w-3.5 h-3.5 text-cyan-400" /> 3 min read
-              </span>
-
-              <span className="text-xs text-neutral-400 font-mono flex items-center gap-1.5 bg-black/40 px-2.5 py-0.5 rounded-md border border-white/5">
-                <Eye className="w-3.5 h-3.5 text-emerald-400" /> {primary.views.toLocaleString()} reads
+              <span className="neu-sm px-2.5 py-1 flex items-center gap-1 text-emerald-600 font-bold">
+                <Eye className="w-3.5 h-3.5 text-emerald-600" /> {primary.views.toLocaleString()} reads
               </span>
             </div>
 
             {/* Headline */}
             <Link href={`/news/${primary.slug}`}>
-              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white font-serif leading-tight tracking-tight group-hover:text-cyan-200 transition-colors duration-200">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#2d3748] font-serif leading-tight tracking-tight hover:text-[#1a8cff] transition-colors">
                 {primary.title}
               </h1>
             </Link>
 
-            {/* TL;DR Executive Takeaway Box */}
+            {/* TL;DR Executive Takeaway Box (Carved Inset) */}
             {summaryBullets.length > 0 && (
-              <div className="mt-4 p-4 rounded-xl bg-black/60 border border-white/10 backdrop-blur-md max-w-3xl">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  <span className="text-[10px] font-mono uppercase font-bold text-cyan-300 tracking-wider">
+              <div className="mt-5 p-4 rounded-xl neu-pressed">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-[#1a8cff]" />
+                  <span className="text-[11px] font-mono uppercase font-bold text-[#1a8cff] tracking-wider">
                     Executive Key Takeaways (TL;DR)
                   </span>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {summaryBullets.map((bullet, idx) => (
-                    <p key={idx} className="text-xs text-neutral-300 leading-relaxed font-sans">
-                      {bullet}
+                    <p key={idx} className="text-xs text-[#718096] leading-relaxed font-sans">
+                      {bullet.replace(/^[•▸*-\s]+/, "• ")}
                     </p>
                   ))}
                 </div>
               </div>
             )}
+          </div>
 
-            {/* Bottom Bar */}
-            <div className="mt-6 flex items-center justify-between pt-4 border-t border-white/10 text-xs">
-              <div className="text-neutral-400 font-mono flex items-center gap-2">
-                <span className="text-neutral-500">Source:</span>
-                <span className="text-cyan-300 font-semibold">{primary.source_name || "Global Wire"}</span>
-              </div>
-
-              <Link
-                href={`/news/${primary.slug}`}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/25 transition-all duration-150 transform group-hover:translate-x-1"
-              >
-                Read Full Investigation
-                <ChevronRight className="w-4 h-4" />
-              </Link>
+          {/* Bottom Bar & CTA */}
+          <div className="mt-6 pt-4 border-t border-[#b8bec7]/40 flex items-center justify-between text-xs">
+            <div className="text-[#718096] font-mono flex items-center gap-2">
+              <span>Source:</span>
+              <span className="text-[#2d3748] font-bold">{primary.source_name || "Global Wire"}</span>
             </div>
+
+            <Link
+              href={`/news/${primary.slug}`}
+              className="neu-btn-primary px-5 py-2.5 text-xs uppercase tracking-wider flex items-center gap-2"
+            >
+              <span>Read Full Dossier</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
 
         {/* Secondary Stack (4 Cols) */}
         <div className="lg:col-span-4 flex flex-col gap-6">
           {secondary.map((article) => {
-            const theme = getCategoryTheme(article.category);
             return (
               <div
                 key={article.id}
-                className="flex-1 group rounded-2xl p-6 glass-panel hover:border-cyan-500/30 transition-all duration-300 flex flex-col justify-between hover:shadow-xl hover:shadow-black/60 relative overflow-hidden"
+                className="flex-1 neu-flat p-6 flex flex-col justify-between transition-all duration-300 hover:scale-[1.01]"
               >
-                {/* Subtle corner light */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-cyan-500/10 transition-colors" />
-
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span
-                      className={`text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full border ${theme.badge}`}
-                    >
+                    <span className="neu-sm px-2.5 py-0.5 text-[10px] uppercase font-bold text-[#1a8cff]">
                       {article.category}
                     </span>
 
-                    <span className="text-[11px] text-neutral-400 font-mono flex items-center gap-1">
-                      <Eye className="w-3 h-3 text-neutral-500" /> {article.views.toLocaleString()}
+                    <span className="text-[11px] text-[#718096] font-mono flex items-center gap-1">
+                      <Eye className="w-3 h-3 text-emerald-600" /> {article.views.toLocaleString()}
                     </span>
                   </div>
 
                   <Link href={`/news/${article.slug}`}>
-                    <h3 className="text-lg font-bold text-white font-serif leading-snug group-hover:text-cyan-300 transition-colors line-clamp-2">
+                    <h3 className="text-lg font-bold text-[#2d3748] font-serif leading-snug hover:text-[#1a8cff] transition-colors line-clamp-2">
                       {article.title}
                     </h3>
                   </Link>
 
-                  <p className="mt-2.5 text-xs text-neutral-400 line-clamp-2 leading-relaxed">
+                  <p className="mt-2.5 text-xs text-[#718096] line-clamp-2 leading-relaxed">
                     {article.summary.replace(/•/g, "").split("\n")[0]}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
-                  <span className="text-[11px] text-neutral-500 font-mono">
+                <div className="mt-5 pt-3.5 border-t border-[#b8bec7]/40 flex items-center justify-between text-xs">
+                  <span className="text-[11px] text-[#718096] font-mono truncate max-w-[130px]">
                     {article.source_name || "Tier-1 Desk"}
                   </span>
                   <Link
                     href={`/news/${article.slug}`}
-                    className="text-cyan-400 font-bold hover:text-cyan-300 flex items-center gap-1 group-hover:translate-x-0.5 transition"
+                    className="neu-sm px-3 py-1 text-xs font-bold text-[#1a8cff] hover:text-[#0066d6] flex items-center gap-1 active:scale-95 transition"
                   >
-                    Details <ChevronRight className="w-3.5 h-3.5" />
+                    <span>Details</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>

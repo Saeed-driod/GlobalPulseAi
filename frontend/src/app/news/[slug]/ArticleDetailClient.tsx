@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Article } from "../../../types/article";
-import { fetchArticleBySlug, fetchArticles, FALLBACK_ARTICLES } from "../../../lib/api";
+import { fetchArticleBySlug, fetchArticles } from "../../../lib/api";
 import { Header } from "../../../components/Header";
 import { BreakingTicker } from "../../../components/BreakingTicker";
 import { AdBanner } from "../../../components/AdBanner";
@@ -55,47 +55,29 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
     }
   };
 
-  const getCategoryTheme = (cat: string) => {
+  const getCategoryBadgeClass = (cat: string) => {
     switch (cat) {
       case "AI & Tech":
-        return {
-          badge: "bg-cyan-500/15 text-cyan-300 border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.25)]",
-          accent: "text-cyan-400",
-        };
+        return "text-[#1a8cff]";
       case "Global Markets":
-        return {
-          badge: "bg-emerald-500/15 text-emerald-300 border-emerald-400/40 shadow-[0_0_12px_rgba(16,185,129,0.25)]",
-          accent: "text-emerald-400",
-        };
+        return "text-emerald-600";
       case "World Politics":
       case "Geopolitics":
-        return {
-          badge: "bg-amber-500/15 text-amber-300 border-amber-400/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]",
-          accent: "text-amber-400",
-        };
+        return "text-amber-600";
       case "Future Science":
-        return {
-          badge: "bg-purple-500/15 text-purple-300 border-purple-400/40 shadow-[0_0_12px_rgba(168,85,247,0.25)]",
-          accent: "text-purple-400",
-        };
+        return "text-purple-600";
       case "Global Sports":
-        return {
-          badge: "bg-red-500/15 text-red-300 border-red-400/40 shadow-[0_0_12px_rgba(239,68,68,0.25)]",
-          accent: "text-red-400",
-        };
+        return "text-red-500";
       default:
-        return {
-          badge: "bg-neutral-800 text-neutral-300 border-neutral-700",
-          accent: "text-cyan-400",
-        };
+        return "text-[#1a8cff]";
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-center items-center font-mono">
-        <Sparkles className="w-10 h-10 text-cyan-400 animate-spin mb-4" />
-        <p className="text-sm text-neutral-400 tracking-wider uppercase font-semibold">
+      <div className="min-h-screen bg-[#e0e5ec] text-[#2d3748] flex flex-col justify-center items-center font-mono">
+        <Sparkles className="w-10 h-10 text-[#1a8cff] animate-spin mb-4" />
+        <p className="text-sm text-[#718096] tracking-wider uppercase font-semibold">
           Retrieving GlobalPulse Intelligence Dossier...
         </p>
       </div>
@@ -104,20 +86,20 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
 
   if (!article) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-center items-center">
-        <h2 className="text-3xl font-bold font-serif mb-2">Dossier Not Found</h2>
-        <p className="text-neutral-400 mb-6 text-sm font-mono">The requested story could not be retrieved from the wire.</p>
-        <Link
-          href="/"
-          className="px-5 py-2.5 bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-bold rounded-xl text-xs"
-        >
-          Return to Wire Feed
-        </Link>
+      <div className="min-h-screen bg-[#e0e5ec] text-[#2d3748] flex flex-col justify-center items-center p-6 text-center">
+        <div className="p-8 rounded-3xl neu-flat max-w-md">
+          <h2 className="text-3xl font-bold font-serif mb-2 text-[#2d3748]">Dossier Not Found</h2>
+          <p className="text-[#718096] mb-6 text-sm font-mono">The requested story could not be retrieved from the wire.</p>
+          <Link
+            href="/"
+            className="px-6 py-3 neu-btn-primary font-bold text-xs inline-block"
+          >
+            Return to Wire Feed
+          </Link>
+        </div>
       </div>
     );
   }
-
-  const categoryTheme = getCategoryTheme(article.category);
 
   // Related contextual articles in the same category for internal linking & crawl depth
   const sameCategoryArticles = allArticles.filter(
@@ -142,38 +124,37 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
     };
 
     const headerCells = parseRow(rawLines[0]);
-    // Skip separator row like |---|---|
     const bodyRows = rawLines.slice(1).filter((l) => !/^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(l));
 
     return (
-      <div key={key} className="my-8 overflow-x-auto rounded-2xl border border-cyan-500/30 glass-panel shadow-lg shadow-cyan-950/20">
-        <div className="px-5 py-3 bg-gradient-to-r from-cyan-950/60 via-slate-900/80 to-slate-900/40 border-b border-white/10 flex items-center justify-between text-xs font-mono text-cyan-400">
-          <span className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            STRATEGIC IMPACT & COMPARATIVE MATRIX
+      <div key={key} className="my-8 overflow-x-auto rounded-2xl neu-flat p-4">
+        <div className="px-4 py-2 border-b border-[#d1d9e6] flex items-center justify-between text-xs font-mono text-[#1a8cff]">
+          <span className="flex items-center gap-2 font-bold">
+            <span className="w-2 h-2 rounded-full bg-[#1a8cff] animate-pulse" />
+            STRATEGIC IMPACT &amp; COMPARATIVE MATRIX
           </span>
-          <span className="text-[11px] text-neutral-400">GlobalPulse Intelligence Desk</span>
+          <span className="text-[11px] text-[#718096]">GlobalPulse Intelligence Desk</span>
         </div>
-        <table className="w-full text-left text-sm border-collapse">
+        <table className="w-full text-left text-sm border-collapse mt-2">
           <thead>
-            <tr className="border-b border-white/10 bg-white/[0.04]">
+            <tr className="border-b border-[#d1d9e6]">
               {headerCells.map((h, i) => (
-                <th key={i} className="px-5 py-3.5 font-mono text-xs uppercase tracking-wider text-cyan-300 font-bold">
+                <th key={i} className="px-4 py-3 font-mono text-xs uppercase tracking-wider text-[#2d3748] font-bold">
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.06] text-neutral-200">
+          <tbody className="divide-y divide-[#d1d9e6] text-[#4a5568]">
             {bodyRows.map((row, rIdx) => {
               const cells = parseRow(row);
               return (
-                <tr key={rIdx} className="hover:bg-cyan-500/[0.04] transition">
+                <tr key={rIdx} className="hover:bg-white/40 transition">
                   {cells.map((c, cIdx) => (
                     <td
                       key={cIdx}
-                      className={`px-5 py-3.5 text-xs sm:text-sm ${
-                        cIdx === 0 ? "font-semibold text-white" : "text-neutral-300"
+                      className={`px-4 py-3 text-xs sm:text-sm ${
+                        cIdx === 0 ? "font-bold text-[#2d3748]" : "text-[#4a5568]"
                       }`}
                     >
                       {c}
@@ -202,7 +183,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
         return (
           <h2
             key={idx}
-            className="text-2xl sm:text-3xl font-bold font-serif text-white mt-10 mb-4 pb-2 border-b border-white/[0.08]"
+            className="text-2xl sm:text-3xl font-bold font-serif text-[#2d3748] mt-10 mb-4 pb-2 border-b border-[#d1d9e6]"
           >
             {trimmed.replace("### ", "")}
           </h2>
@@ -210,7 +191,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
       }
       if (trimmed.startsWith("#### ")) {
         return (
-          <h3 key={idx} className="text-xl sm:text-2xl font-bold font-serif text-cyan-300 mt-8 mb-3">
+          <h3 key={idx} className="text-xl sm:text-2xl font-bold font-serif text-[#1a8cff] mt-8 mb-3">
             {trimmed.replace("#### ", "")}
           </h3>
         );
@@ -219,7 +200,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
         return (
           <blockquote
             key={idx}
-            className="my-8 pl-5 border-l-4 border-cyan-400 text-neutral-200 italic glass-panel p-5 rounded-r-2xl font-serif text-lg leading-relaxed shadow-lg shadow-cyan-950/20"
+            className="my-8 pl-5 border-l-4 border-[#1a8cff] text-[#2d3748] italic neu-pressed p-5 rounded-r-2xl font-serif text-lg leading-relaxed"
           >
             {trimmed.replace(/^>\s*/gm, "")}
           </blockquote>
@@ -230,7 +211,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
         return (
           <pre
             key={idx}
-            className="my-6 p-5 rounded-xl bg-slate-900/90 border border-white/10 text-cyan-300 font-mono text-xs overflow-x-auto leading-relaxed shadow-inner"
+            className="my-6 p-5 rounded-2xl neu-pressed text-[#1a8cff] font-mono text-xs overflow-x-auto leading-relaxed"
           >
             <code>{clean}</code>
           </pre>
@@ -239,10 +220,10 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
       if (trimmed.startsWith("* ") || trimmed.startsWith("- ") || trimmed.startsWith("1. ")) {
         const items = trimmed.split("\n");
         return (
-          <ul key={idx} className="my-5 space-y-2.5 text-neutral-300 text-base leading-relaxed list-disc list-inside">
+          <ul key={idx} className="my-5 space-y-2.5 text-[#4a5568] text-base leading-relaxed list-disc list-inside">
             {items.map((item, i) => (
               <li key={i} className="pl-1">
-                <span className="text-neutral-200">{item.replace(/^(\*|-|\d+\.)\s*/, "")}</span>
+                <span className="text-[#2d3748]">{item.replace(/^(\*|-|\d+\.)\s*/, "")}</span>
               </li>
             ))}
           </ul>
@@ -254,13 +235,13 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
         return (
           <div
             key={idx}
-            className="my-4 p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-neutral-200"
+            className="my-5 p-5 rounded-2xl neu-pressed text-[#2d3748]"
           >
-            <div className="text-sm sm:text-base font-bold text-cyan-300 mb-1">
+            <div className="text-sm sm:text-base font-bold text-[#1a8cff] mb-1">
               {trimmed.split("\n")[0].replace(/\*\*/g, "")}
             </div>
             {trimmed.split("\n").slice(1).join("\n") && (
-              <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed mt-2 font-light">
+              <p className="text-xs sm:text-sm text-[#4a5568] leading-relaxed mt-2 font-light">
                 {trimmed.split("\n").slice(1).join("\n").replace(/^\*\*A:\*\*\s*/i, "")}
               </p>
             )}
@@ -269,7 +250,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
       }
 
       return (
-        <p key={idx} className="text-base sm:text-lg text-neutral-300 leading-relaxed my-5 font-light">
+        <p key={idx} className="text-base sm:text-lg text-[#4a5568] leading-relaxed my-5 font-light">
           {section}
         </p>
       );
@@ -277,64 +258,68 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-neutral-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
+    <div className="min-h-screen bg-[#e0e5ec] text-[#2d3748] flex flex-col font-sans selection:bg-[#1a8cff] selection:text-white">
       <Header />
       <BreakingTicker articles={allArticles} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-6 pb-20">
         {/* Top Leaderboard Ad */}
-        <AdBanner slot="header" />
+        <div className="neu-flat p-4 mb-6">
+          <AdBanner slot="header" />
+        </div>
 
         {/* Back Link */}
         <div className="mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white font-mono transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl neu-sm text-xs text-[#718096] hover:text-[#1a8cff] font-mono transition active:scale-95"
           >
-            <ArrowLeft className="w-4 h-4 text-cyan-400" /> Back to Global Intelligence Wire
+            <ArrowLeft className="w-4 h-4 text-[#1a8cff]" /> Back to Global Intelligence Wire
           </Link>
         </div>
 
         {/* Article Header */}
         <header className="max-w-4xl mx-auto mb-10">
-          <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
             <span
-              className={`text-xs uppercase font-bold tracking-wider px-3.5 py-1 rounded-full border backdrop-blur-md ${categoryTheme.badge}`}
+              className={`text-xs uppercase font-bold tracking-wider px-3.5 py-1.5 rounded-xl neu-sm ${getCategoryBadgeClass(
+                article.category
+              )}`}
             >
               {article.category}
             </span>
-            <span className="text-xs text-neutral-400 font-mono flex items-center gap-1 bg-white/5 px-2.5 py-0.5 rounded-md border border-white/5">
-              <Clock className="w-3.5 h-3.5 text-cyan-400" /> 4 min read
+            <span className="text-xs text-[#718096] font-mono flex items-center gap-1.5 neu-sm px-3 py-1.5 rounded-xl">
+              <Clock className="w-3.5 h-3.5 text-[#1a8cff]" /> 4 min read
             </span>
-            <span className="text-xs text-neutral-400 font-mono flex items-center gap-1 bg-white/5 px-2.5 py-0.5 rounded-md border border-white/5">
-              <Eye className="w-3.5 h-3.5 text-emerald-400" /> {article.views.toLocaleString()} reads
+            <span className="text-xs text-[#718096] font-mono flex items-center gap-1.5 neu-sm px-3 py-1.5 rounded-xl">
+              <Eye className="w-3.5 h-3.5 text-emerald-600" /> {article.views.toLocaleString()} reads
             </span>
             {article.youtube_video_id && (
-              <span className="bg-gradient-to-r from-red-600 to-rose-600 text-white text-[11px] font-bold px-3 py-0.5 rounded-full flex items-center gap-1.5 shadow-[0_0_12px_rgba(239,68,68,0.4)]">
+              <span className="bg-gradient-to-r from-red-600 to-rose-600 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-red-500/20">
                 <Video className="w-3.5 h-3.5" /> HD Video Briefing Included
               </span>
             )}
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white font-serif tracking-tight leading-[1.12]">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-[#2d3748] font-serif tracking-tight leading-[1.12]">
             {article.title}
           </h1>
 
           {/* Metadata & Social Share Row */}
-          <div className="mt-8 pt-5 border-t border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="mt-8 pt-5 border-t border-[#d1d9e6] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-md shadow-cyan-500/20">
+              <div className="w-12 h-12 rounded-2xl neu-sm flex items-center justify-center font-black text-[#1a8cff] text-sm">
                 MS
               </div>
               <div>
-                <div className="text-xs font-bold text-white flex items-center gap-2">
+                <div className="text-xs font-bold text-[#2d3748] flex items-center gap-2">
                   <span>{article.author_name || "Muhammad Saeed (Chief Editor, GlobalPulse AI)"}</span>
-                  <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-normal">
+                  <span className="px-2 py-0.5 rounded-md neu-pressed text-[#1a8cff] text-[10px] font-mono font-bold">
                     VERIFIED
                   </span>
                 </div>
-                <div className="text-[11px] text-neutral-400 font-mono mt-0.5">
-                  Source: <span className="text-neutral-200">{article.source_name || "Tier-1 Global Wire"}</span> • Published{" "}
+                <div className="text-[11px] text-[#718096] font-mono mt-0.5">
+                  Source: <span className="text-[#2d3748] font-semibold">{article.source_name || "Tier-1 Global Wire"}</span> • Published{" "}
                   {article.published_at
                     ? new Date(article.published_at).toLocaleDateString("en-US", {
                         month: "short",
@@ -347,7 +332,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
             </div>
 
             {/* Social Share Buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={() => {
                   window.open(
@@ -357,7 +342,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                     "_blank"
                   );
                 }}
-                className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-neutral-300 font-semibold transition"
+                className="px-3.5 py-2 rounded-xl neu-sm text-xs text-[#2d3748] hover:text-[#1a8cff] font-semibold transition active:scale-95"
               >
                 X / Twitter
               </button>
@@ -368,43 +353,43 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                     "_blank"
                   );
                 }}
-                className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-neutral-300 font-semibold transition"
+                className="px-3.5 py-2 rounded-xl neu-sm text-xs text-[#2d3748] hover:text-[#1a8cff] font-semibold transition active:scale-95"
               >
                 LinkedIn
               </button>
               <button
                 onClick={handleCopyLink}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-xs text-cyan-300 font-bold transition shadow"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl neu-btn-primary text-xs font-bold transition active:scale-95"
               >
-                {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
+                {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-white" /> : <Share2 className="w-3.5 h-3.5" />}
                 {copied ? "Dossier Copied!" : "Share Dossier"}
               </button>
             </div>
           </div>
 
           {/* E-E-A-T Verified Editorial Author & Fact-Check Trust Banner */}
-          <div className="mt-4 p-3.5 rounded-xl bg-gradient-to-r from-cyan-950/40 via-slate-900/80 to-blue-950/40 border border-cyan-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
+          <div className="mt-5 p-4 rounded-2xl neu-flat flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-              <span className="text-neutral-200">
-                <strong className="text-white">Edited & Verified by Muhammad Saeed</strong> • Lead Analyst at GlobalPulse AI (
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+              <span className="text-[#4a5568]">
+                <strong className="text-[#2d3748]">Edited &amp; Verified by Muhammad Saeed</strong> • Lead Analyst at GlobalPulse AI (
                 <a
                   href="https://www.youtube.com/@GloblePulseAi"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-cyan-400 hover:underline font-mono"
+                  className="text-[#1a8cff] hover:underline font-mono font-semibold"
                 >
                   @GloblePulseAi
                 </a>
                 ) | Primary Wire Sources Checked
               </span>
             </div>
-            <span className="shrink-0 text-[10px] font-mono uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded border border-emerald-500/20">
+            <span className="shrink-0 text-[10px] font-mono uppercase tracking-wider text-emerald-600 neu-pressed px-3 py-1 rounded-lg font-bold">
               E-E-A-T Verified
             </span>
           </div>
 
-          {/* AI Audio Story Briefing Player (Dwell-time booster & Hands-free listening) */}
+          {/* AI Audio Story Briefing Player */}
           <AudioArticlePlayer
             title={article.title}
             content={article.content}
@@ -414,8 +399,10 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
         </header>
 
         {/* Responsive 320x50 Sponsored Banner */}
-        <div className="flex justify-center -mt-2 mb-6">
-          <AdsterraBanner size="320x50" label="Sponsored Intelligence Alert" className="my-0" />
+        <div className="flex justify-center -mt-2 mb-8">
+          <div className="neu-flat p-3 rounded-2xl">
+            <AdsterraBanner size="320x50" label="Sponsored Intelligence Alert" className="my-0" />
+          </div>
         </div>
 
         {/* 2-Column Editorial Grid: Article Body (Left 8 Cols) + Sidebar (Right 4 Cols) */}
@@ -424,47 +411,47 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
           <div className="lg:col-span-8">
             {/* Featured Image */}
             {article.image_url && (
-              <div className="rounded-2xl overflow-hidden glass-panel mb-8 aspect-video relative">
-                <img
-                  src={article.image_url}
-                  alt={article.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const seed = typeof article.id === "number" ? article.id : 100;
-                    const cleanWords = (article.title || "tech news")
-                      .replace(/[^a-zA-Z0-9\s]/g, " ")
-                      .split(" ")
-                      .filter((w) => w.length > 2)
-                      .slice(0, 5)
-                      .join(" ");
-                    const fallback = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-                      cleanWords || article.category
-                    )}%20editorial%20news%20photography%20realistic%208k?width=1200&height=700&nologo=true&seed=${seed}`;
-                    (e.target as HTMLImageElement).src = fallback;
-                  }}
-                />
-                <div className="absolute bottom-3 right-3 text-[10px] text-white/80 bg-black/70 px-2.5 py-1 rounded-md backdrop-blur font-mono border border-white/10">
-                  GlobalPulse AI Imagery Archive • High Resolution
+              <div className="rounded-3xl overflow-hidden neu-flat p-3 mb-8 aspect-video relative">
+                <div className="w-full h-full rounded-2xl overflow-hidden relative">
+                  <img
+                    src={article.image_url}
+                    alt={article.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const seed = typeof article.id === "number" ? article.id : 100;
+                      const cleanWords = (article.title || "tech news")
+                        .replace(/[^a-zA-Z0-9\s]/g, " ")
+                        .split(" ")
+                        .filter((w) => w.length > 2)
+                        .slice(0, 5)
+                        .join(" ");
+                      const fallback = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+                        cleanWords || article.category
+                      )}%20editorial%20news%20photography%20realistic%208k?width=1200&height=700&nologo=true&seed=${seed}`;
+                      (e.target as HTMLImageElement).src = fallback;
+                    }}
+                  />
+                  <div className="absolute bottom-3 right-3 text-[10px] text-white/90 bg-slate-900/80 px-2.5 py-1 rounded-lg backdrop-blur font-mono">
+                    GlobalPulse AI Imagery Archive
+                  </div>
                 </div>
               </div>
             )}
 
             {/* KEY TAKEAWAYS (TL;DR) EXECUTIVE BOX */}
-            <div className="p-7 rounded-2xl glass-panel-glow border-2 border-cyan-500/40 mb-10 shadow-[0_0_25px_rgba(6,182,212,0.15)] relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
-
-              <div className="flex items-center gap-2 mb-3.5 relative z-10">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-xs uppercase font-mono font-bold tracking-widest text-cyan-300">
+            <div className="p-7 sm:p-8 rounded-3xl neu-flat mb-10 relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="w-4 h-4 text-[#1a8cff]" />
+                <h3 className="text-xs uppercase font-mono font-bold tracking-widest text-[#1a8cff]">
                   Executive Intelligence Takeaways (TL;DR Summary)
                 </h3>
               </div>
 
-              <div className="space-y-2.5 text-sm text-neutral-200 leading-relaxed font-sans relative z-10">
+              <div className="space-y-3 text-sm text-[#2d3748] leading-relaxed font-sans">
                 {article.summary.split("\n").map((line, i) => (
                   <div key={i} className="flex items-start gap-2.5">
-                    <span className="text-cyan-400 font-bold shrink-0 mt-0.5">▸</span>
-                    <span>{line.replace(/^•\s*/, "")}</span>
+                    <span className="text-[#1a8cff] font-bold shrink-0 mt-0.5">▸</span>
+                    <span className="font-medium">{line.replace(/^•\s*/, "")}</span>
                   </div>
                 ))}
               </div>
@@ -472,17 +459,17 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
 
             {/* EMBEDDED YOUTUBE VIDEO PLAYER */}
             {article.youtube_video_id && (
-              <div className="mb-10 p-5 rounded-2xl glass-panel border border-red-500/30 shadow-[0_0_25px_rgba(239,68,68,0.15)]">
-                <div className="flex items-center justify-between mb-3.5">
-                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-red-400">
+              <div className="mb-10 p-6 rounded-3xl neu-flat">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-red-600">
                     <Video className="w-4 h-4 text-red-500" />
                     <span>HD Video Intelligence Broadcast (GlobalPulse AI)</span>
                   </div>
-                  <span className="text-[10px] text-neutral-400 font-mono bg-white/5 px-2 py-0.5 rounded">
+                  <span className="text-[10px] text-[#718096] font-mono neu-pressed px-2.5 py-1 rounded-lg">
                     PRODUCED FOR TIER-1 AUDIENCE
                   </span>
                 </div>
-                <div className="aspect-video w-full rounded-xl overflow-hidden bg-black shadow-2xl border border-white/10">
+                <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-inner">
                   <iframe
                     className="w-full h-full"
                     src={`https://www.youtube-nocookie.com/embed/${article.youtube_video_id}?autoplay=0&rel=0`}
@@ -495,32 +482,32 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
             )}
 
             {/* Article Content */}
-            <div className="prose prose-invert max-w-none text-neutral-300 font-sans leading-relaxed">
+            <div className="prose max-w-none text-[#4a5568] font-sans leading-relaxed">
               {renderContentParagraphs(article.content)}
             </div>
 
             {/* CONTEXTUAL INTERNAL LINKING MODULE: Read Next / Related Intelligence */}
             {contextualRelated.length > 0 && (
-              <div className="my-10 p-6 rounded-2xl glass-panel border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
-                <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
+              <div className="my-10 p-7 rounded-3xl neu-flat">
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#d1d9e6]">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                    <h3 className="text-xs font-mono uppercase font-bold tracking-widest text-cyan-300">
-                      Related Intelligence & Continuous Coverage ({article.category})
+                    <span className="w-2 h-2 rounded-full bg-[#1a8cff]" />
+                    <h3 className="text-xs font-mono uppercase font-bold tracking-widest text-[#1a8cff]">
+                      Related Intelligence &amp; Continuous Coverage ({article.category})
                     </h3>
                   </div>
-                  <span className="text-[10px] font-mono text-neutral-400">Google Crawl & Deep Dive</span>
+                  <span className="text-[10px] font-mono text-[#718096]">Google Crawl &amp; Deep Dive</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   {contextualRelated.map((rel) => (
                     <Link
                       key={rel.id}
                       href={`/news/${rel.slug}`}
-                      className="group flex flex-col justify-between rounded-xl bg-white/[0.03] hover:bg-cyan-500/[0.08] border border-white/[0.06] hover:border-cyan-500/40 transition-all duration-200 overflow-hidden"
+                      className="group flex flex-col justify-between rounded-2xl neu-sm p-3 transition-transform duration-200 hover:-translate-y-1 overflow-hidden"
                     >
                       {rel.image_url && (
-                        <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-900">
+                        <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden bg-[#d1d9e6] mb-3">
                           <img
                             src={rel.image_url}
                             alt={rel.title}
@@ -529,18 +516,18 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                           />
                         </div>
                       )}
-                      <div className="p-3.5 flex-1 flex flex-col justify-between">
+                      <div className="flex-1 flex flex-col justify-between">
                         <div>
-                          <span className="text-[10px] uppercase font-mono font-bold text-cyan-400">
+                          <span className="text-[10px] uppercase font-mono font-bold text-[#1a8cff]">
                             {rel.category}
                           </span>
-                          <h4 className="text-xs sm:text-sm font-semibold text-white group-hover:text-cyan-300 transition line-clamp-2 mt-1 mb-2 leading-snug">
+                          <h4 className="text-xs sm:text-sm font-bold text-[#2d3748] group-hover:text-[#1a8cff] transition line-clamp-2 mt-1 mb-2 leading-snug">
                             {rel.title}
                           </h4>
                         </div>
-                        <div className="text-[10px] text-neutral-400 font-mono flex items-center justify-between pt-2 border-t border-white/[0.05]">
+                        <div className="text-[10px] text-[#718096] font-mono flex items-center justify-between pt-2 border-t border-[#d1d9e6]">
                           <span>{rel.views.toLocaleString()} reads</span>
-                          <span className="text-cyan-400 group-hover:translate-x-1 transition font-bold">
+                          <span className="text-[#1a8cff] font-bold group-hover:translate-x-1 transition">
                             Read Story →
                           </span>
                         </div>
@@ -552,23 +539,25 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
             )}
 
             {/* In-Article Ad Banner */}
-            <AdBanner slot="in-article" />
+            <div className="neu-flat p-4 my-8">
+              <AdBanner slot="in-article" />
+            </div>
 
             {/* In-Article Newsletter Capture Box */}
             <NewsletterBox />
 
             {/* Source Verification Citation */}
-            <div className="mt-8 p-5 rounded-xl glass-panel flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-neutral-400 font-mono">
+            <div className="mt-8 p-5 rounded-2xl neu-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#718096] font-mono">
               <div>
                 Primary Reporting Wire / Document:{" "}
-                <span className="text-neutral-200 font-semibold">{article.source_name || "Official Wire"}</span>
+                <span className="text-[#2d3748] font-bold">{article.source_name || "Official Wire"}</span>
               </div>
               {article.source_url && (
                 <a
                   href={article.source_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 font-bold"
+                  className="flex items-center gap-1.5 text-[#1a8cff] hover:underline font-bold"
                 >
                   Verify Source Artifact <ExternalLink className="w-3.5 h-3.5" />
                 </a>
@@ -576,28 +565,28 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
             </div>
 
             {/* AUTHOR BIO & E-E-A-T EDITORIAL TRANSPARENCY CARD */}
-            <div className="mt-8 p-6 rounded-2xl glass-panel border border-white/10 relative overflow-hidden">
+            <div className="mt-8 p-6 sm:p-7 rounded-3xl neu-flat relative overflow-hidden">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center font-black text-slate-950 text-xl shrink-0 shadow-lg shadow-cyan-500/20">
+                <div className="w-14 h-14 rounded-2xl neu-sm flex items-center justify-center font-black text-[#1a8cff] text-xl shrink-0">
                   MS
                 </div>
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-sm sm:text-base font-bold text-white">Muhammad Saeed</h4>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                      Chief Editor & AI Analyst
+                    <h4 className="text-sm sm:text-base font-bold text-[#2d3748]">Muhammad Saeed</h4>
+                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-lg neu-pressed text-[#1a8cff] font-bold">
+                      Chief Editor &amp; AI Analyst
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-lg neu-pressed text-emerald-600 font-bold">
                       Tier-1 Corroborated
                     </span>
                   </div>
-                  <p className="text-xs text-neutral-300 mt-1 leading-relaxed">
+                  <p className="text-xs text-[#718096] mt-1.5 leading-relaxed">
                     Lead analyst at{" "}
                     <a
                       href="https://www.youtube.com/@GloblePulseAi"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-cyan-400 hover:underline font-semibold"
+                      className="text-[#1a8cff] hover:underline font-semibold"
                     >
                       GlobalPulse AI (@GloblePulseAi)
                     </a>
@@ -608,7 +597,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                   href="https://www.youtube.com/@GloblePulseAi"
                   target="_blank"
                   rel="noreferrer"
-                  className="shrink-0 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-red-600/30 transition"
+                  className="shrink-0 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-red-600/20 transition active:scale-95"
                 >
                   <Video className="w-3.5 h-3.5" /> Watch on YouTube
                 </a>
@@ -616,17 +605,21 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
             </div>
 
             {/* Article Detail Page Footer Adsterra Banner */}
-            <AdsterraBanner label="Sponsored Intelligence" className="my-8" />
+            <div className="neu-flat p-4 my-8">
+              <AdsterraBanner label="Sponsored Intelligence" className="my-0" />
+            </div>
           </div>
 
           {/* Right Sidebar */}
           <aside className="lg:col-span-4 space-y-8">
             {/* 300x600 Skyscraper AdSense / House Ad */}
-            <AdBanner slot="sidebar" />
+            <div className="neu-flat p-4">
+              <AdBanner slot="sidebar" />
+            </div>
 
             {/* Most Read Trending Intelligence */}
-            <div className="p-6 rounded-2xl glass-panel">
-              <h4 className="text-xs uppercase font-mono font-bold tracking-widest text-neutral-400 mb-4 pb-2 border-b border-white/[0.08]">
+            <div className="p-6 rounded-3xl neu-flat">
+              <h4 className="text-xs uppercase font-mono font-bold tracking-widest text-[#2d3748] mb-5 pb-2 border-b border-[#d1d9e6]">
                 Most Read Intelligence Dossiers
               </h4>
               <div className="space-y-4">
@@ -634,20 +627,20 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                   <Link
                     key={rel.id}
                     href={`/news/${rel.slug}`}
-                    className="group block pb-3.5 border-b border-white/[0.06] last:border-0 last:pb-0 transition-transform duration-200 hover:translate-x-1"
+                    className="group block pb-3.5 border-b border-[#d1d9e6] last:border-0 last:pb-0 transition-transform duration-200 hover:translate-x-1"
                   >
                     <div className="flex items-start gap-3.5">
-                      <span className="text-xl font-serif font-black text-neutral-600 group-hover:text-cyan-400 transition">
+                      <span className="text-xl font-serif font-black text-[#a0aec0] group-hover:text-[#1a8cff] transition">
                         0{idx + 1}
                       </span>
                       <div>
-                        <span className="text-[10px] text-cyan-400 font-mono uppercase font-bold">
+                        <span className="text-[10px] text-[#1a8cff] font-mono uppercase font-bold">
                           {rel.category}
                         </span>
-                        <h5 className="text-xs font-bold text-neutral-200 group-hover:text-white transition leading-snug">
+                        <h5 className="text-xs font-bold text-[#2d3748] group-hover:text-[#1a8cff] transition leading-snug">
                           {rel.title}
                         </h5>
-                        <div className="text-[10px] text-neutral-500 font-mono mt-1 flex items-center gap-2">
+                        <div className="text-[10px] text-[#718096] font-mono mt-1 flex items-center gap-2">
                           <span>{rel.views.toLocaleString()} reads</span>
                           <span>•</span>
                           <span>4m read</span>
@@ -663,20 +656,20 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
 
         {/* Full-Width Continuous Wire & Recommended Stories Grid */}
         {allArticles.filter((a) => a.id !== article.id).length > 0 && (
-          <section className="mt-16 pt-12 border-t border-white/10">
+          <section className="mt-16 pt-12 border-t border-[#d1d9e6]">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
               <div>
-                <span className="text-[11px] font-mono uppercase font-bold tracking-widest text-cyan-400 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="text-[11px] font-mono uppercase font-bold tracking-widest text-[#1a8cff] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#1a8cff] animate-pulse" />
                   Live Wire Radar
                 </span>
-                <h3 className="text-xl sm:text-2xl font-bold font-serif text-white mt-1">
+                <h3 className="text-xl sm:text-2xl font-bold font-serif text-[#2d3748] mt-1">
                   Trending Stories You May Like
                 </h3>
               </div>
               <Link
                 href="/"
-                className="text-xs font-mono text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1.5 group"
+                className="text-xs font-mono text-[#1a8cff] hover:underline font-bold flex items-center gap-1.5 group"
               >
                 <span>Browse All Intelligence Dossiers</span>
                 <span className="group-hover:translate-x-1 transition font-mono">→</span>
@@ -691,41 +684,40 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                   <Link
                     key={item.id}
                     href={`/news/${item.slug}`}
-                    className="group flex flex-col justify-between rounded-2xl glass-panel border border-white/[0.08] hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all duration-300 overflow-hidden"
+                    className="group flex flex-col justify-between rounded-3xl neu-flat p-4 transition-transform duration-300 hover:-translate-y-1 overflow-hidden"
                   >
                     <div>
                       {item.image_url ? (
-                        <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-900">
+                        <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-[#d1d9e6] mb-3.5">
                           <img
                             src={item.image_url}
                             alt={item.title}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             loading="lazy"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-transparent to-transparent" />
-                          <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-neutral-950/80 backdrop-blur-md text-[10px] font-mono font-bold uppercase text-cyan-300 border border-white/10">
+                          <span className="absolute bottom-2 left-2 px-2.5 py-0.5 rounded-lg bg-slate-900/80 backdrop-blur-md text-[10px] font-mono font-bold uppercase text-white">
                             {item.category}
                           </span>
                         </div>
                       ) : (
-                        <div className="p-4 pb-0">
-                          <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-[10px] font-mono font-bold uppercase text-cyan-300 border border-cyan-500/20">
+                        <div className="mb-2">
+                          <span className="px-2.5 py-0.5 rounded-lg neu-pressed text-[10px] font-mono font-bold uppercase text-[#1a8cff]">
                             {item.category}
                           </span>
                         </div>
                       )}
-                      <div className="p-4">
-                        <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition line-clamp-2 leading-snug">
+                      <div>
+                        <h4 className="text-sm font-bold text-[#2d3748] group-hover:text-[#1a8cff] transition line-clamp-2 leading-snug">
                           {item.title}
                         </h4>
-                        <p className="text-xs text-neutral-400 line-clamp-2 mt-2 leading-relaxed">
+                        <p className="text-xs text-[#718096] line-clamp-2 mt-2 leading-relaxed">
                           {item.summary.replace(/^[•▸*-\s]+/gm, " ").trim()}
                         </p>
                       </div>
                     </div>
-                    <div className="px-4 py-3 border-t border-white/[0.06] flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                    <div className="pt-3 mt-3 border-t border-[#d1d9e6] flex items-center justify-between text-[11px] font-mono text-[#718096]">
                       <span>{item.views.toLocaleString()} reads</span>
-                      <span className="text-cyan-400 font-bold group-hover:translate-x-1 transition">
+                      <span className="text-[#1a8cff] font-bold group-hover:translate-x-1 transition">
                         Read Story →
                       </span>
                     </div>

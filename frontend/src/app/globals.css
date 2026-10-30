@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030712;
-  --foreground: #f9fafb;
+  --background: #e0e5ec;
+  --foreground: #2d3748;
+  --neu-base: #e0e5ec;
+  --neu-shadow-dark: #b8bec7;
+  --neu-shadow-light: #ffffff;
+  --text-primary: #2d3748;
+  --text-muted: #718096;
+  --accent-blue: #1a8cff;
 }
 
 @theme inline {
@@ -14,63 +20,156 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   overflow-x: hidden;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.08) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(147, 51, 234, 0.07) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
   background-attachment: fixed;
 }
 
-/* Glassmorphism primitives */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* ==========================================================================
+   NEUMORPHIC 3D TACTILE SHADOW SYSTEM
+   ========================================================================== */
+
+/* 1. Large 3D Extruded Surfaces (Cards, Containers, Navbar, Hero) */
+.neu-flat {
+  background: #e0e5ec;
+  box-shadow: 12px 12px 24px #b8bec7, -12px -12px 24px #ffffff;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: all 0.25s ease-in-out;
 }
 
-.glass-panel-glow {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+.neu-flat-hover:hover {
+  box-shadow: 16px 16px 32px #b8bec7, -16px -16px 32px #ffffff;
+  transform: translateY(-2px);
 }
 
-.glass-nav {
-  background: rgba(3, 7, 18, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+/* 2. Small / Medium Extruded 3D Elements (Buttons, Badges, Tabs) */
+.neu-sm {
+  background: #e0e5ec;
+  box-shadow: 6px 6px 12px #b8bec7, -6px -6px 12px #ffffff;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease-in-out;
 }
 
-/* Shimmer and pulse animations */
-@keyframes pulse-glow {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.05);
-  }
+.neu-sm-hover:hover {
+  box-shadow: 8px 8px 16px #b8bec7, -8px -8px 16px #ffffff;
+  transform: translateY(-1px);
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.neu-sm-hover:active,
+.neu-sm:active {
+  box-shadow: inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff;
+  transform: translateY(0);
 }
 
+/* 3. Carved-In / Pressed 3D Insets (Inputs, Search, Active Category Pills, Progress Bars) */
+.neu-pressed,
+.neu-inset {
+  background: #e0e5ec;
+  box-shadow: inset 5px 5px 10px #b8bec7, inset -5px -5px 10px #ffffff;
+  border-radius: 14px;
+  transition: all 0.2s ease-in-out;
+}
+
+.neu-pressed-sm {
+  background: #e0e5ec;
+  box-shadow: inset 3px 3px 6px #b8bec7, inset -3px -3px 6px #ffffff;
+  border-radius: 10px;
+}
+
+/* 4. Circular Extruded & Pressed Icon Elements */
+.neu-circle {
+  background: #e0e5ec;
+  box-shadow: 8px 8px 16px #b8bec7, -8px -8px 16px #ffffff;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease-in-out;
+}
+
+.neu-circle:active {
+  box-shadow: inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff;
+}
+
+.neu-circle-pressed {
+  background: #e0e5ec;
+  box-shadow: inset 5px 5px 10px #b8bec7, inset -5px -5px 10px #ffffff;
+  border-radius: 50%;
+}
+
+/* 5. Electric Royal Blue 3D Action Button */
+.neu-btn-primary {
+  background: #1a8cff;
+  color: #ffffff;
+  box-shadow: 6px 6px 14px rgba(26, 140, 255, 0.4), -6px -6px 14px #ffffff;
+  border-radius: 14px;
+  font-weight: 700;
+  transition: all 0.2s ease-in-out;
+}
+
+.neu-btn-primary:hover {
+  background: #0077f0;
+  box-shadow: 8px 8px 18px rgba(26, 140, 255, 0.45), -8px -8px 18px #ffffff;
+  transform: translateY(-1px);
+}
+
+.neu-btn-primary:active {
+  background: #0066d6;
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.25), inset -4px -4px 8px rgba(255, 255, 255, 0.3);
+  transform: translateY(0);
+}
+
+/* 6. Form Inputs & Textareas with Smooth Focus Transition */
+.neu-input {
+  background: #e0e5ec;
+  box-shadow: inset 5px 5px 10px #b8bec7, inset -5px -5px 10px #ffffff;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  color: #2d3748;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.neu-input:focus {
+  outline: none;
+  border-color: #1a8cff;
+  box-shadow: inset 5px 5px 10px #b8bec7, inset -5px -5px 10px #ffffff, 0 0 0 3px rgba(26, 140, 255, 0.15);
+}
+
+.neu-input::placeholder {
+  color: #a0aec0;
+}
+
+/* 7. Ambient Decorative 3D Spheres */
+.bg-circle {
+  background: #e0e5ec;
+  box-shadow: 16px 16px 32px #b8bec7, -16px -16px 32px #ffffff;
+  border-radius: 50%;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+/* 8. Neumorphic Progress Bar Track & Fill */
+.neu-progress-track {
+  background: #e0e5ec;
+  box-shadow: inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.neu-progress-fill {
+  background: linear-gradient(90deg, #1a8cff 0%, #00c6ff 100%);
+  border-radius: 9999px;
+  box-shadow: 2px 2px 6px rgba(26, 140, 255, 0.35);
+  transition: width 0.5s ease-out;
+}
+
+/* Marquee for Breaking Ticker */
 @keyframes marquee {
-  0% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
 }
 
 .animate-marquee {
@@ -83,18 +182,20 @@ body {
   animation-play-state: paused;
 }
 
-/* Custom scrollbar for high-tech aesthetic */
+/* Neumorphic Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #030712;
+  background: #e0e5ec;
+  box-shadow: inset 2px 2px 5px #b8bec7, inset -2px -2px 5px #ffffff;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #cbd5e0;
   border-radius: 9999px;
+  box-shadow: 2px 2px 4px #b8bec7, -2px -2px 4px #ffffff;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #a0aec0;
 }

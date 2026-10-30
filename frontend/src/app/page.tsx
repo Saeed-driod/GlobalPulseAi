@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Article } from "../types/article";
-import { fetchArticles, FALLBACK_ARTICLES } from "../lib/api";
+import { fetchArticles } from "../lib/api";
 import { BreakingTicker } from "../components/BreakingTicker";
 import { Header, CATEGORIES } from "../components/Header";
 import { HeroFeatured } from "../components/HeroFeatured";
@@ -10,7 +10,7 @@ import { ArticleCard } from "../components/ArticleCard";
 import { AdBanner } from "../components/AdBanner";
 import { AdsterraBanner } from "../components/AdsterraBanner";
 import { Footer } from "../components/Footer";
-import { Sparkles, TrendingUp, RefreshCw, Zap, Clock, ShieldCheck } from "../components/Icons";
+import { Sparkles, RefreshCw, ShieldCheck } from "../components/Icons";
 
 export default function HomePage() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -48,10 +48,11 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-neutral-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
-      {/* 1. Breaking News Ticker (Right Below Header) */}
+    <div className="min-h-screen bg-[#e0e5ec] text-[#2d3748] flex flex-col font-sans selection:bg-[#1a8cff] selection:text-white">
+      {/* 1. Header & Breaking News Ticker */}
       <Header
         selectedCategory={selectedCategory}
+        onSelectCategory={(cat) => setSelectedCategory(cat)}
         searchQuery={searchQuery}
         onSearchChange={(val) => setSearchQuery(val)}
       />
@@ -60,26 +61,28 @@ export default function HomePage() {
 
       {/* 2. Main Newsroom Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-6 pb-20">
-        {/* Top Leaderboard Ad Slot */}
-        <AdBanner slot="header" />
+        {/* Top Leaderboard Ad Slot in Neumorphic frame */}
+        <div className="neu-flat p-4 mb-8">
+          <AdBanner slot="header" />
+        </div>
 
         {/* Hero Featured Story (Shown when browsing All Stories without search query) */}
         {!searchQuery && selectedCategory === "All Stories" && !loading && (
           <HeroFeatured articles={articles} />
         )}
 
-        {/* Section Heading & Category Filter Controls with Clean Stacking */}
-        <div className="mt-8 mb-6 pt-6 border-t border-white/[0.08] flex flex-col gap-5">
+        {/* Section Heading & Category Filter Controls */}
+        <div className="mt-8 mb-8 neu-flat p-6 flex flex-col gap-5">
           {/* Top Row: Title, Subtext, and Refresh Feed Action */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-gradient-to-tr from-cyan-400 to-blue-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
-                <h2 className="text-xl sm:text-2xl font-bold font-serif text-white tracking-tight">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#1a8cff] shadow-[0_0_8px_rgba(26,140,255,0.6)]" />
+                <h2 className="text-xl sm:text-2xl font-bold font-serif text-[#2d3748] tracking-tight">
                   {selectedCategory === "All Stories" ? "Latest Verified Dispatches" : selectedCategory}
                 </h2>
               </div>
-              <p className="text-xs text-neutral-400 mt-1 font-mono">
+              <p className="text-xs text-[#718096] mt-1 font-mono">
                 Displaying {articles.length} verified intelligence reports synthesized for Tier-1 decision makers.
               </p>
             </div>
@@ -88,15 +91,15 @@ export default function HomePage() {
               <button
                 onClick={() => loadData(selectedCategory, searchQuery)}
                 disabled={loading}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-neutral-300 font-mono transition shadow"
+                className="neu-sm px-4 py-2 flex items-center gap-2 text-xs text-[#2d3748] font-bold active:scale-95 transition cursor-pointer"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-cyan-400" : ""}`} />
-                {loading ? "Syncing Wire..." : "Refresh Feed"}
+                <RefreshCw className={`w-3.5 h-3.5 text-[#1a8cff] ${loading ? "animate-spin" : ""}`} />
+                <span>{loading ? "Syncing..." : "Refresh Feed"}</span>
               </button>
             </div>
           </div>
 
-          {/* Clean Interactive Category Pills Bar - Stacked cleanly below the heading */}
+          {/* Clean Interactive Neumorphic Category Pills Bar */}
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 scrollbar-none">
             {CATEGORIES.map((cat) => {
               const Icon = cat.icon;
@@ -105,14 +108,14 @@ export default function HomePage() {
                 <button
                   key={cat.name}
                   onClick={() => setSelectedCategory(cat.name)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                     isActive
-                      ? "bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 shadow-lg shadow-cyan-500/30 scale-105 border border-cyan-300 font-extrabold"
-                      : "text-neutral-400 hover:text-white hover:bg-white/5 bg-slate-900/60 border border-white/10 hover:border-white/20"
+                      ? "neu-pressed text-[#1a8cff] font-extrabold"
+                      : "neu-sm text-[#718096] hover:text-[#2d3748]"
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-slate-950" : "text-neutral-400"}`} />
-                  {cat.name}
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#1a8cff]" : "text-[#718096]"}`} />
+                  <span>{cat.name}</span>
                 </button>
               );
             })}
@@ -123,26 +126,29 @@ export default function HomePage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="glass-panel rounded-2xl overflow-hidden p-6 animate-pulse">
-                <div className="w-full h-44 bg-white/5 rounded-xl mb-4" />
-                <div className="h-4 w-24 bg-white/5 rounded-full mb-3" />
-                <div className="h-6 w-5/6 bg-white/10 rounded mb-2" />
-                <div className="h-4 w-full bg-white/5 rounded mb-1" />
-                <div className="h-4 w-2/3 bg-white/5 rounded" />
+              <div key={i} className="neu-flat p-5 animate-pulse flex flex-col justify-between h-96">
+                <div>
+                  <div className="w-full h-44 neu-pressed rounded-xl mb-4" />
+                  <div className="h-4 w-24 neu-pressed rounded-full mb-3" />
+                  <div className="h-6 w-5/6 neu-pressed rounded mb-2" />
+                  <div className="h-4 w-full neu-pressed rounded mb-1" />
+                  <div className="h-4 w-2/3 neu-pressed rounded" />
+                </div>
+                <div className="h-8 w-28 neu-pressed rounded-xl self-end" />
               </div>
             ))}
           </div>
         ) : articles.length === 0 ? (
-          <div className="py-24 text-center glass-panel rounded-2xl">
-            <Sparkles className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-neutral-300">No dispatches match your query</h3>
-            <p className="text-sm text-neutral-500 mt-1">Try clearing your search or selecting another category.</p>
+          <div className="py-20 text-center neu-flat p-10">
+            <Sparkles className="w-12 h-12 text-[#1a8cff] mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-[#2d3748]">No dispatches match your query</h3>
+            <p className="text-sm text-[#718096] mt-1">Try clearing your search or selecting another category.</p>
             <button
               onClick={() => {
                 setSelectedCategory("All Stories");
                 setSearchQuery("");
               }}
-              className="mt-5 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-xl text-xs transition"
+              className="mt-5 neu-btn-primary px-6 py-2.5 text-xs uppercase tracking-wider"
             >
               Reset Filters
             </button>
@@ -155,26 +161,25 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Adsterra 300x250 Monetization Banner */}
-        <AdsterraBanner label="Sponsored Intelligence" className="mt-14 mb-4" />
+        {/* Adsterra 300x250 Monetization Banner wrapped in Neumorphic frame */}
+        <div className="neu-flat p-6 mt-14 mb-4 flex justify-center">
+          <AdsterraBanner label="Sponsored Intelligence" />
+        </div>
 
         {/* Tier-1 Executive Dossier Newsletter Banner */}
-        <section className="mt-20 rounded-3xl p-8 sm:p-10 glass-panel-glow relative overflow-hidden border border-cyan-500/20">
-          <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -left-20 -top-20 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
+        <section className="mt-16 neu-flat p-8 sm:p-10 relative overflow-hidden">
           <div className="max-w-2xl relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck className="w-4 h-4 text-cyan-400" />
-              <span className="text-[11px] font-mono uppercase font-bold text-cyan-400 tracking-wider">
+            <div className="flex items-center gap-2 mb-2.5">
+              <ShieldCheck className="w-4 h-4 text-[#1a8cff]" />
+              <span className="text-[11px] font-mono uppercase font-bold text-[#1a8cff] tracking-wider">
                 Priority Global Intelligence Dossier
               </span>
             </div>
 
-            <h3 className="text-2xl sm:text-3xl font-black font-serif text-white tracking-tight leading-tight">
+            <h3 className="text-2xl sm:text-3xl font-black font-serif text-[#2d3748] tracking-tight leading-tight">
               Receive Daily 60-Second AI Video & Audio Briefings
             </h3>
-            <p className="text-sm text-neutral-300 mt-2.5 leading-relaxed font-sans">
+            <p className="text-sm text-[#718096] mt-2.5 leading-relaxed font-sans">
               Join 85,000+ institutional allocators, Silicon Valley founders, and policymakers receiving our confidential 06:00 EST executive intelligence dispatch.
             </p>
 
@@ -185,11 +190,11 @@ export default function HomePage() {
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder="Enter your executive or enterprise email..."
-                className="flex-1 px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 backdrop-blur-md"
+                className="flex-1 neu-input px-4 py-3 text-sm placeholder:text-[#a0aec0]"
               />
               <button
                 type="submit"
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition duration-150 shrink-0"
+                className="neu-btn-primary px-6 py-3 text-xs uppercase tracking-wider shrink-0"
               >
                 {newsletterSubscribed ? "✓ Subscribed!" : "Subscribe Dossier"}
               </button>
