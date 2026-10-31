@@ -607,56 +607,9 @@ export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary | null> 
       return await res.json();
     }
   } catch (err) {
-    console.warn("Analytics API unavailable, computing from Neon:", err);
+    console.error("Failed to fetch real analytics summary:", err);
   }
-
-  try {
-    const statsRows = await queryNeonDirect<{ total_views: number }>(`
-      SELECT coalesce(sum(views), 0)::int as total_views FROM articles;
-    `);
-    const topArticles = await queryNeonDirect<Article>(`
-      SELECT id, title, slug, category, views FROM articles ORDER BY views DESC, id DESC LIMIT 5;
-    `);
-    const totalViews = statsRows[0]?.total_views || 24800;
-
-    return {
-      total_views: totalViews,
-      views_today: Math.round(totalViews * 0.18) + 142,
-      unique_visitors_today: Math.round(totalViews * 0.12) + 95,
-      mobile_percent: 78,
-      desktop_percent: 22,
-      top_source: "TikTok",
-      top_country: "United States",
-      sources: [
-        { source: "TikTok", count: Math.round(totalViews * 0.42), percent: 42 },
-        { source: "YouTube", count: Math.round(totalViews * 0.28), percent: 28 },
-        { source: "Google Search", count: Math.round(totalViews * 0.16), percent: 16 },
-        { source: "Direct / Organic", count: Math.round(totalViews * 0.14), percent: 14 },
-      ],
-      countries: [
-        { country_name: "United States", country_code: "US", flag: "🇺🇸", count: Math.round(totalViews * 0.48), percent: 48 },
-        { country_name: "United Kingdom", country_code: "GB", flag: "🇬🇧", count: Math.round(totalViews * 0.22), percent: 22 },
-        { country_name: "Canada", country_code: "CA", flag: "🇨🇦", count: Math.round(totalViews * 0.15), percent: 15 },
-        { country_name: "Australia", country_code: "AU", flag: "🇦🇺", count: Math.round(totalViews * 0.09), percent: 9 },
-        { country_name: "Germany", country_code: "DE", flag: "🇩🇪", count: Math.round(totalViews * 0.06), percent: 6 },
-      ],
-      top_articles: topArticles.map((a: any) => ({
-        id: a.id,
-        title: a.title,
-        slug: a.slug,
-        category: a.category,
-        views: a.views || 0,
-      })),
-      recent_visits: [
-        { id: 1, path: "/news/ai-breakthrough", country_code: "US", country_name: "United States", flag: "🇺🇸", source: "TikTok", device: "Mobile", time_ago: "Just now" },
-        { id: 2, path: "/news/global-markets", country_code: "GB", country_name: "United Kingdom", flag: "🇬🇧", source: "YouTube", device: "Mobile", time_ago: "2m ago" },
-        { id: 3, path: "/news/geopolitics", country_code: "CA", country_name: "Canada", flag: "🇨🇦", source: "Google Search", device: "Desktop", time_ago: "5m ago" },
-      ],
-    };
-  } catch (neonErr) {
-    console.error("Neon analytics fallback failed:", neonErr);
-    return null;
-  }
+  return null;
 }
 
 

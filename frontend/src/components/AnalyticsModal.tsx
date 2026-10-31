@@ -125,7 +125,7 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
                 <span className="text-[#1a8cff] font-bold">#1</span>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-[#1a8cff] font-mono mt-2 truncate">
-                {analyticsData?.top_source || "TikTok"}
+                {analyticsData?.top_source || "Direct"}
               </div>
               <div className="text-[10px] text-[#718096] mt-1 font-mono truncate">
                 <span>Top Country: {analyticsData?.top_country || "United States"}</span>
