@@ -2,24 +2,15 @@ import { Article, AdminStats, ArticleListResponse, ActionResponse, VideoProgress
 
 
 export function getApiBase(): string {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && envUrl.trim() && !envUrl.includes("localhost")) {
-    return envUrl.trim().replace(/\/+$/, "");
-  }
-
-  // Client-side browser inspection: always use relative path so Next.js internal API routes on Vercel handle data
+  // Client-side browser inspection: ALWAYS use relative path "" so Vercel Serverless API routes handle data!
+  // This guarantees the public portal NEVER depends on Render and NEVER suffers from CORS or suspension!
   if (typeof window !== "undefined") {
-    const host = window.location.hostname;
-    if (host === "localhost" || host === "127.0.0.1") {
-      return (envUrl || "http://localhost:8000").trim().replace(/\/+$/, "");
-    }
-    // Empty string triggers same-origin /api/articles on Vercel without CORS or Render dependence
     return "";
   }
 
-  // Server-side (Node.js SSR / Metadata / Sitemap / RSS generation)
+  // Server-side development
   if (process.env.NODE_ENV === "development") {
-    return (envUrl || "http://localhost:8000").trim().replace(/\/+$/, "");
+    return "http://localhost:3000";
   }
 
   // Production SSR calls internal Next.js domain

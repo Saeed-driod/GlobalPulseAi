@@ -22,6 +22,7 @@ import {
   clearAdminSecret,
   verifyAdminSecret,
   getApiBase,
+  getBackendUrl,
 } from "../../lib/api";
 import { AnalyticsModal } from "../../components/AnalyticsModal";
 
@@ -93,7 +94,7 @@ export default function AdminPage() {
 
   const handleAuthYouTube = () => {
     showToast("Opening YouTube Channel Authorization Guide...");
-    window.open(`${getApiBase()}/api/auth-youtube`, "_blank");
+    window.open(`${getBackendUrl()}/api/auth-youtube`, "_blank");
   };
 
   const handleRunMasterPipeline = async () => {
