@@ -7,12 +7,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Hugging Face Spaces runs with user UID 1000
+# Run as non-root user for security and cloud compatibility
 RUN useradd -m -u 1000 user
 USER user
 ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PORT=8080
 
 WORKDIR $HOME/app
 
@@ -23,8 +24,8 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # Copy backend application code
 COPY --chown=user backend/ $HOME/app/
 
-# Hugging Face Spaces port
-EXPOSE 7860
+# Cloud Run / Container Port
+EXPOSE 8080
 
-# Start FastAPI server on port 7860
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Start FastAPI server supporting dynamic cloud $PORT
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
