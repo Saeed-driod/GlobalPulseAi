@@ -7,13 +7,14 @@ export function getApiBase(): string {
     return envUrl.trim().replace(/\/+$/, "");
   }
 
-  // Client-side browser inspection
+  // Client-side browser inspection: always use relative path so Next.js internal API routes on Vercel handle data
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
     if (host === "localhost" || host === "127.0.0.1") {
       return (envUrl || "http://localhost:8000").trim().replace(/\/+$/, "");
     }
-    return "https://globlepluseai.onrender.com";
+    // Empty string triggers same-origin /api/articles on Vercel without CORS or Render dependence
+    return "";
   }
 
   // Server-side (Node.js SSR / Metadata / Sitemap / RSS generation)
@@ -21,7 +22,20 @@ export function getApiBase(): string {
     return (envUrl || "http://localhost:8000").trim().replace(/\/+$/, "");
   }
 
-  // Production SSR always targets the production backend URL
+  // Production SSR calls internal Next.js domain
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+    "https://globalpulseai.vercel.app"
+  ).replace(/\/+$/, "");
+}
+
+export function getBackendUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl && envUrl.trim() && !envUrl.includes("localhost")) {
+    return envUrl.trim().replace(/\/+$/, "");
+  }
   return "https://globlepluseai.onrender.com";
 }
 
@@ -253,7 +267,7 @@ export function clearAdminSecret(): void {
 
 export async function verifyAdminSecret(key: string): Promise<{ success: boolean; message: string }> {
   try {
-    const res = await fetch(`${getApiBase()}/api/admin/verify`, {
+    const res = await fetch(`${getBackendUrl()}/api/admin/verify`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -275,7 +289,7 @@ export async function verifyAdminSecret(key: string): Promise<{ success: boolean
 
 export async function triggerFetchNow(category?: string): Promise<ActionResponse> {
   try {
-    const url = new URL(`${getApiBase()}/api/articles/fetch-now`);
+    const url = new URL(`${getBackendUrl()}/api/articles/fetch-now`);
     if (category && category !== "ALL") {
       url.searchParams.set("category", category);
     }
@@ -306,7 +320,7 @@ export async function generateVideo(
   format: "long" | "short" = "long"
 ): Promise<ActionResponse> {
   try {
-    const res = await fetch(`${getApiBase()}/api/articles/${articleId}/generate-video?format=${format}`, {
+    const res = await fetch(`${getBackendUrl()}/api/articles/${articleId}/generate-video?format=${format}`, {
       method: "POST",
       headers: {
         "X-Admin-Secret": getAdminSecret(),
@@ -333,7 +347,7 @@ export async function queueVideo(
   format: "long" | "short" = "short"
 ): Promise<ActionResponse> {
   try {
-    const res = await fetch(`${getApiBase()}/api/articles/${articleId}/queue-video?format=${format}`, {
+    const res = await fetch(`${getBackendUrl()}/api/articles/${articleId}/queue-video?format=${format}`, {
       method: "POST",
       headers: {
         "X-Admin-Secret": getAdminSecret(),
@@ -357,7 +371,7 @@ export async function queueVideo(
 
 export async function fetchVideoProgress(articleId: number): Promise<VideoProgressInfo | null> {
   try {
-    const res = await fetch(`${getApiBase()}/api/video-progress/${articleId}`, {
+    const res = await fetch(`${getBackendUrl()}/api/video-progress/${articleId}`, {
       cache: "no-store",
     });
     if (res.ok) {
@@ -371,7 +385,7 @@ export async function fetchVideoProgress(articleId: number): Promise<VideoProgre
 
 export async function fetchWorkerStatus(): Promise<WorkerStatusInfo> {
   try {
-    const res = await fetch(`${getApiBase()}/api/worker/status`, {
+    const res = await fetch(`${getBackendUrl()}/api/worker/status`, {
       cache: "no-store",
     });
     if (res.ok) {
@@ -400,7 +414,7 @@ export async function fetchActiveVideoJobs(): Promise<{
   recent_completed: VideoProgressInfo[];
 }> {
   try {
-    const res = await fetch(`${getApiBase()}/api/worker/active-jobs`, {
+    const res = await fetch(`${getBackendUrl()}/api/worker/active-jobs`, {
       cache: "no-store",
     });
     if (res.ok) {
@@ -417,7 +431,7 @@ export async function publishArticle(
   format: "long" | "short" = "long"
 ): Promise<ActionResponse> {
   try {
-    const res = await fetch(`${getApiBase()}/api/articles/${articleId}/publish?format=${format}`, {
+    const res = await fetch(`${getBackendUrl()}/api/articles/${articleId}/publish?format=${format}`, {
       method: "POST",
       headers: {
         "X-Admin-Secret": getAdminSecret(),
@@ -444,7 +458,7 @@ export async function autoPublishArticle(
   format: "long" | "short" = "long"
 ): Promise<ActionResponse> {
   try {
-    const res = await fetch(`${getApiBase()}/api/articles/${articleId}/auto-publish?format=${format}`, {
+    const res = await fetch(`${getBackendUrl()}/api/articles/${articleId}/auto-publish?format=${format}`, {
       method: "POST",
       headers: {
         "X-Admin-Secret": getAdminSecret(),
@@ -470,7 +484,7 @@ export async function publishInstantArticle(
   articleId: number
 ): Promise<ActionResponse> {
   try {
-    const res = await fetch(`${getApiBase()}/api/articles/${articleId}/publish-instant`, {
+    const res = await fetch(`${getBackendUrl()}/api/articles/${articleId}/publish-instant`, {
       method: "POST",
       headers: {
         "X-Admin-Secret": getAdminSecret(),
@@ -494,7 +508,7 @@ export async function publishInstantArticle(
 
 export async function getLastError(): Promise<any> {
   try {
-    const res = await fetch(`${getApiBase()}/api/debug/last-error`);
+    const res = await fetch(`${getBackendUrl()}/api/debug/last-error`);
     if (res.ok) {
       return await res.json();
     }
@@ -512,7 +526,7 @@ export async function checkOrAuthorizeYouTube(): Promise<{
   token_file?: string;
 }> {
   try {
-    const res = await fetch(`${getApiBase()}/api/auth-youtube/status`);
+    const res = await fetch(`${getBackendUrl()}/api/auth-youtube/status`);
     if (res.ok) {
       return await res.json();
     }
@@ -557,7 +571,7 @@ export async function runMasterPipeline(
   format: "long" | "short" = "long"
 ): Promise<MasterPipelineResponse> {
   try {
-    const res = await fetch(`${getApiBase()}/api/pipeline/run?limit=${limit}&format=${format}`, {
+    const res = await fetch(`${getBackendUrl()}/api/pipeline/run?limit=${limit}&format=${format}`, {
       method: "POST",
       headers: {
         "X-Admin-Secret": getAdminSecret(),
@@ -583,7 +597,7 @@ export async function runMasterPipeline(
 
 export async function getSchedulerStatus(): Promise<SchedulerStatusResponse | null> {
   try {
-    const res = await fetch(`${getApiBase()}/api/scheduler/status`);
+    const res = await fetch(`${getBackendUrl()}/api/scheduler/status`);
     if (res.ok) {
       return await res.json();
     }
