@@ -1094,6 +1094,35 @@ def auth_youtube_status(db: Session = Depends(get_db)):
     return status_res
 
 
+class TokenSyncPayload(BaseModel):
+    token_json: str
+
+
+@app.post("/api/auth-youtube/sync-token", dependencies=[Depends(verify_admin_secret)])
+def sync_youtube_token_endpoint(payload: TokenSyncPayload, db: Session = Depends(get_db)):
+    """
+    Securely uploads a renewed token.json from Local PC Worker to the cloud instance,
+    allowing the web dashboard to report YouTube as connected even if the local PC is closed.
+    """
+    try:
+        from services.youtube_uploader import TOKEN_FILE
+        _ = json.loads(payload.token_json)
+        with open(TOKEN_FILE, "w", encoding="utf-8") as f:
+            f.write(payload.token_json)
+
+        hb = db.query(WorkerHeartbeat).filter(WorkerHeartbeat.worker_name == "LOCAL_PC_WORKER").first()
+        if hb:
+            hb.status = "IDLE"
+            hb.last_seen = datetime.now(timezone.utc)
+            hb.channel_name = "@GloblePulseAi"
+            db.commit()
+
+        status_res = check_auth_status()
+        return {"success": True, "auth_status": status_res}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to save token: {str(e)}")
+
+
 @app.post("/api/pipeline/run", dependencies=[Depends(verify_admin_secret)])
 def trigger_master_pipeline(
     background_tasks: BackgroundTasks,

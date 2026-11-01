@@ -620,6 +620,7 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "auto", do
     print(f"   Database Poll Interval : Every {interval_seconds} seconds")
     print(f"   Cloud RAM Impact       : 0 MB (100% offloaded to your Local PC!)")
     print(f"   Status                 : Watching for new articles... (Press Ctrl+C to stop)\n")
+    sync_token_to_render()
     try:
         while True:
             try:
@@ -666,10 +667,40 @@ def reauthenticate_youtube() -> bool:
             f.write(creds.to_json())
 
         print(f"\n✔ [SUCCESS] YouTube OAuth token renewed and saved to {TOKEN_FILE}!")
+        send_worker_heartbeat(status="IDLE", quota_status="ACTIVE")
+        sync_token_to_render()
         return True
     except Exception as e:
         print(f"[Error] Re-authorization failed: {e}")
         return False
+
+
+def sync_token_to_render():
+    """Uploads the local token.json to Render so the cloud dashboard remains authenticated 24/7."""
+    try:
+        import urllib.request
+        import json
+        from pathlib import Path
+        token_path = Path("backend/token.json") if Path("backend/token.json").exists() else Path("token.json")
+        if not token_path.exists():
+            return
+        with open(token_path, "r", encoding="utf-8") as f:
+            token_content = f.read()
+        payload = json.dumps({"token_json": token_content}).encode("utf-8")
+        req = urllib.request.Request(
+            "https://globlepluseai.onrender.com/api/auth-youtube/sync-token",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "X-Admin-Secret": "saeed-admin-2026"
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status == 200:
+                print("✔ [Cloud Sync] Renewed token.json successfully pushed to Render Cloud!")
+    except Exception as e:
+        print(f"[Cloud Sync Info] Token saved locally. (Cloud sync notice: {e})")
 
 
 def interactive_menu():

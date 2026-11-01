@@ -14,8 +14,10 @@ cd /d "%~dp0"
 
 IF EXIST "backend\venv\Scripts\python.exe" (
     "backend\venv\Scripts\python.exe" local_worker.py --auth
+    "backend\venv\Scripts\python.exe" -c "import local_worker; local_worker.send_worker_heartbeat(status='IDLE'); local_worker.sync_token_to_render()"
 ) ELSE (
     python local_worker.py --auth
+    python -c "import local_worker; local_worker.send_worker_heartbeat(status='IDLE'); local_worker.sync_token_to_render()"
 )
 
 echo.

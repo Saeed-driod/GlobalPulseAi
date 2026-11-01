@@ -12,6 +12,7 @@ import {
   fetchWorkerStatus,
   fetchActiveVideoJobs,
   fetchAnalyticsSummary,
+  checkYouTubeAuthStatus,
   publishArticle,
   publishInstantArticle,
   autoPublishArticle,
@@ -124,14 +125,18 @@ export default function AdminPage() {
 
   const loadDashboardData = async () => {
     try {
-      const [statsData, articlesData, schedulerData] = await Promise.all([
+      const [statsData, articlesData, schedulerData, ytAuth] = await Promise.all([
         fetchAdminStats(),
         fetchArticles({ limit: 100 }),
         getSchedulerStatus(),
+        checkYouTubeAuthStatus(),
       ]);
       setStats(statsData);
       setArticles(articlesData.items || []);
       setSchedulerInfo(schedulerData);
+      if (ytAuth) {
+        setYtAuthStatus(ytAuth);
+      }
     } catch (err) {
       console.error("Failed loading admin dashboard data:", err);
     }
@@ -167,14 +172,18 @@ export default function AdminPage() {
 
     const pollWorkerAndJobs = async () => {
       try {
-        const [wStatus, jobsData] = await Promise.all([
+        const [wStatus, jobsData, ytAuth] = await Promise.all([
           fetchWorkerStatus(),
           fetchActiveVideoJobs(),
+          checkYouTubeAuthStatus(),
         ]);
         if (!isMounted) return;
         setWorkerStatus(wStatus);
         setActiveJobs(jobsData.active_jobs || []);
         setRecentCompleted(jobsData.recent_completed || []);
+        if (ytAuth) {
+          setYtAuthStatus(ytAuth);
+        }
 
         if (jobsData.active_jobs && jobsData.active_jobs.length > 0) {
           const list = await fetchArticles({ limit: 50 });
