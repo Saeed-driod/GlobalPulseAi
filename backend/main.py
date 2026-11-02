@@ -1,4 +1,5 @@
 import os
+import json
 import re
 import hashlib
 import traceback
@@ -1106,7 +1107,11 @@ def sync_youtube_token_endpoint(payload: TokenSyncPayload, db: Session = Depends
     allowing the web dashboard to report YouTube as connected even if the local PC is closed.
     """
     try:
-        from services.youtube_uploader import TOKEN_FILE
+        try:
+            from services.youtube_uploader import TOKEN_FILE, check_auth_status
+        except (ImportError, ValueError):
+            from backend.services.youtube_uploader import TOKEN_FILE, check_auth_status
+
         _ = json.loads(payload.token_json)
         with open(TOKEN_FILE, "w", encoding="utf-8") as f:
             f.write(payload.token_json)
