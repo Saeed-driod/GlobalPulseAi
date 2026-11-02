@@ -220,3 +220,4 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
     </div>
   );
 }
+

@@ -26,7 +26,7 @@ except (ImportError, ValueError):
 MAX_DAILY_SHORTS = 4
 MAX_DAILY_LONGS = 1
 MAX_DAILY_TOTAL = 5
-MIN_HOURS_BETWEEN_SHORTS = 2.5  # Spacing between automated shorts (morning, mid-day, afternoon, prime evening)
+MIN_HOURS_BETWEEN_SHORTS = 0.5  # 30-minute pacing between automated shorts
 
 
 def get_utc_day_boundaries(target_date: Optional[datetime] = None) -> Tuple[datetime, datetime]:

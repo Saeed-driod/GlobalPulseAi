@@ -509,14 +509,23 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
             else:
                 target_fmt = "short"
 
-            # Check if this format can post now
-            can_post, reason = can_post_now(db, video_format=target_fmt, min_hours_gap=MIN_HOURS_BETWEEN_SHORTS, ignore_cooldown=False)
-            if not can_post:
-                print(f"[Worker Pacing Gate] {reason}")
-                send_worker_heartbeat(status="IDLE", active_title=f"Pacing: {reason[:80]}")
-                return
+            # Quality scoring function
+            def get_article_quality_score(art):
+                score = 0
+                if art.image_url and str(art.image_url).startswith("http"):
+                    score += 50
+                if art.summary and len(str(art.summary).strip()) > 80:
+                    score += 20
+                if art.youtube_script and len(str(art.youtube_script).strip()) > 40:
+                    score += 15
+                if art.content and len(str(art.content).strip()) > 200:
+                    score += 10
+                return score
 
-            # Scan for published articles that don't have a YouTube video ID yet (excluding PAUSED)
+            # Check if YouTube upload can proceed right now
+            can_post, reason = can_post_now(db, video_format=target_fmt, min_hours_gap=MIN_HOURS_BETWEEN_SHORTS, ignore_cooldown=False)
+
+            # Pool 1: Articles that need YouTube upload (missing YouTube video ID)
             pending_pool = (
                 query
                 .filter(
@@ -530,29 +539,33 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
                 .all()
             )
 
-            if pending_pool:
-                # Rank candidates to select the highest-quality story for YouTube:
-                # (HD image available + rich summary + formatted script + length)
-                def get_article_quality_score(art):
-                    score = 0
-                    if art.image_url and str(art.image_url).startswith("http"):
-                        score += 50
-                    if art.summary and len(str(art.summary).strip()) > 80:
-                        score += 20
-                    if art.youtube_script and len(str(art.youtube_script).strip()) > 40:
-                        score += 15
-                    if art.content and len(str(art.content).strip()) > 200:
-                        score += 10
-                    return score
+            # Pool 2: Articles that have NO video rendered yet on local PC
+            pending_render = [
+                a for a in pending_pool 
+                if not a.video_path or not os.path.exists(str(a.video_path).lstrip("/"))
+            ]
 
+            if can_post and pending_pool:
                 sorted_candidates = sorted(pending_pool, key=get_article_quality_score, reverse=True)
                 candidate = sorted_candidates[0]
-                print(f"\n[Worker Auto-Schedule] Selected Top-Tier Article #{candidate.id} for daily {target_fmt.upper()}: '{candidate.title[:50]}'")
+                print(f"\n[Worker Auto-Schedule] Selected Article #{candidate.id} for daily {target_fmt.upper()} Video & Upload: '{candidate.title[:50]}'")
                 print(f"  Daily Quota Status: Shorts {shorts_today}/{MAX_DAILY_SHORTS} | Longs {longs_today}/{MAX_DAILY_LONGS}")
                 target_tasks.append((candidate.id, target_fmt, False))
+            elif pending_render:
+                # Upload cooldown active, but videos need rendering on local PC!
+                # Render video locally so website and TikTok packages are ready immediately!
+                sorted_candidates = sorted(pending_render, key=get_article_quality_score, reverse=True)
+                candidate = sorted_candidates[0]
+                print(f"\n[Worker Local Render Pipeline] Generating video on Local PC for Article #{candidate.id}: '{candidate.title[:50]}'")
+                print(f"  Note: YouTube upload will pace according to daily schedule ({reason[:60]}).")
+                target_tasks.append((candidate.id, target_fmt, False))
+            elif not can_post:
+                print(f"[Worker Pacing Gate] All current articles rendered! {reason}")
+                send_worker_heartbeat(status="IDLE", active_title=f"Pacing: {reason[:80]}")
+                return
             else:
-                # No published articles in DB need videos! Fetch fresh breaking news for the day
-                print(f"\n[Worker Auto-Schedule] All articles uploaded. Fetching fresh breaking RSS news for daily {target_fmt.upper()}...")
+                # All articles have videos and are uploaded!
+                print(f"\n[Worker Auto-Schedule] All articles have videos & are uploaded. Fetching fresh breaking RSS news...")
                 fetch_and_publish_news(target_category=category or "AI & Tech", video_format=target_fmt, do_upload=do_upload)
                 return
 
