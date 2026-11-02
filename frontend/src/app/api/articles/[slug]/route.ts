@@ -34,9 +34,9 @@ export async function GET(
       return NextResponse.json({ error: "Slug required" }, { status: 400 });
     }
 
+    const cleanSlug = slug.replace(/'/g, "''");
     const rows = await queryNeon(
-      "SELECT * FROM articles WHERE slug = $1 LIMIT 1;",
-      [slug]
+      `SELECT * FROM articles WHERE slug = '${cleanSlug}' LIMIT 1;`
     );
 
     if (!rows || rows.length === 0) {
@@ -44,7 +44,7 @@ export async function GET(
     }
 
     // Increment view count in background
-    queryNeon("UPDATE articles SET views = views + 1 WHERE slug = $1;", [slug]).catch(() => {});
+    queryNeon(`UPDATE articles SET views = views + 1 WHERE slug = '${cleanSlug}';`).catch(() => {});
 
     return NextResponse.json(rows[0]);
   } catch (err: any) {

@@ -53,6 +53,12 @@ function detectReferrerSource(ref: string): string {
   return "Referral";
 }
 
+function esc(val: any): string {
+  if (val === null || val === undefined) return "NULL";
+  const s = String(val).replace(/'/g, "''");
+  return `'${s}'`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -72,16 +78,14 @@ export async function POST(request: NextRequest) {
 
     // Insert real visit into analytics_visits
     await queryNeon(
-      `INSERT INTO analytics_visits (path, article_slug, referrer, referrer_source, country_code, country_name, city, device, browser, ip_hash)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`,
-      [path, articleSlug, referrer, referrerSource, countryCode, countryName, city, device, browser, ipHash]
+      `INSERT INTO analytics_visits (path, article_slug, referrer, referrer_source, country_code, country_name, city, device, browser, ip_hash, created_at)
+       VALUES (${esc(path)}, ${esc(articleSlug)}, ${esc(referrer)}, ${esc(referrerSource)}, ${esc(countryCode)}, ${esc(countryName)}, ${esc(city)}, ${esc(device)}, ${esc(browser)}, ${esc(ipHash)}, NOW());`
     );
 
     // If an article was read, increment its real view counter
     if (articleSlug) {
       await queryNeon(
-        `UPDATE articles SET views = views + 1 WHERE slug = $1;`,
-        [articleSlug]
+        `UPDATE articles SET views = views + 1 WHERE slug = ${esc(articleSlug)};`
       );
     }
 

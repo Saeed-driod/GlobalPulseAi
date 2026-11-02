@@ -34,33 +34,30 @@ export async function GET(request: NextRequest) {
     const skip = parseInt(searchParams.get("skip") || "0", 10);
 
     const conditions: string[] = [];
-    const values: any[] = [];
-    let pIdx = 1;
 
     if (status && status !== "ALL") {
-      conditions.push(`status = $${pIdx++}`);
-      values.push(status);
+      const cleanStatus = status.replace(/'/g, "''");
+      conditions.push(`status = '${cleanStatus}'`);
     }
 
     if (category && category !== "All" && category !== "All Stories" && category !== "ALL") {
-      conditions.push(`category = $${pIdx++}`);
-      values.push(category);
+      const cleanCat = category.replace(/'/g, "''");
+      conditions.push(`category = '${cleanCat}'`);
     }
 
     if (search) {
-      conditions.push(`(title ILIKE $${pIdx} OR summary ILIKE $${pIdx})`);
-      pIdx++;
-      values.push(`%${search}%`);
+      const cleanSearch = search.replace(/'/g, "''");
+      conditions.push(`(title ILIKE '%${cleanSearch}%' OR summary ILIKE '%${cleanSearch}%')`);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const countSql = `SELECT count(*)::int as total FROM articles ${whereClause};`;
-    const countRows = await queryNeon<{ total: number }>(countSql, values);
+    const countRows = await queryNeon<{ total: number }>(countSql);
     const total = countRows[0]?.total || 0;
 
     const fetchSql = `SELECT * FROM articles ${whereClause} ORDER BY id DESC LIMIT ${limit} OFFSET ${skip};`;
-    const items = await queryNeon(fetchSql, values);
+    const items = await queryNeon(fetchSql);
 
     return NextResponse.json({
       items,

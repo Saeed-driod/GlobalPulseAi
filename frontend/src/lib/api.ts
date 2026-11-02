@@ -95,22 +95,20 @@ export async function fetchArticles(params?: {
       let pIdx = 1;
 
       if (params?.status) {
-        conditions.push(`status = $${pIdx++}`);
-        values.push(params.status);
+        const cleanStatus = params.status.replace(/'/g, "''");
+        conditions.push(`status = '${cleanStatus}'`);
       } else {
-        conditions.push(`status = $${pIdx++}`);
-        values.push("PUBLISHED");
+        conditions.push(`status = 'PUBLISHED'`);
       }
 
       if (params?.category && params.category !== "All" && params.category !== "ALL") {
-        conditions.push(`category = $${pIdx++}`);
-        values.push(params.category);
+        const cleanCat = params.category.replace(/'/g, "''");
+        conditions.push(`category = '${cleanCat}'`);
       }
 
       if (params?.search) {
-        conditions.push(`(title ILIKE $${pIdx} OR summary ILIKE $${pIdx})`);
-        pIdx++;
-        values.push(`%${params.search}%`);
+        const cleanSearch = params.search.replace(/'/g, "''");
+        conditions.push(`(title ILIKE '%${cleanSearch}%' OR summary ILIKE '%${cleanSearch}%')`);
       }
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -118,11 +116,11 @@ export async function fetchArticles(params?: {
       const skip = params?.skip || 0;
 
       const countSql = `SELECT count(*)::int as total FROM articles ${whereClause};`;
-      const countRows = await queryNeonDirect<{ total: number }>(countSql, values);
+      const countRows = await queryNeonDirect<{ total: number }>(countSql);
       const total = countRows[0]?.total || 0;
 
       const fetchSql = `SELECT * FROM articles ${whereClause} ORDER BY id DESC LIMIT ${limit} OFFSET ${skip};`;
-      const items = await queryNeonDirect<Article>(fetchSql, values);
+      const items = await queryNeonDirect<Article>(fetchSql);
 
       if (items.length > 0) {
         return {
