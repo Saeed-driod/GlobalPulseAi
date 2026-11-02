@@ -5,6 +5,7 @@ import traceback
 from datetime import datetime, timezone
 from typing import Optional, List
 from contextlib import asynccontextmanager
+from pydantic import BaseModel
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Header, status, BackgroundTasks, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
