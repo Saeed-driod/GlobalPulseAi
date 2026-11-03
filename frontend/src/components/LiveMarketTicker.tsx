@@ -158,3 +158,4 @@ export const LiveMarketTicker: React.FC = () => {
     </div>
   );
 };
+

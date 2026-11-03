@@ -56,6 +56,17 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
 
+            <Link
+              href="/live"
+              className="inline-flex items-center gap-1.5 neu-sm px-3 py-1 text-[11px] font-black text-red-600 hover:text-red-700 transition"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+              </span>
+              <span>24/7 LIVE STREAM</span>
+            </Link>
+
             <a
               href="https://www.youtube.com/@GloblePulseAi"
               target="_blank"
@@ -138,6 +149,17 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                 );
               })}
+
+              <Link
+                href="/live"
+                className="flex items-center gap-2 px-4 py-2 text-xs font-black whitespace-nowrap transition-all duration-200 cursor-pointer neu-sm text-red-600 hover:text-red-700 ml-auto shrink-0"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                </span>
+                <span>🔴 24/7 LIVE TV</span>
+              </Link>
             </div>
           </nav>
         )}

@@ -83,6 +83,21 @@ export default function AdminPage() {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState<boolean>(false);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsSummary | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState<boolean>(false);
+  const [customLiveStreamId, setCustomLiveStreamId] = useState<string>("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("gp_custom_live_id");
+      if (saved) setCustomLiveStreamId(saved);
+    }
+  }, []);
+
+  const handleSaveCustomLive = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("gp_custom_live_id", customLiveStreamId.trim());
+      showToast("Live Stream Video ID updated successfully!");
+    }
+  };
 
   const loadAnalytics = async () => {
     setLoadingAnalytics(true);
@@ -672,6 +687,46 @@ export default function AdminPage() {
               )}
             </div>
           )}
+
+          {/* 24/7 LIVE STREAMING & BROADCAST HUB CONTROL */}
+          <div className="mt-6 pt-5 border-t border-[#b8bec7]/40">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <Video className="w-4 h-4 text-red-600" />
+                <h3 className="text-xs font-black font-mono uppercase text-[#2d3748] tracking-wider">
+                  24/7 LIVE STREAMING &amp; BROADCAST HUB
+                </h3>
+                <span className="neu-sm px-2 py-0.5 text-[10px] font-bold text-red-600 font-mono flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                  LIVE ON PORTAL
+                </span>
+              </div>
+              <Link
+                href="/live"
+                target="_blank"
+                className="neu-sm px-3 py-1 text-xs font-mono font-bold text-red-600 hover:text-red-700 transition flex items-center gap-1.5"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span>Preview /live Player ↗</span>
+              </Link>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                type="text"
+                value={customLiveStreamId}
+                onChange={(e) => setCustomLiveStreamId(e.target.value)}
+                placeholder="Paste YouTube Live Stream Video ID (e.g. 9Auq9mYxFEE, 21X5lGlDOfg, or your channel stream)..."
+                className="flex-1 neu-input px-3.5 py-2 text-xs font-mono placeholder:text-[#a0aec0]"
+              />
+              <button
+                type="button"
+                onClick={handleSaveCustomLive}
+                className="neu-btn-primary px-4 py-2 text-xs uppercase tracking-wider shrink-0 cursor-pointer"
+              >
+                Save Stream ID
+              </button>
+            </div>
+          </div>
 
           {/* Recently Uploaded Shorts Bar */}
           {recentCompleted && recentCompleted.length > 0 && (

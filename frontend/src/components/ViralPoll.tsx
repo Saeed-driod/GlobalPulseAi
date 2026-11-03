@@ -190,3 +190,4 @@ export const ViralPoll: React.FC = () => {
     </section>
   );
 };
+
