@@ -61,28 +61,16 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = "" }) => {
   // -------------------------------------------------------------
 
   if (slot === "header") {
-    return (
-      <div className={`w-full my-6 flex flex-col items-center ${className}`}>
-        {/* Adsterra 728x90 Leaderboard Unit */}
-        <AdsterraBanner size="728x90" label="Sponsored Leaderboard" />
-      </div>
-    );
+    return null;
   }
 
   if (slot === "in-article") {
-    return (
-      <div className={`my-8 flex flex-col items-center ${className}`}>
-        <AdsterraBanner label="Sponsored Intelligence" />
-      </div>
-    );
+    return null;
   }
 
   if (slot === "sidebar") {
     return (
       <div className={`flex flex-col items-center space-y-6 ${className}`}>
-        {/* Adsterra 300x250 Medium Rectangle Unit */}
-        <AdsterraBanner label="Sponsored Partner" />
-
         <div className="w-full max-w-[340px] bg-gradient-to-b from-neutral-900 via-neutral-900 to-red-950/30 border border-neutral-800 hover:border-red-500/30 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group shadow-xl transition">
           <div className="absolute top-0 right-0 w-28 h-28 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
 

@@ -101,6 +101,14 @@ export default function RootLayout({
           href="/rss.xml"
         />
 
+        {/* Monetag MultiTag (All-In-One Ads - Zone 305177) */}
+        <Script
+          src="https://quge5.com/88/tag.min.js"
+          data-zone="305177"
+          data-cfasync="false"
+          strategy="afterInteractive"
+        />
+
         {/* OneSignal Web Push Notifications (Free Global Audience Retention) */}
         <Script
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
