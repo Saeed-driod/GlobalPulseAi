@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, Newspaper, BarChart3, Globe, Zap, Search, Trophy } from "./Icons";
+import { Sparkles, Newspaper, BarChart3, Globe, Zap, Search, Trophy, Video } from "./Icons";
 
 interface HeaderProps {
   selectedCategory?: string;
@@ -19,6 +19,7 @@ export const CATEGORIES = [
   { name: "World Politics", icon: Globe },
   { name: "Future Science", icon: Zap },
   { name: "Global Sports", icon: Trophy },
+  { name: "Entertainment", icon: Video },
 ];
 
 export const Header: React.FC<HeaderProps> = ({

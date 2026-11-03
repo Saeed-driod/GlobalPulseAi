@@ -4,11 +4,13 @@ import React, { useState, useEffect } from "react";
 import { Article } from "../types/article";
 import { fetchArticles } from "../lib/api";
 import { BreakingTicker } from "./BreakingTicker";
+import { LiveMarketTicker } from "./LiveMarketTicker";
+import { AiNewsAnalyst } from "./AiNewsAnalyst";
+import { ViralPoll } from "./ViralPoll";
 import { Header, CATEGORIES } from "./Header";
 import { HeroFeatured } from "./HeroFeatured";
 import { ArticleCard } from "./ArticleCard";
 import { AdBanner } from "./AdBanner";
-import { AdsterraBanner } from "./AdsterraBanner";
 import { Footer } from "./Footer";
 import { Sparkles, RefreshCw, ShieldCheck } from "./Icons";
 
@@ -67,6 +69,7 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
       />
 
       <BreakingTicker articles={articles} />
+      <LiveMarketTicker />
 
       {/* 2. Main Newsroom Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-6 pb-20">
@@ -79,6 +82,9 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
         {!searchQuery && selectedCategory === "All Stories" && !loading && (
           <HeroFeatured articles={articles} />
         )}
+
+        {/* Free AI Intelligence Lab: Interactive Summarizer & Bias Detector */}
+        <AiNewsAnalyst />
 
         {/* Section Heading & Category Filter Controls */}
         <div className="mt-8 mb-8 neu-flat p-6 flex flex-col gap-5">
@@ -170,10 +176,8 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
           </div>
         )}
 
-        {/* Adsterra 300x250 Monetization Banner wrapped in Neumorphic frame */}
-        <div className="neu-flat p-6 mt-14 mb-4 flex justify-center">
-          <AdsterraBanner label="Sponsored Intelligence" />
-        </div>
+        {/* Daily Viral Sentiment Poll & Social Share */}
+        <ViralPoll />
 
         {/* Tier-1 Executive Dossier Newsletter Banner */}
         <section className="mt-16 neu-flat p-8 sm:p-10 relative overflow-hidden">

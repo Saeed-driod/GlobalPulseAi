@@ -104,6 +104,27 @@ RSS_FEEDS = [
         "name": "Phys.org",
         "url": "https://phys.org/rss-feed/",
     },
+    {
+        "category": "Future Science",
+        "name": "NASA Breaking News",
+        "url": "https://www.nasa.gov/news-release/feed/",
+    },
+    {
+        "category": "Future Science",
+        "name": "Space.com",
+        "url": "https://www.space.com/feeds/all",
+    },
+    # 6. Entertainment, Cinema & Gaming
+    {
+        "category": "Entertainment",
+        "name": "Variety",
+        "url": "https://variety.com/feed/",
+    },
+    {
+        "category": "Entertainment",
+        "name": "IGN Gaming & Cinema",
+        "url": "https://feeds.feedburner.com/ign/all",
+    },
 ]
 
 SPORTS_KEYWORDS = [
@@ -119,7 +140,7 @@ SPORTS_KEYWORDS = [
     "arteta", "athletics", "olympic", "paralympic"
 ]
 
-ALL_CATEGORIES = ["Global Sports", "AI & Tech", "Global Markets", "World Politics", "Future Science"]
+ALL_CATEGORIES = ["Global Sports", "AI & Tech", "Global Markets", "World Politics", "Future Science", "Entertainment"]
 
 def clean_html(raw_html: str) -> str:
     """Strip HTML tags and unescape entities."""
