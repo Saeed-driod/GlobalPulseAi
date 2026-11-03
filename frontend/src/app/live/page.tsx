@@ -34,31 +34,39 @@ const CHANNELS: Channel[] = [
     id: "sky-news",
     name: "Sky News International Live",
     category: "Global Breaking News",
-    youtubeId: "9Auq9mYxFEE",
+    youtubeId: "umLWFz4izTM",
     badge: "24/7 GLOBAL WIRE",
     description: "Official 24/7 continuous international news stream delivering verified breaking telemetry across world politics and global capitals.",
+  },
+  {
+    id: "al-jazeera",
+    name: "Al Jazeera English Live Wire",
+    category: "World Politics & Affairs",
+    youtubeId: "gCNeDWCI0vo",
+    badge: "GLOBAL BROADCAST",
+    description: "Award-winning live international journalism and geopolitical analysis broadcast 24/7 from Doha, London, and Washington.",
+  },
+  {
+    id: "dw-news",
+    name: "DW News Live (Global)",
+    category: "European & World Wire",
+    youtubeId: "LuKwFajn37U",
+    badge: "EUROPEAN WIRE",
+    description: "Germany's international broadcaster delivering real-time geopolitical updates, European policy dispatches, and global analysis.",
   },
   {
     id: "nasa-live",
     name: "NASA Live: Earth & Deep Space",
     category: "Space & Science",
-    youtubeId: "21X5lGlDOfg",
+    youtubeId: "ROboUHfPUrU",
     badge: "ORBITAL CAM",
     description: "Real-time High-Definition telemetry and live video broadcasts from the International Space Station and NASA deep space tracking networks.",
-  },
-  {
-    id: "bloomberg-markets",
-    name: "Global Markets & Financial Wire",
-    category: "Financial Markets",
-    youtubeId: "D0UnqGm_miA",
-    badge: "MARKET INTELLIGENCE",
-    description: "Real-time equities, commodities, bond yields, and central bank coverage tracking New York, London, and Tokyo trading floors.",
   },
   {
     id: "official-studio",
     name: "GlobalPulse AI Studio Channel",
     category: "Official AI Broadcast",
-    youtubeId: "live_stream", // fallback to channel stream or custom stream ID
+    youtubeId: "umLWFz4izTM",
     badge: "OFFICIAL STREAM",
     description: "Automated neural AI broadcast studio syndicating synthesized 60-second video dispatches and daily executive intelligence summaries.",
   },
@@ -164,10 +172,7 @@ export default function LiveStreamPage() {
   };
 
   // Resolve active YouTube embed URL
-  const embedUrl =
-    selectedChannel.youtubeId === "live_stream"
-      ? `https://www.youtube.com/embed/live_stream?channel=UCvW8WJzIeT5iT5_X_example&autoplay=1&mute=0`
-      : `https://www.youtube.com/embed/${selectedChannel.youtubeId}?autoplay=1&mute=0&rel=0`;
+  const embedUrl = `https://www.youtube-nocookie.com/embed/${selectedChannel.youtubeId}?autoplay=1&mute=0&rel=0`;
 
   return (
     <div className="min-h-screen bg-[#e0e5ec] text-[#2d3748] flex flex-col font-sans selection:bg-[#1a8cff] selection:text-white">
@@ -444,3 +449,4 @@ export default function LiveStreamPage() {
     </div>
   );
 }
+

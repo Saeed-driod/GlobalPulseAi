@@ -771,6 +771,57 @@ export default function AdminPage() {
           )}
         </section>
 
+        {/* 24/7 LIVE STREAMING & BROADCAST HUB CONTROL */}
+        <section className="neu-flat p-6 sm:p-8 mb-8 rounded-3xl relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-[#b8bec7]/40">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 neu-circle flex items-center justify-center text-red-600 shrink-0">
+                <Video className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-black text-[#2d3748] font-serif tracking-tight">
+                    24/7 LIVE STREAMING &amp; BROADCAST HUB
+                  </h2>
+                  <span className="neu-sm px-2.5 py-0.5 text-[10px] font-bold text-red-600 font-mono flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                    LIVE ON PORTAL
+                  </span>
+                </div>
+                <p className="text-xs text-[#718096] font-mono mt-0.5">
+                  Broadcast continuous live video on /live • Embed custom YouTube Live ID or stream 24/7 channels.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/live"
+              target="_blank"
+              className="neu-btn-primary px-4 py-2 text-xs uppercase tracking-wider flex items-center gap-2 shrink-0 cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-white" />
+              <span>Preview Live Player ↗</span>
+            </Link>
+          </div>
+
+          <div className="mt-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <input
+              type="text"
+              value={customLiveStreamId}
+              onChange={(e) => setCustomLiveStreamId(e.target.value)}
+              placeholder="Paste YouTube Live Stream Video ID (e.g. 9Auq9mYxFEE, 21X5lGlDOfg, or your stream)..."
+              className="flex-1 neu-input px-4 py-2.5 text-xs font-mono placeholder:text-[#a0aec0]"
+            />
+            <button
+              type="button"
+              onClick={handleSaveCustomLive}
+              className="neu-btn-primary px-5 py-2.5 text-xs uppercase tracking-wider shrink-0 cursor-pointer"
+            >
+              Save Stream ID
+            </button>
+          </div>
+        </section>
+
         {/* 24/7 BACKGROUND AUTOMATION TELEMETRY BANNER */}
         <div className="neu-flat p-5 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -881,6 +932,57 @@ export default function AdminPage() {
               <span>Tier-1 Global Audience</span>
               <span className="text-emerald-600 font-semibold">Live Telemetry</span>
             </div>
+          </div>
+        </section>
+
+        {/* 24/7 LIVE STREAMING & BROADCAST HUB CONTROL */}
+        <section className="neu-flat p-6 sm:p-8 mb-8 rounded-3xl relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-[#b8bec7]/40">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 neu-circle flex items-center justify-center text-red-600 shrink-0">
+                <Video className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-black text-[#2d3748] font-serif tracking-tight">
+                    24/7 LIVE STREAMING &amp; BROADCAST HUB
+                  </h2>
+                  <span className="neu-sm px-2.5 py-0.5 text-[10px] font-bold text-red-600 font-mono flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                    LIVE ON PORTAL
+                  </span>
+                </div>
+                <p className="text-xs text-[#718096] font-mono mt-0.5">
+                  Broadcast continuous live video on /live • Embed custom YouTube Live ID or stream 24/7 channels.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/live"
+              target="_blank"
+              className="neu-btn-primary px-4 py-2 text-xs uppercase tracking-wider flex items-center gap-2 shrink-0 cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-white" />
+              <span>Preview Live Player ↗</span>
+            </Link>
+          </div>
+
+          <div className="mt-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <input
+              type="text"
+              value={customLiveStreamId}
+              onChange={(e) => setCustomLiveStreamId(e.target.value)}
+              placeholder="Paste YouTube Live Stream Video ID (e.g. 9Auq9mYxFEE, 21X5lGlDOfg, or your stream)..."
+              className="flex-1 neu-input px-4 py-2.5 text-xs font-mono placeholder:text-[#a0aec0]"
+            />
+            <button
+              type="button"
+              onClick={handleSaveCustomLive}
+              className="neu-btn-primary px-5 py-2.5 text-xs uppercase tracking-wider shrink-0 cursor-pointer"
+            >
+              Save Stream ID
+            </button>
           </div>
         </section>
 
@@ -1095,6 +1197,57 @@ export default function AdminPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        </section>
+
+        {/* 24/7 LIVE STREAMING & BROADCAST HUB CONTROL */}
+        <section className="neu-flat p-6 sm:p-8 mb-8 rounded-3xl relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-[#b8bec7]/40">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 neu-circle flex items-center justify-center text-red-600 shrink-0">
+                <Video className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-black text-[#2d3748] font-serif tracking-tight">
+                    24/7 LIVE STREAMING &amp; BROADCAST HUB
+                  </h2>
+                  <span className="neu-sm px-2.5 py-0.5 text-[10px] font-bold text-red-600 font-mono flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                    LIVE ON PORTAL
+                  </span>
+                </div>
+                <p className="text-xs text-[#718096] font-mono mt-0.5">
+                  Broadcast continuous live video on /live • Embed custom YouTube Live ID or stream 24/7 channels.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/live"
+              target="_blank"
+              className="neu-btn-primary px-4 py-2 text-xs uppercase tracking-wider flex items-center gap-2 shrink-0 cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-white" />
+              <span>Preview Live Player ↗</span>
+            </Link>
+          </div>
+
+          <div className="mt-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <input
+              type="text"
+              value={customLiveStreamId}
+              onChange={(e) => setCustomLiveStreamId(e.target.value)}
+              placeholder="Paste YouTube Live Stream Video ID (e.g. 9Auq9mYxFEE, 21X5lGlDOfg, or your stream)..."
+              className="flex-1 neu-input px-4 py-2.5 text-xs font-mono placeholder:text-[#a0aec0]"
+            />
+            <button
+              type="button"
+              onClick={handleSaveCustomLive}
+              className="neu-btn-primary px-5 py-2.5 text-xs uppercase tracking-wider shrink-0 cursor-pointer"
+            >
+              Save Stream ID
+            </button>
           </div>
         </section>
       </main>
