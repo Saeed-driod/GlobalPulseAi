@@ -85,6 +85,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <head>
+        <meta name="monetag" content="debefa1274cfb3da902e7d4ca24045da" />
         <meta name="tiktok-developers-site-verification" content="qtGjolrbl9OJ5MgmnT9xzAyWXy8bM0Kh" />
         <meta name="tiktok-developers-site-verification" content="QFp2awRN7qTwaTOTSh824lhTKoK2Q9tO" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -98,19 +99,6 @@ export default function RootLayout({
           type="application/rss+xml"
           title="GlobalPulse AI RSS Feed"
           href="/rss.xml"
-        />
-        {/* Bauval / Adsterra Global Social Bar */}
-        <Script
-          src="https://bauval.org/14/2f3481f5b47a88883b7506a69ee08e50"
-          strategy="afterInteractive"
-          data-cfasync="false"
-        />
-
-        {/* Adsterra High-CPM Popunder / OnClick */}
-        <Script
-          src="https://abscloud.org/1/b6de09199dd702d82a7aea2cab99fa04"
-          strategy="afterInteractive"
-          data-cfasync="false"
         />
 
         {/* OneSignal Web Push Notifications (Free Global Audience Retention) */}
