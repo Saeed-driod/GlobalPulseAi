@@ -124,6 +124,21 @@ export default function RootLayout({
           }}
         />
 
+        {/* Monetag Vignette Banner (Zone 12187525) */}
+        <Script
+          src="https://n6wxm.com/vignette.min.js"
+          data-zone="12187525"
+          data-cfasync="false"
+          strategy="afterInteractive"
+        />
+        <Script
+          id="monetag-zone-12187525"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(s){s.dataset.zone='12187525',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
+          }}
+        />
+
         {/* OneSignal Web Push Notifications (Free Global Audience Retention) */}
         <Script
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
