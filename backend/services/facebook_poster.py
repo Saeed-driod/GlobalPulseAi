@@ -191,12 +191,13 @@ def post_article_to_facebook(
     if not page_id or not token:
         return {"success": False, "message": "Facebook credentials missing in environment."}
 
-    # Format engaging Facebook post caption with high-volume search hashtags
+    # Format engaging Facebook post caption with @followers tag and high-volume search hashtags
     clean_summary = (summary or "").replace("*", "").strip()[:260]
     hashtags = generate_facebook_hashtags(title, category)
 
     message = (
         f"⚡ {title}\n\n"
+        f"📢 Attention @followers | Top Global Briefing\n\n"
         f"📌 BRIEFING:\n{clean_summary}...\n\n"
         f"👉 Read verified analysis & full intelligence dossier on GlobalPulse AI:\n"
         f"🔗 {article_url}\n\n"
