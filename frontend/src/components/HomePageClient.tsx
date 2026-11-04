@@ -70,7 +70,7 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
       <BreakingTicker articles={articles} />
 
       {/* 2. Main Newsroom Grid */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-3 pb-16">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 pt-2 sm:pt-3 pb-16">
         {/* Hero Featured Story (Shown when browsing All Stories without search query) */}
         {!searchQuery && selectedCategory === "All Stories" && !loading && (
           <HeroFeatured articles={articles} />
@@ -80,7 +80,7 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
         <AiNewsAnalyst />
 
         {/* Section Heading & Category Filter Controls */}
-        <div className="mt-8 mb-8 neu-flat p-6 flex flex-col gap-5">
+        <div className="mt-6 mb-6 sm:mt-8 sm:mb-8 neu-flat p-3.5 sm:p-6 flex flex-col gap-3 sm:gap-5">
           {/* Top Row: Title, Subtext, and Refresh Feed Action */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>

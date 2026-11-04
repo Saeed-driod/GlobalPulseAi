@@ -108,11 +108,11 @@ export const BreakingTicker: React.FC<BreakingTickerProps> = ({ articles }) => {
   const current = displayArticles[currentIndex];
 
   return (
-    <div className="max-w-7xl mx-auto w-full px-3 sm:px-6 mt-1.5">
-      <div className="neu-flat py-1.5 px-3 sm:px-4 flex items-center justify-between gap-3 text-xs overflow-hidden">
+    <div className="max-w-7xl mx-auto w-full px-2 sm:px-6 mt-1 sm:mt-1.5">
+      <div className="neu-flat py-1 sm:py-1.5 px-2.5 sm:px-4 flex items-center justify-between gap-2 sm:gap-3 text-xs overflow-hidden">
         {/* Left: Breaking Wire Live Badge & Current Story */}
-        <div className="flex items-center gap-2.5 overflow-hidden flex-1 min-w-0">
-          <div className="neu-sm px-2.5 py-0.5 flex items-center gap-1.5 text-red-600 font-black tracking-widest text-[10px] uppercase shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 overflow-hidden flex-1 min-w-0">
+          <div className="neu-sm px-2 sm:px-2.5 py-0.5 flex items-center gap-1.5 text-red-600 font-black tracking-widest text-[9px] sm:text-[10px] uppercase shrink-0">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>

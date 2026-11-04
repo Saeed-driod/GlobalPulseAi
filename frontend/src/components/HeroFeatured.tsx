@@ -45,34 +45,34 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
   }, [primary.image_url, primaryFallback]);
 
   return (
-    <section className="mb-14">
+    <section className="mb-8 sm:mb-14">
       {/* Section Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2.5">
-          <div className="relative flex h-2.5 w-2.5">
+      <div className="flex items-center justify-between mb-3 sm:mb-5">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="relative flex h-2 w-2 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1a8cff] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#1a8cff]"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#1a8cff]"></span>
           </div>
-          <h2 className="text-xs uppercase font-mono font-bold tracking-widest text-[#1a8cff]">
+          <h2 className="text-[10px] sm:text-xs uppercase font-mono font-bold tracking-wider sm:tracking-widest text-[#1a8cff] truncate">
             Lead Global Intelligence • Priority 1 Dispatch
           </h2>
         </div>
-        <div className="hidden sm:flex items-center gap-2 text-xs text-[#718096] font-mono">
+        <div className="hidden sm:flex items-center gap-2 text-xs text-[#718096] font-mono shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span>SYNTHESIZED REAL-TIME BY TIER-1 AI ENGINE</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         {/* Main Hero Card (8 Cols) */}
-        <div className="lg:col-span-8 group neu-flat p-6 sm:p-8 flex flex-col justify-between transition-all duration-300">
+        <div className="lg:col-span-8 group neu-flat p-3.5 sm:p-8 flex flex-col justify-between transition-all duration-300">
           <div>
             {/* Top Inset Thumbnail Container */}
             <Link
               href={`/news/${primary.slug}`}
-              className="relative h-64 sm:h-80 w-full neu-pressed p-2 overflow-hidden block rounded-2xl mb-6 group/img"
+              className="relative h-48 sm:h-80 w-full neu-pressed p-1 sm:p-2 overflow-hidden block rounded-xl sm:rounded-2xl mb-4 sm:mb-6 group/img"
             >
-              <div className="w-full h-full rounded-xl overflow-hidden relative">
+              <div className="w-full h-full rounded-lg sm:rounded-xl overflow-hidden relative">
                 <img
                   src={primaryImgSrc}
                   alt={primary.title}
@@ -85,13 +85,13 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
 
-                <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
-                  <span className="neu-sm px-3 py-1 text-xs uppercase font-bold text-[#1a8cff]">
+                <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-wrap items-center gap-2">
+                  <span className="neu-sm px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs uppercase font-bold text-[#1a8cff]">
                     {primary.category}
                   </span>
                   {primary.youtube_video_id && (
-                    <span className="neu-sm px-2.5 py-1 text-[11px] font-bold text-red-600 flex items-center gap-1.5">
-                      <Video className="w-3.5 h-3.5" />
+                    <span className="neu-sm px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-red-600 flex items-center gap-1.5">
+                      <Video className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       Shorts Ready
                     </span>
                   )}
@@ -100,18 +100,18 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
             </Link>
 
             {/* Meta Row */}
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-3 text-xs text-[#718096] font-mono">
-              <span className="neu-sm px-2.5 py-1 flex items-center gap-1 text-[#2d3748] font-bold">
-                <Clock className="w-3.5 h-3.5 text-[#1a8cff]" /> 3 min read
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2.5 sm:mb-3 text-[11px] sm:text-xs text-[#718096] font-mono">
+              <span className="neu-sm px-2 py-0.5 sm:px-2.5 sm:py-1 flex items-center gap-1 text-[#2d3748] font-bold">
+                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#1a8cff]" /> 3 min read
               </span>
-              <span className="neu-sm px-2.5 py-1 flex items-center gap-1 text-emerald-600 font-bold">
-                <Eye className="w-3.5 h-3.5 text-emerald-600" /> {primary.views.toLocaleString()} reads
+              <span className="neu-sm px-2 py-0.5 sm:px-2.5 sm:py-1 flex items-center gap-1 text-emerald-600 font-bold">
+                <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600" /> {primary.views.toLocaleString()} reads
               </span>
             </div>
 
             {/* Headline */}
             <Link href={`/news/${primary.slug}`}>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#2d3748] font-serif leading-tight tracking-tight hover:text-[#1a8cff] transition-colors">
+              <h1 className="text-xl sm:text-3xl lg:text-4xl font-black text-[#2d3748] font-serif leading-snug sm:leading-tight tracking-tight hover:text-[#1a8cff] transition-colors">
                 {primary.title}
               </h1>
             </Link>

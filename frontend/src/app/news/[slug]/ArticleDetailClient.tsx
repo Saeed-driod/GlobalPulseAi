@@ -393,46 +393,46 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
       <Header />
       <BreakingTicker articles={allArticles} />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-6 pb-20">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 pt-3 sm:pt-6 pb-20">
         {/* Top Leaderboard Ad */}
-        <div className="neu-flat p-4 mb-6">
+        <div className="neu-flat p-2 sm:p-4 mb-4 sm:mb-6">
           <AdBanner slot="header" />
         </div>
 
         {/* Back Link */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl neu-sm text-xs text-[#718096] hover:text-[#1a8cff] font-mono transition active:scale-95"
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl neu-sm text-xs text-[#718096] hover:text-[#1a8cff] font-mono transition active:scale-95"
           >
-            <ArrowLeft className="w-4 h-4 text-[#1a8cff]" /> Back to Global Intelligence Wire
+            <ArrowLeft className="w-3.5 h-3.5 text-[#1a8cff]" /> Back to Wire
           </Link>
         </div>
 
         {/* Article Header */}
-        <header className="max-w-4xl mx-auto mb-10">
-          <div className="flex flex-wrap items-center gap-3 mb-5">
+        <header className="max-w-4xl mx-auto mb-6 sm:mb-10">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-5">
             <span
-              className={`text-xs uppercase font-bold tracking-wider px-3.5 py-1.5 rounded-xl neu-sm ${getCategoryBadgeClass(
+              className={`text-[11px] sm:text-xs uppercase font-bold tracking-wider px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl neu-sm ${getCategoryBadgeClass(
                 article.category
               )}`}
             >
               {article.category}
             </span>
-            <span className="text-xs text-[#718096] font-mono flex items-center gap-1.5 neu-sm px-3 py-1.5 rounded-xl">
-              <Clock className="w-3.5 h-3.5 text-[#1a8cff]" /> 4 min read
+            <span className="text-[11px] sm:text-xs text-[#718096] font-mono flex items-center gap-1 neu-sm px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl">
+              <Clock className="w-3 h-3 text-[#1a8cff]" /> 4 min read
             </span>
-            <span className="text-xs text-[#718096] font-mono flex items-center gap-1.5 neu-sm px-3 py-1.5 rounded-xl">
-              <Eye className="w-3.5 h-3.5 text-emerald-600" /> {article.views.toLocaleString()} reads
+            <span className="text-[11px] sm:text-xs text-[#718096] font-mono flex items-center gap-1 neu-sm px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl">
+              <Eye className="w-3 h-3 text-emerald-600" /> {article.views.toLocaleString()} reads
             </span>
             {article.youtube_video_id && (
-              <span className="bg-gradient-to-r from-red-600 to-rose-600 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-red-500/20">
-                <Video className="w-3.5 h-3.5" /> HD Video Briefing Included
+              <span className="bg-gradient-to-r from-red-600 to-rose-600 text-white text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl flex items-center gap-1 shadow-md shadow-red-500/20">
+                <Video className="w-3 h-3" /> Video Included
               </span>
             )}
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-[#2d3748] font-serif tracking-tight leading-[1.12]">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-[#2d3748] font-serif tracking-tight leading-snug sm:leading-[1.12]">
             {article.title}
           </h1>
 

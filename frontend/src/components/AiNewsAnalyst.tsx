@@ -59,20 +59,20 @@ export const AiNewsAnalyst: React.FC = () => {
   };
 
   return (
-    <section className="my-10 neu-flat p-6 sm:p-8 relative overflow-hidden">
+    <section className="my-6 sm:my-10 neu-flat p-3.5 sm:p-8 relative overflow-hidden">
       {/* Background Subtle Ambient Glow */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-[#1a8cff]/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#1a8cff] shadow-[0_0_8px_rgba(26,140,255,0.7)] animate-pulse" />
-            <span className="text-[11px] font-mono uppercase font-black text-[#1a8cff] tracking-widest">
+            <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#1a8cff] shadow-[0_0_8px_rgba(26,140,255,0.7)] animate-pulse" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase font-black text-[#1a8cff] tracking-wider sm:tracking-widest">
               FREE AI INTELLIGENCE LAB • NEURAL ANALYZER
             </span>
           </div>
-          <h3 className="text-xl sm:text-2xl font-bold font-serif text-[#2d3748] tracking-tight">
+          <h3 className="text-lg sm:text-2xl font-bold font-serif text-[#2d3748] tracking-tight">
             Instant News Summarizer &amp; Bias Detector
           </h3>
           <p className="text-xs text-[#718096] mt-1 font-mono">

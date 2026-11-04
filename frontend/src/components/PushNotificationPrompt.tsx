@@ -81,7 +81,7 @@ export function PushNotificationPrompt() {
   return (
     <aside 
       aria-label="Breaking news alerts notification"
-      className="fixed bottom-5 right-5 z-50 max-w-sm w-full mx-auto p-4 sm:p-5 rounded-2xl bg-slate-950/95 border border-cyan-500/40 shadow-2xl shadow-cyan-950/60 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-5 duration-500"
+      className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-5 sm:bottom-5 z-50 max-w-sm w-auto sm:w-full mx-auto p-4 sm:p-5 rounded-2xl bg-slate-950/95 border border-cyan-500/40 shadow-2xl shadow-cyan-950/60 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-5 duration-500"
     >
       <div className="flex items-start gap-3.5">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-cyan-500/30">

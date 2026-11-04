@@ -50,14 +50,14 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
   }, [article.image_url, fallbackUrl]);
 
   return (
-    <article className="group neu-flat p-5 flex flex-col justify-between transition-all duration-300 hover:scale-[1.01] relative">
+    <article className="group neu-flat p-3.5 sm:p-5 flex flex-col justify-between transition-all duration-300 hover:scale-[1.01] relative">
       <div>
         {/* Carved Rounded Container for Thumbnail */}
         <Link
           href={`/news/${article.slug}`}
-          className="relative h-48 sm:h-52 neu-pressed p-1.5 overflow-hidden block rounded-2xl group"
+          className="relative h-44 sm:h-52 neu-pressed p-1 sm:p-1.5 overflow-hidden block rounded-xl sm:rounded-2xl group"
         >
-          <div className="w-full h-full rounded-xl overflow-hidden relative">
+          <div className="w-full h-full rounded-lg sm:rounded-xl overflow-hidden relative">
             <img
               src={imgSrc}
               alt={article.title}
@@ -90,7 +90,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
         </Link>
 
         {/* Article Metadata Row */}
-        <div className="flex items-center gap-2.5 text-[11px] text-[#718096] font-mono mt-4 mb-2">
+        <div className="flex items-center gap-2 sm:gap-2.5 text-[10px] sm:text-[11px] text-[#718096] font-mono mt-3 sm:mt-4 mb-2">
           <span>{formattedDate}</span>
           <span className="text-[#b8bec7]">•</span>
           <span className="flex items-center gap-1 text-emerald-600 font-semibold">
