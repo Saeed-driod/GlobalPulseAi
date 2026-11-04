@@ -40,16 +40,16 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 neu-circle flex items-center justify-center text-[#1a8cff] group-hover:scale-105 transition-all">
-                <span className="font-black text-[11px] sm:text-xs tracking-tighter bg-gradient-to-br from-[#1a8cff] to-[#0052cc] bg-clip-text text-transparent">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 neu-circle flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-all shadow-[0_0_14px_rgba(6,182,212,0.35)]">
+                <span className="font-black text-[11px] sm:text-xs tracking-tighter bg-gradient-to-br from-cyan-300 via-blue-400 to-indigo-500 bg-clip-text text-transparent">
                   GP
                 </span>
               </div>
               <div className="flex items-center gap-1 sm:gap-1.5">
-                <span className="text-sm sm:text-lg font-black tracking-tight text-[#2d3748] font-serif whitespace-nowrap">
-                  GlobalPulse <span className="text-[#1a8cff] font-sans font-extrabold">AI</span>
+                <span className="text-sm sm:text-lg font-black tracking-tight text-white font-serif whitespace-nowrap">
+                  GlobalPulse <span className="text-cyan-400 font-sans font-extrabold drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]">AI</span>
                 </span>
-                <span className="text-[9px] uppercase font-mono font-bold tracking-widest px-1.5 py-0.5 neu-sm text-[#1a8cff] hidden md:inline-block">
+                <span className="text-[9px] uppercase font-mono font-bold tracking-widest px-1.5 py-0.5 rounded-md bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 hidden md:inline-block">
                   WIRE
                 </span>
               </div>
@@ -172,7 +172,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Row 2: Smooth Horizontal Scroll Category Pills Bar */}
         {!isAdmin && onSelectCategory && (
-          <nav className="border-t border-[#b8bec7]/30 bg-[#e0e5ec] px-2 sm:px-5 py-1 overflow-x-auto scrollbar-none touch-pan-x">
+          <nav className="border-t border-white/10 bg-slate-950/70 backdrop-blur-md px-2 sm:px-5 py-1.5 overflow-x-auto scrollbar-none touch-pan-x">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-max">
               {CATEGORIES.map((cat) => {
                 const Icon = cat.icon;
@@ -181,13 +181,13 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     key={cat.name}
                     onClick={() => onSelectCategory(cat.name)}
-                    className={`flex items-center gap-1 sm:gap-1.5 px-2.5 py-1 text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-150 cursor-pointer rounded-lg ${
+                    className={`flex items-center gap-1.5 px-3 py-1 text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer rounded-xl ${
                       isActive
-                        ? "neu-pressed text-[#1a8cff] font-extrabold"
-                        : "neu-sm text-[#718096] hover:text-[#2d3748]"
+                        ? "bg-gradient-to-r from-cyan-500/25 via-blue-500/20 to-cyan-500/10 border border-cyan-400 text-cyan-300 font-extrabold shadow-[0_0_12px_rgba(6,182,212,0.35)]"
+                        : "neu-sm text-slate-300 hover:text-white"
                     }`}
                   >
-                    <Icon className={`w-3 h-3 ${isActive ? "text-[#1a8cff]" : "text-[#718096]"}`} />
+                    <Icon className={`w-3 h-3 ${isActive ? "text-cyan-300 animate-pulse" : "text-slate-400"}`} />
                     <span>{cat.name}</span>
                   </button>
                 );

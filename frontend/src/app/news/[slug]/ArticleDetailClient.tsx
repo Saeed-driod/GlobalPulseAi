@@ -31,6 +31,18 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
   const [allArticles, setAllArticles] = useState<Article[]>([]);
   const [copied, setCopied] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(!initialArticle);
+  const [scrollProgress, setScrollProgress] = useState<number>(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+        setScrollProgress(Math.min(100, Math.max(0, (window.scrollY / totalHeight) * 100)));
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     if (!initialArticle && slug) {
@@ -389,7 +401,15 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
   };
 
   return (
-    <div className="min-h-screen bg-[#e0e5ec] text-[#2d3748] flex flex-col font-sans selection:bg-[#1a8cff] selection:text-white">
+    <div className="min-h-screen text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
+      {/* Dynamic Cyber Neon Reading Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 h-1 bg-slate-900/40 z-50 pointer-events-none">
+        <div
+          className="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 shadow-[0_0_12px_rgba(6,182,212,0.9)] transition-all duration-100"
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+
       <Header />
       <BreakingTicker articles={allArticles} />
 

@@ -86,11 +86,11 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
 
                 <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-wrap items-center gap-2">
-                  <span className="neu-sm px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs uppercase font-bold text-[#1a8cff]">
+                  <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs uppercase font-mono font-bold rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.3)] backdrop-blur-md">
                     {primary.category}
                   </span>
                   {primary.youtube_video_id && (
-                    <span className="neu-sm px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-red-600 flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-[11px] font-mono font-bold rounded-lg bg-red-950/80 border border-red-500/40 text-red-400 flex items-center gap-1.5 shadow-[0_0_10px_rgba(239,68,68,0.3)] backdrop-blur-md">
                       <Video className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       Shorts Ready
                     </span>
@@ -100,34 +100,34 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
             </Link>
 
             {/* Meta Row */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2.5 sm:mb-3 text-[11px] sm:text-xs text-[#718096] font-mono">
-              <span className="neu-sm px-2 py-0.5 sm:px-2.5 sm:py-1 flex items-center gap-1 text-[#2d3748] font-bold">
-                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#1a8cff]" /> 3 min read
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2.5 sm:mb-3 text-[11px] sm:text-xs text-slate-400 font-mono">
+              <span className="neu-sm px-2 py-0.5 sm:px-2.5 sm:py-1 flex items-center gap-1 text-slate-200 font-bold">
+                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-400" /> 3 min read
               </span>
-              <span className="neu-sm px-2 py-0.5 sm:px-2.5 sm:py-1 flex items-center gap-1 text-emerald-600 font-bold">
-                <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600" /> {primary.views.toLocaleString()} reads
+              <span className="neu-sm px-2 py-0.5 sm:px-2.5 sm:py-1 flex items-center gap-1 text-emerald-400 font-bold">
+                <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" /> {primary.views.toLocaleString()} reads
               </span>
             </div>
 
             {/* Headline */}
             <Link href={`/news/${primary.slug}`}>
-              <h1 className="text-xl sm:text-3xl lg:text-4xl font-black text-[#2d3748] font-serif leading-snug sm:leading-tight tracking-tight hover:text-[#1a8cff] transition-colors">
+              <h1 className="text-xl sm:text-3xl lg:text-4xl font-black text-white font-serif leading-snug sm:leading-tight tracking-tight hover:text-cyan-300 transition-colors">
                 {primary.title}
               </h1>
             </Link>
 
-            {/* TL;DR Executive Takeaway Box (Carved Inset) */}
+            {/* TL;DR Executive Takeaway Box (Frosted Neon Inset) */}
             {summaryBullets.length > 0 && (
-              <div className="mt-5 p-4 rounded-xl neu-pressed">
+              <div className="mt-5 p-4 rounded-xl bg-slate-950/70 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-[#1a8cff]" />
-                  <span className="text-[11px] font-mono uppercase font-bold text-[#1a8cff] tracking-wider">
+                  <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+                  <span className="text-[11px] font-mono uppercase font-bold text-cyan-300 tracking-wider">
                     Executive Key Takeaways (TL;DR)
                   </span>
                 </div>
                 <div className="space-y-1.5">
                   {summaryBullets.map((bullet, idx) => (
-                    <p key={idx} className="text-xs text-[#718096] leading-relaxed font-sans">
+                    <p key={idx} className="text-xs text-slate-300 leading-relaxed font-sans">
                       {bullet.replace(/^[•▸*-\s]+/, "• ").replace(/\*\*/g, "")}
                     </p>
                   ))}

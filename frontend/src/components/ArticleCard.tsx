@@ -74,15 +74,15 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
 
             {/* Category Pill Overlay */}
             <div className="absolute top-2.5 left-2.5 flex items-center gap-2">
-              <span className="neu-sm px-2.5 py-0.5 text-[10px] uppercase font-bold tracking-wider text-[#1a8cff]">
+              <span className="px-2.5 py-0.5 text-[10px] uppercase font-mono font-bold tracking-wider rounded-md bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.3)] backdrop-blur-md">
                 {article.category}
               </span>
             </div>
 
             {/* Video Indicator */}
             {article.youtube_video_id && (
-              <div className="absolute top-2.5 right-2.5 neu-sm px-2 py-0.5 text-[10px] font-bold text-red-600 flex items-center gap-1">
-                <Video className="w-3 h-3 text-red-600" />
+              <div className="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-mono font-bold rounded-md bg-red-950/80 border border-red-500/40 text-red-400 flex items-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.3)] backdrop-blur-md">
+                <Video className="w-3 h-3 text-red-400" />
                 <span>Shorts Ready</span>
               </div>
             )}
@@ -90,21 +90,21 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
         </Link>
 
         {/* Article Metadata Row */}
-        <div className="flex items-center gap-2 sm:gap-2.5 text-[10px] sm:text-[11px] text-[#718096] font-mono mt-3 sm:mt-4 mb-2">
+        <div className="flex items-center gap-2 sm:gap-2.5 text-[10px] sm:text-[11px] text-slate-400 font-mono mt-3 sm:mt-4 mb-2">
           <span>{formattedDate}</span>
-          <span className="text-[#b8bec7]">•</span>
-          <span className="flex items-center gap-1 text-emerald-600 font-semibold">
+          <span className="text-slate-600">•</span>
+          <span className="flex items-center gap-1 text-emerald-400 font-semibold">
             <Eye className="w-3 h-3" /> {article.views.toLocaleString()} reads
           </span>
-          <span className="text-[#b8bec7]">•</span>
-          <span className="flex items-center gap-1 text-[#718096]">
+          <span className="text-slate-600">•</span>
+          <span className="flex items-center gap-1 text-slate-400">
             <Clock className="w-3 h-3" /> 3m
           </span>
         </div>
 
         {/* Title */}
         <Link href={`/news/${article.slug}`}>
-          <h3 className="text-base sm:text-lg font-bold text-[#2d3748] font-serif leading-snug transition-colors line-clamp-2 group-hover:text-[#1a8cff]">
+          <h3 className="text-base sm:text-lg font-bold text-white font-serif leading-snug transition-colors line-clamp-2 group-hover:text-cyan-300">
             {article.title}
           </h3>
         </Link>

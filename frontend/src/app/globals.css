@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #e0e5ec;
-  --foreground: #2d3748;
-  --neu-base: #e0e5ec;
-  --neu-shadow-dark: #b8bec7;
-  --neu-shadow-light: #ffffff;
-  --text-primary: #2d3748;
-  --text-muted: #718096;
-  --accent-blue: #1a8cff;
+  --background: #080c14;
+  --foreground: #f8fafc;
+  --neu-base: #0f172a;
+  --neu-shadow-dark: rgba(0, 0, 0, 0.7);
+  --neu-shadow-light: rgba(255, 255, 255, 0.06);
+  --text-primary: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent-blue: #06b6d4;
+  --accent-cyan: #06b6d4;
+  --accent-purple: #8b5cf6;
 }
 
 @theme inline {
@@ -20,173 +22,241 @@
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: #080c14;
+  color: #f8fafc;
   font-family: var(--font-sans);
   overflow-x: hidden;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.09) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.09) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.9) 0px, transparent 60%);
   background-attachment: fixed;
+  min-height: 100vh;
 }
 
 /* ==========================================================================
-   NEUMORPHIC 3D TACTILE SHADOW SYSTEM
+   PRO CYBER-INTELLIGENCE GLASSMORPHIC SYSTEM (OBSIDIAN & NEON)
    ========================================================================== */
 
-/* 1. Large 3D Extruded Surfaces (Cards, Containers, Navbar, Hero) */
+/* 1. Large Frosted Glass Surfaces (Cards, Containers, Navbar, Hero) */
 .neu-flat {
-  background: #e0e5ec;
-  box-shadow: 12px 12px 24px #b8bec7, -12px -12px 24px #ffffff;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  transition: all 0.25s ease-in-out;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neu-flat:hover {
+  border-color: rgba(6, 182, 212, 0.35);
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.8), 0 0 24px rgba(6, 182, 212, 0.12);
 }
 
 @media (max-width: 640px) {
   .neu-flat {
-    box-shadow: 4px 4px 10px rgba(184, 190, 199, 0.5), -4px -4px 10px rgba(255, 255, 255, 0.8);
-    border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.85);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
   }
 }
 
 .neu-flat-hover:hover {
-  box-shadow: 16px 16px 32px #b8bec7, -16px -16px 32px #ffffff;
   transform: translateY(-2px);
 }
 
-/* 2. Small / Medium Extruded 3D Elements (Buttons, Badges, Tabs) */
+/* 2. Small / Medium Glass Badges & Controls */
 .neu-sm {
-  background: #e0e5ec;
-  box-shadow: 6px 6px 12px #b8bec7, -6px -6px 12px #ffffff;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  color: #e2e8f0;
   transition: all 0.2s ease-in-out;
 }
 
-@media (max-width: 640px) {
-  .neu-sm {
-    box-shadow: 3px 3px 6px rgba(184, 190, 199, 0.5), -3px -3px 6px rgba(255, 255, 255, 0.85);
-    border-radius: 10px;
-  }
-}
-
+.neu-sm:hover,
 .neu-sm-hover:hover {
-  box-shadow: 8px 8px 16px #b8bec7, -8px -8px 16px #ffffff;
-  transform: translateY(-1px);
+  background: rgba(51, 65, 85, 0.75);
+  border-color: rgba(6, 182, 212, 0.4);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.2);
 }
 
 .neu-sm-hover:active,
 .neu-sm:active {
-  box-shadow: inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff;
   transform: translateY(0);
 }
 
-/* 3. Carved-In / Pressed 3D Insets (Inputs, Search, Active Category Pills, Progress Bars) */
-.neu-pressed,
-.neu-inset {
-  background: #e0e5ec;
-  box-shadow: inset 5px 5px 10px #b8bec7, inset -5px -5px 10px #ffffff;
-  border-radius: 14px;
-  transition: all 0.2s ease-in-out;
-}
-
 @media (max-width: 640px) {
-  .neu-pressed,
-  .neu-inset {
-    box-shadow: inset 2.5px 2.5px 5px rgba(184, 190, 199, 0.6), inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.85);
+  .neu-sm {
     border-radius: 10px;
   }
 }
 
-.neu-pressed-sm {
-  background: #e0e5ec;
-  box-shadow: inset 3px 3px 6px #b8bec7, inset -3px -3px 6px #ffffff;
-  border-radius: 10px;
-}
-
-/* 4. Circular Extruded & Pressed Icon Elements */
-.neu-circle {
-  background: #e0e5ec;
-  box-shadow: 8px 8px 16px #b8bec7, -8px -8px 16px #ffffff;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+/* 3. Deep Insets & Active State Wells */
+.neu-pressed,
+.neu-inset {
+  background: rgba(10, 15, 26, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+  border-radius: 12px;
   transition: all 0.2s ease-in-out;
 }
 
-.neu-circle:active {
-  box-shadow: inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff;
+.neu-pressed {
+  border-color: rgba(6, 182, 212, 0.4) !important;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(6, 182, 212, 0.2) !important;
+}
+
+.neu-pressed-sm {
+  background: rgba(10, 15, 26, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+}
+
+/* 4. Circular Icon Elements */
+.neu-circle {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  transition: all 0.2s ease-in-out;
+}
+
+.neu-circle:hover {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.3);
 }
 
 .neu-circle-pressed {
-  background: #e0e5ec;
-  box-shadow: inset 5px 5px 10px #b8bec7, inset -5px -5px 10px #ffffff;
+  background: rgba(10, 15, 26, 0.9);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
   border-radius: 50%;
 }
 
-/* 5. Electric Royal Blue 3D Action Button */
+/* 5. Electric Neon Primary Action Button */
 .neu-btn-primary {
-  background: #1a8cff;
+  background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
   color: #ffffff;
-  box-shadow: 6px 6px 14px rgba(26, 140, 255, 0.4), -6px -6px 14px #ffffff;
-  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.4);
+  border-radius: 12px;
   font-weight: 700;
   transition: all 0.2s ease-in-out;
 }
 
 .neu-btn-primary:hover {
-  background: #0077f0;
-  box-shadow: 8px 8px 18px rgba(26, 140, 255, 0.45), -8px -8px 18px #ffffff;
+  background: linear-gradient(135deg, #0891b2 0%, #1d4ed8 100%);
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
   transform: translateY(-1px);
 }
 
 .neu-btn-primary:active {
-  background: #0066d6;
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.25), inset -4px -4px 8px rgba(255, 255, 255, 0.3);
   transform: translateY(0);
 }
 
-/* 6. Form Inputs & Textareas with Smooth Focus Transition */
+/* 6. Form Inputs & Textareas with Glowing Cyan Focus */
 .neu-input {
-  background: #e0e5ec;
-  box-shadow: inset 5px 5px 10px #b8bec7, inset -5px -5px 10px #ffffff;
-  border: 2px solid transparent;
-  border-radius: 14px;
-  color: #2d3748;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: rgba(10, 15, 26, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+  border-radius: 12px;
+  color: #f8fafc;
+  transition: all 0.2s ease;
 }
 
 .neu-input:focus {
   outline: none;
-  border-color: #1a8cff;
-  box-shadow: inset 5px 5px 10px #b8bec7, inset -5px -5px 10px #ffffff, 0 0 0 3px rgba(26, 140, 255, 0.15);
+  border-color: #06b6d4;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 16px rgba(6, 182, 212, 0.35);
 }
 
 .neu-input::placeholder {
-  color: #a0aec0;
+  color: #64748b;
 }
 
-/* 7. Ambient Decorative 3D Spheres */
-.bg-circle {
-  background: #e0e5ec;
-  box-shadow: 16px 16px 32px #b8bec7, -16px -16px 32px #ffffff;
-  border-radius: 50%;
-  pointer-events: none;
-  position: absolute;
-  z-index: 0;
-}
-
-/* 8. Neumorphic Progress Bar Track & Fill */
+/* 7. Progress Bars */
 .neu-progress-track {
-  background: #e0e5ec;
-  box-shadow: inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 9999px;
   overflow: hidden;
 }
 
 .neu-progress-fill {
-  background: linear-gradient(90deg, #1a8cff 0%, #00c6ff 100%);
+  background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
   border-radius: 9999px;
-  box-shadow: 2px 2px 6px rgba(26, 140, 255, 0.35);
-  transition: width 0.5s ease-out;
+  transition: width 0.4s ease;
+}
+
+/* ==========================================================================
+   HIGH-CONTRAST TYPOGRAPHY & ELEMENT ADAPTATION
+   ========================================================================== */
+
+/* Automatically promote legacy dark text into ultra-readable crisp white & light slate */
+.text-\[\#2d3748\],
+.text-\[\#1a202c\] {
+  color: #f8fafc !important;
+}
+
+.text-\[\#718096\],
+.text-\[\#a0aec0\] {
+  color: #94a3b8 !important;
+}
+
+.text-\[\#4a5568\],
+.text-\[\#374151\] {
+  color: #cbd5e1 !important;
+}
+
+.text-\[\#1a8cff\] {
+  color: #06b6d4 !important;
+}
+
+/* Upgrade dividers and borders into subtle luxury glass lines */
+.border-\[\#b8bec7\]\/20,
+.border-\[\#b8bec7\]\/30,
+.border-\[\#b8bec7\]\/40,
+.border-\[\#b8bec7\]\/50,
+.border-\[\#d1d9e6\] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.border-white\/60,
+.border-white\/40 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Make backgrounds blend seamlessly */
+.bg-\[\#e0e5ec\] {
+  background-color: transparent !important;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080c14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.5);
 }
 
 /* Marquee for Breaking Ticker */

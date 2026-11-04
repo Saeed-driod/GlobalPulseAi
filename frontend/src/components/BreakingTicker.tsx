@@ -112,27 +112,27 @@ export const BreakingTicker: React.FC<BreakingTickerProps> = ({ articles }) => {
       <div className="neu-flat py-1 sm:py-1.5 px-2.5 sm:px-4 flex items-center justify-between gap-2 sm:gap-3 text-xs overflow-hidden">
         {/* Left: Breaking Wire Live Badge & Current Story */}
         <div className="flex items-center gap-2 sm:gap-2.5 overflow-hidden flex-1 min-w-0">
-          <div className="neu-sm px-2 sm:px-2.5 py-0.5 flex items-center gap-1.5 text-red-600 font-black tracking-widest text-[9px] sm:text-[10px] uppercase shrink-0">
+          <div className="bg-red-950/70 border border-red-500/40 text-red-400 px-2 sm:px-2.5 py-0.5 flex items-center gap-1.5 font-black tracking-widest text-[9px] sm:text-[10px] uppercase rounded-md shrink-0 shadow-[0_0_10px_rgba(239,68,68,0.3)]">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
             </span>
             <span>WIRE</span>
           </div>
 
           <Link
             href={`/news/${current.slug}`}
-            className="truncate text-[#2d3748] hover:text-[#1a8cff] font-medium transition-colors flex items-center gap-1 group flex-1 min-w-0"
+            className="truncate text-slate-200 hover:text-cyan-300 font-medium transition-colors flex items-center gap-1 group flex-1 min-w-0"
           >
             <span className="font-semibold text-xs group-hover:underline underline-offset-2 truncate">
               {current.title}
             </span>
-            <ChevronRight className="w-3 h-3 text-[#718096] group-hover:text-[#1a8cff] shrink-0" />
+            <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-cyan-300 shrink-0" />
           </Link>
         </div>
 
         {/* Right: Compact Live Financial Telemetry (Fear/Greed + Live Assets) */}
-        <div className="hidden md:flex items-center gap-2 shrink-0 pl-3 border-l border-[#b8bec7]/40 font-mono text-[10px]">
+        <div className="hidden md:flex items-center gap-2 shrink-0 pl-3 border-l border-white/10 font-mono text-[10px]">
           {/* Sentiment Badge */}
           <div className="neu-sm px-2 py-0.5 flex items-center gap-1 text-[10px]">
             <span

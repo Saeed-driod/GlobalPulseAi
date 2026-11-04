@@ -4,27 +4,27 @@ import { ShieldCheck, Sparkles } from "./Icons";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="mt-24 border-t border-[#d1d9e6] bg-[#e0e5ec] text-[#718096] text-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14">
+    <footer className="mt-20 border-t border-white/10 bg-slate-950/80 backdrop-blur-xl text-slate-400 text-xs">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Brand Info */}
           <div className="md:col-span-2 space-y-3.5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl neu-sm flex items-center justify-center font-black text-[#1a8cff] text-sm">
+              <div className="w-10 h-10 rounded-2xl neu-circle flex items-center justify-center font-black text-cyan-400 text-sm shadow-[0_0_14px_rgba(6,182,212,0.3)]">
                 GP
               </div>
-              <span className="text-xl font-black text-[#2d3748] font-serif tracking-tight">
-                GlobalPulse <span className="text-[#1a8cff] font-sans">AI</span>
+              <span className="text-xl font-black text-white font-serif tracking-tight">
+                GlobalPulse <span className="text-cyan-400 font-sans">AI</span>
               </span>
             </div>
-            <p className="text-[#718096] text-xs leading-relaxed max-w-md">
+            <p className="text-slate-400 text-xs leading-relaxed max-w-md">
               GlobalPulse AI is an autonomous, AI-powered intelligence and video media network delivering real-time geopolitical, financial market, and technological insights for a Tier-1 English audience across North America, Europe, and global financial hubs.
             </p>
-            <div className="pt-2 flex flex-wrap items-center gap-3 text-[#718096] font-mono text-[11px]">
-              <span className="text-[#2d3748] font-semibold">EDITIONS: US • UK • EU • GLOBAL</span>
+            <div className="pt-2 flex flex-wrap items-center gap-3 text-slate-400 font-mono text-[11px]">
+              <span className="text-slate-200 font-semibold">EDITIONS: US • UK • EU • GLOBAL</span>
               <span>•</span>
-              <span className="text-emerald-600 font-semibold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 NEURAL SYNDICATION ENGINE ACTIVE
               </span>
             </div>

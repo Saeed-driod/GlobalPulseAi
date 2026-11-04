@@ -58,7 +58,7 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#e0e5ec] text-[#2d3748] flex flex-col font-sans selection:bg-[#1a8cff] selection:text-white">
+    <div className="min-h-screen text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
       {/* 1. Header & Breaking News Ticker */}
       <Header
         selectedCategory={selectedCategory}
