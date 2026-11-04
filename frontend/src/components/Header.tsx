@@ -76,6 +76,16 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
+            {/* Cinema & Streaming Radar Button */}
+            <Link
+              href="/movies"
+              className="inline-flex items-center gap-1 neu-sm px-2.5 py-1 text-xs font-bold text-[#1a8cff] hover:text-[#0052cc] transition shrink-0"
+              title="Global Cinema & Streaming Radar: Where to Watch Movies Worldwide"
+            >
+              <span>🎬</span>
+              <span className="font-mono text-[11px] font-bold">MOVIES</span>
+            </Link>
+
             {/* Live TV Button */}
             <Link
               href="/live"
