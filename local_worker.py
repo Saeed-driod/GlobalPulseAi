@@ -250,6 +250,25 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
             export_disk_path = str(BACKEND_DIR / export_disk_path.lstrip("/"))
         export_to_tiktok_package(article, export_disk_path)
 
+        # Step 2.5: Auto-Post Article to Facebook Page (if configured)
+        try:
+            from services.facebook_poster import post_article_to_facebook, check_facebook_auth
+            fb_auth = check_facebook_auth()
+            if fb_auth.get("authenticated") and not article.facebook_post_id:
+                art_url = f"https://globalpulseai.vercel.app/news/{article.slug}"
+                fb_res = post_article_to_facebook(
+                    title=article.title,
+                    summary=article.summary,
+                    article_url=art_url,
+                    category=article.category
+                )
+                if fb_res.get("success"):
+                    article.facebook_post_id = fb_res.get("post_id")
+                    db.commit()
+                    print(f"[Facebook Auto-Post] Published Article #{article.id} to Facebook: {fb_res.get('post_url')}")
+        except Exception as fb_err:
+            print(f"[Facebook Auto-Post Notice] {fb_err}")
+
         # Step 3: YouTube Auto-Upload
         if do_upload:
             if article.youtube_video_id and article.youtube_video_id != "dQw4w9WgXcQ":
