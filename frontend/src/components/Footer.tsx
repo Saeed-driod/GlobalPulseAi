@@ -61,6 +61,18 @@ export const Footer: React.FC = () => {
                   Global Sports &amp; Championship Telemetry
                 </Link>
               </li>
+              <li>
+                <Link href="/live" className="text-red-600 hover:text-red-700 font-bold transition-colors flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                  🔴 24/7 Live Stream Broadcast Hub
+                </Link>
+              </li>
+              <li>
+                <Link href="/movies" className="text-[#1a8cff] hover:text-[#0052cc] font-bold transition-colors flex items-center gap-1.5">
+                  <span>🎬</span>
+                  Cinema &amp; Streaming Radar (Where to Watch)
+                </Link>
+              </li>
               <li className="pt-2">
                 <a
                   href="https://www.youtube.com/@GloblePulseAi"
