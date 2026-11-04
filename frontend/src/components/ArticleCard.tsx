@@ -17,12 +17,15 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
       })
     : "Live Wire";
 
-  // Extract clean bullet snippet
+  // Extract clean bullet snippet without raw markdown asterisks
   const bulletSnippet = article.summary
-    ? article.summary
-        .replace(/•/g, "")
-        .split("\n")
-        .filter((l) => l.trim().length > 0)[0] || ""
+    ? (
+        article.summary
+          .replace(/•/g, "")
+          .replace(/\*\*/g, "")
+          .split("\n")
+          .filter((l) => l.trim().length > 0)[0] || ""
+      ).trim()
     : "";
 
   const fallbackUrl = React.useMemo(() => {

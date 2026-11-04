@@ -128,7 +128,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
                 <div className="space-y-1.5">
                   {summaryBullets.map((bullet, idx) => (
                     <p key={idx} className="text-xs text-[#718096] leading-relaxed font-sans">
-                      {bullet.replace(/^[•▸*-\s]+/, "• ")}
+                      {bullet.replace(/^[•▸*-\s]+/, "• ").replace(/\*\*/g, "")}
                     </p>
                   ))}
                 </div>
@@ -179,7 +179,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
                   </Link>
 
                   <p className="mt-2.5 text-xs text-[#718096] line-clamp-2 leading-relaxed">
-                    {article.summary.replace(/•/g, "").split("\n")[0]}
+                    {article.summary.replace(/•/g, "").replace(/\*\*/g, "").split("\n")[0]}
                   </p>
                 </div>
 

@@ -7,7 +7,6 @@ import { fetchArticleBySlug, fetchArticles } from "../../../lib/api";
 import { Header } from "../../../components/Header";
 import { BreakingTicker } from "../../../components/BreakingTicker";
 import { AdBanner } from "../../../components/AdBanner";
-import { AdsterraBanner } from "../../../components/AdsterraBanner";
 import { NewsletterBox } from "../../../components/NewsletterBox";
 import { Footer } from "../../../components/Footer";
 import { AudioArticlePlayer } from "../../../components/AudioArticlePlayer";
@@ -111,6 +110,76 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
   const contextualRelated = [...sameCategoryArticles, ...otherCategoryArticles].slice(0, 3);
   const sidebarTrending = allArticles.filter((a) => a.id !== article.id).slice(0, 4);
 
+  // Rich inline markdown formatter: parses **bold**, *italic*, `code`, and [links] cleanly
+  const renderFormattedText = (rawText: string): React.ReactNode => {
+    if (!rawText) return null;
+
+    // Pattern to match markdown tokens
+    const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+    const parts = rawText.split(pattern);
+
+    return parts.map((part, index) => {
+      if (!part) return null;
+
+      // Bold: **text**
+      if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+        const inner = part.slice(2, -2).trim();
+        return (
+          <strong
+            key={index}
+            className="font-bold text-[#1a202c] tracking-tight bg-gradient-to-r from-[#1a8cff]/10 via-[#1a8cff]/5 to-transparent px-1.5 py-0.5 rounded border-b-2 border-[#1a8cff]/40"
+          >
+            {inner}
+          </strong>
+        );
+      }
+
+      // Italic: *text*
+      if (part.startsWith("*") && part.endsWith("*") && part.length >= 2) {
+        const inner = part.slice(1, -1);
+        return (
+          <em key={index} className="italic text-[#2d3748] font-serif">
+            {inner}
+          </em>
+        );
+      }
+
+      // Inline code: `text`
+      if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+        const inner = part.slice(1, -1);
+        return (
+          <code
+            key={index}
+            className="font-mono text-xs px-2 py-0.5 rounded neu-pressed text-[#1a8cff] font-semibold"
+          >
+            {inner}
+          </code>
+        );
+      }
+
+      // Markdown Link: [text](url)
+      const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      if (linkMatch) {
+        const [, linkTitle, linkUrl] = linkMatch;
+        return (
+          <a
+            key={index}
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#1a8cff] font-semibold underline underline-offset-4 decoration-[#1a8cff]/40 hover:decoration-[#1a8cff] transition-all"
+          >
+            {linkTitle}
+          </a>
+        );
+      }
+
+      // If standalone stray asterisks exist, strip them for a clean read
+      const sanitized = part.replace(/\*\*/g, "");
+      return <React.Fragment key={index}>{sanitized}</React.Fragment>;
+    });
+  };
+
   // Render markdown comparison or impact tables
   const renderMarkdownTable = (tableText: string, key: number | string) => {
     const rawLines = tableText.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("|"));
@@ -127,25 +196,25 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
     const bodyRows = rawLines.slice(1).filter((l) => !/^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(l));
 
     return (
-      <div key={key} className="my-8 overflow-x-auto rounded-2xl neu-flat p-4">
-        <div className="px-4 py-2 border-b border-[#d1d9e6] flex items-center justify-between text-xs font-mono text-[#1a8cff]">
-          <span className="flex items-center gap-2 font-bold">
+      <div key={key} className="my-10 overflow-x-auto rounded-3xl neu-flat p-5 border border-white/60">
+        <div className="px-4 py-2.5 border-b border-[#b8bec7]/50 flex items-center justify-between text-xs font-mono text-[#1a8cff]">
+          <span className="flex items-center gap-2 font-bold tracking-wider">
             <span className="w-2 h-2 rounded-full bg-[#1a8cff] animate-pulse" />
             STRATEGIC IMPACT &amp; COMPARATIVE MATRIX
           </span>
-          <span className="text-[11px] text-[#718096]">GlobalPulse Intelligence Desk</span>
+          <span className="text-[11px] text-[#718096] uppercase font-semibold">Tier-1 Intelligence Model</span>
         </div>
-        <table className="w-full text-left text-sm border-collapse mt-2">
+        <table className="w-full text-left text-sm border-collapse mt-3">
           <thead>
-            <tr className="border-b border-[#d1d9e6]">
+            <tr className="border-b border-[#b8bec7]/40">
               {headerCells.map((h, i) => (
-                <th key={i} className="px-4 py-3 font-mono text-xs uppercase tracking-wider text-[#2d3748] font-bold">
-                  {h}
+                <th key={i} className="px-4 py-3.5 font-mono text-xs uppercase tracking-wider text-[#1a202c] font-black">
+                  {renderFormattedText(h)}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#d1d9e6] text-[#4a5568]">
+          <tbody className="divide-y divide-[#b8bec7]/30 text-[#4a5568]">
             {bodyRows.map((row, rIdx) => {
               const cells = parseRow(row);
               return (
@@ -153,11 +222,11 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                   {cells.map((c, cIdx) => (
                     <td
                       key={cIdx}
-                      className={`px-4 py-3 text-xs sm:text-sm ${
-                        cIdx === 0 ? "font-bold text-[#2d3748]" : "text-[#4a5568]"
+                      className={`px-4 py-3.5 text-xs sm:text-sm ${
+                        cIdx === 0 ? "font-bold text-[#1a202c]" : "text-[#4a5568]"
                       }`}
                     >
-                      {c}
+                      {renderFormattedText(c)}
                     </td>
                   ))}
                 </tr>
@@ -173,85 +242,147 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
     const sections = content.split("\n\n");
     return sections.map((section, idx) => {
       const trimmed = section.trim();
+      if (!trimmed) return null;
 
       // Check if section is a Markdown Table
       if (trimmed.startsWith("|") && trimmed.includes("\n|")) {
         return renderMarkdownTable(trimmed, idx);
       }
 
+      // Executive Level 3 Heading: ### What Happened, ### Why It Matters, etc.
       if (trimmed.startsWith("### ")) {
+        const rawHeading = trimmed.replace("### ", "").trim();
+        const cleanHeading = rawHeading.replace(/\*\*/g, "");
+
+        let badgeLabel = "Verified Dispatch";
+        let badgeStyle = "text-[#1a8cff] bg-[#1a8cff]/10 border-[#1a8cff]/30";
+        const lower = cleanHeading.toLowerCase();
+
+        if (lower.includes("what happened") || lower.includes("headline")) {
+          badgeLabel = "Core Facts & Chronology";
+          badgeStyle = "text-[#1a8cff] bg-[#1a8cff]/10 border-[#1a8cff]/30";
+        } else if (lower.includes("why it matters") || lower.includes("strategic") || lower.includes("financial")) {
+          badgeLabel = "Executive Impact & Capex";
+          badgeStyle = "text-emerald-700 bg-emerald-500/10 border-emerald-500/30";
+        } else if (lower.includes("comparison") || lower.includes("matrix") || lower.includes("statistics")) {
+          badgeLabel = "Comparative Intelligence";
+          badgeStyle = "text-purple-700 bg-purple-500/10 border-purple-500/30";
+        } else if (lower.includes("ripple") || lower.includes("market") || lower.includes("implications")) {
+          badgeLabel = "Macro & Supply Chain Telemetry";
+          badgeStyle = "text-amber-700 bg-amber-500/10 border-amber-500/30";
+        } else if (lower.includes("faq") || lower.includes("questions")) {
+          badgeLabel = "Key Analyst Q&A";
+          badgeStyle = "text-blue-700 bg-blue-500/10 border-blue-500/30";
+        }
+
         return (
-          <h2
-            key={idx}
-            className="text-2xl sm:text-3xl font-bold font-serif text-[#2d3748] mt-10 mb-4 pb-2 border-b border-[#d1d9e6]"
-          >
-            {trimmed.replace("### ", "")}
-          </h2>
+          <div key={idx} className="mt-12 mb-6 pt-6 border-t border-[#b8bec7]/50 first:mt-2 first:pt-0 first:border-0">
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className={`px-2.5 py-0.5 rounded-md font-mono text-[10px] font-bold uppercase tracking-wider border ${badgeStyle}`}>
+                {badgeLabel}
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-serif text-[#1a202c] tracking-tight leading-snug">
+              {cleanHeading}
+            </h2>
+          </div>
         );
       }
+
+      // Level 4 Sub-heading: ####
       if (trimmed.startsWith("#### ")) {
+        const cleanSub = trimmed.replace("#### ", "").trim();
         return (
-          <h3 key={idx} className="text-xl sm:text-2xl font-bold font-serif text-[#1a8cff] mt-8 mb-3">
-            {trimmed.replace("#### ", "")}
+          <h3 key={idx} className="text-xl sm:text-2xl font-bold font-serif text-[#1a8cff] mt-8 mb-3 tracking-tight">
+            {renderFormattedText(cleanSub)}
           </h3>
         );
       }
+
+      // Blockquotes: >
       if (trimmed.startsWith("> ")) {
+        const quoteContent = trimmed.replace(/^>\s*/gm, "");
         return (
           <blockquote
             key={idx}
-            className="my-8 pl-5 border-l-4 border-[#1a8cff] text-[#2d3748] italic neu-pressed p-5 rounded-r-2xl font-serif text-lg leading-relaxed"
+            className="my-8 pl-6 border-l-4 border-[#1a8cff] text-[#1a202c] neu-flat p-6 rounded-r-3xl font-serif text-lg sm:text-xl italic leading-relaxed"
           >
-            {trimmed.replace(/^>\s*/gm, "")}
+            {renderFormattedText(quoteContent)}
           </blockquote>
         );
       }
+
+      // Code blocks
       if (trimmed.startsWith("```")) {
         const clean = trimmed.replace(/```[a-z]*\n?/g, "");
         return (
           <pre
             key={idx}
-            className="my-6 p-5 rounded-2xl neu-pressed text-[#1a8cff] font-mono text-xs overflow-x-auto leading-relaxed"
+            className="my-6 p-5 rounded-2xl neu-pressed text-[#1a8cff] font-mono text-xs overflow-x-auto leading-relaxed border border-black/5"
           >
             <code>{clean}</code>
           </pre>
         );
       }
-      if (trimmed.startsWith("* ") || trimmed.startsWith("- ") || trimmed.startsWith("1. ")) {
-        const items = trimmed.split("\n");
+
+      // Bullet lists & numbered lists
+      if (trimmed.startsWith("* ") || trimmed.startsWith("- ") || /^\d+\.\s/.test(trimmed)) {
+        const items = trimmed.split("\n").filter((l) => l.trim().length > 0);
         return (
-          <ul key={idx} className="my-5 space-y-2.5 text-[#4a5568] text-base leading-relaxed list-disc list-inside">
-            {items.map((item, i) => (
-              <li key={i} className="pl-1">
-                <span className="text-[#2d3748]">{item.replace(/^(\*|-|\d+\.)\s*/, "")}</span>
-              </li>
-            ))}
+          <ul key={idx} className="my-6 space-y-3 pl-1">
+            {items.map((item, i) => {
+              const cleanedItem = item.replace(/^(\*|-|\d+\.)\s*/, "");
+              return (
+                <li key={i} className="flex items-start gap-3 text-base sm:text-lg text-[#2d3748] leading-relaxed">
+                  <span className="w-2 h-2 rounded-full bg-[#1a8cff] mt-2.5 shrink-0 shadow-[0_0_6px_rgba(26,140,255,0.4)]" />
+                  <span className="flex-1 font-sans">{renderFormattedText(cleanedItem)}</span>
+                </li>
+              );
+            })}
           </ul>
         );
       }
 
-      // Check for FAQ Questions like **Q: ...?**
-      if (trimmed.startsWith("**Q:") || trimmed.startsWith("**Question:")) {
+      // FAQ Questions & Answers: **Q: ...?** or Q:
+      if (trimmed.startsWith("**Q:") || trimmed.startsWith("**Question:") || trimmed.startsWith("Q:")) {
+        const lines = trimmed.split("\n");
+        const questionLine = lines[0].replace(/\*\*/g, "").replace(/^Q:\s*/i, "").trim();
+        const answerLine = lines.slice(1).join(" ").replace(/\*\*/g, "").replace(/^A:\s*/i, "").trim();
+
         return (
           <div
             key={idx}
-            className="my-5 p-5 rounded-2xl neu-pressed text-[#2d3748]"
+            className="my-6 p-6 sm:p-7 rounded-3xl neu-flat border-l-4 border-[#1a8cff] transition-all hover:shadow-lg"
           >
-            <div className="text-sm sm:text-base font-bold text-[#1a8cff] mb-1">
-              {trimmed.split("\n")[0].replace(/\*\*/g, "")}
+            <div className="flex items-center gap-2 mb-2 font-mono text-xs font-bold text-[#1a8cff] uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-[#1a8cff]" />
+              Strategic Question &amp; Authoritative Answer
             </div>
-            {trimmed.split("\n").slice(1).join("\n") && (
-              <p className="text-xs sm:text-sm text-[#4a5568] leading-relaxed mt-2 font-light">
-                {trimmed.split("\n").slice(1).join("\n").replace(/^\*\*A:\*\*\s*/i, "")}
+            <h4 className="text-base sm:text-lg font-bold text-[#1a202c] font-serif mb-2 leading-snug">
+              {questionLine}
+            </h4>
+            {answerLine && (
+              <p className="text-sm sm:text-base text-[#4a5568] leading-relaxed font-sans mt-2">
+                {renderFormattedText(answerLine)}
               </p>
             )}
           </div>
         );
       }
 
+      // Standard Article Paragraph: Lead styling for opening, elegant typography for body
+      const isLead = idx === 0 || (idx === 1 && sections[0].startsWith("###"));
+
       return (
-        <p key={idx} className="text-base sm:text-lg text-[#4a5568] leading-relaxed my-5 font-light">
-          {section}
+        <p
+          key={idx}
+          className={`my-5 leading-relaxed sm:leading-8 ${
+            isLead
+              ? "text-lg sm:text-xl text-[#1a202c] font-serif font-normal"
+              : "text-base sm:text-lg text-[#374151] font-sans font-light"
+          }`}
+        >
+          {renderFormattedText(trimmed)}
         </p>
       );
     });
@@ -398,12 +529,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
           />
         </header>
 
-        {/* Responsive 320x50 Sponsored Banner */}
-        <div className="flex justify-center -mt-2 mb-8">
-          <div className="neu-flat p-3 rounded-2xl">
-            <AdsterraBanner size="320x50" label="Sponsored Intelligence Alert" className="my-0" />
-          </div>
-        </div>
+
 
         {/* 2-Column Editorial Grid: Article Body (Left 8 Cols) + Sidebar (Right 4 Cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
@@ -439,7 +565,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
             )}
 
             {/* KEY TAKEAWAYS (TL;DR) EXECUTIVE BOX */}
-            <div className="p-7 sm:p-8 rounded-3xl neu-flat mb-10 relative overflow-hidden">
+            <div className="p-7 sm:p-8 rounded-3xl neu-flat mb-10 relative overflow-hidden border border-white/60">
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="w-4 h-4 text-[#1a8cff]" />
                 <h3 className="text-xs uppercase font-mono font-bold tracking-widest text-[#1a8cff]">
@@ -447,13 +573,17 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                 </h3>
               </div>
 
-              <div className="space-y-3 text-sm text-[#2d3748] leading-relaxed font-sans">
-                {article.summary.split("\n").map((line, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <span className="text-[#1a8cff] font-bold shrink-0 mt-0.5">▸</span>
-                    <span className="font-medium">{line.replace(/^•\s*/, "")}</span>
-                  </div>
-                ))}
+              <div className="space-y-3 text-sm sm:text-base text-[#2d3748] leading-relaxed font-sans">
+                {article.summary.split("\n").map((line, i) => {
+                  const cleaned = line.replace(/^•\s*/, "").trim();
+                  if (!cleaned) return null;
+                  return (
+                    <div key={i} className="flex items-start gap-3">
+                      <span className="text-[#1a8cff] font-bold shrink-0 mt-1">▸</span>
+                      <span className="font-medium text-[#2d3748] flex-1">{renderFormattedText(cleaned)}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -604,9 +734,9 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
               </div>
             </div>
 
-            {/* Article Detail Page Footer Adsterra Banner */}
+            {/* Article Detail Page In-Article Ad Slot */}
             <div className="neu-flat p-4 my-8">
-              <AdsterraBanner label="Sponsored Intelligence" className="my-0" />
+              <AdBanner slot="in-article" />
             </div>
           </div>
 
