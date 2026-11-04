@@ -84,6 +84,96 @@ def check_facebook_auth() -> Dict[str, Any]:
             "message": f"Facebook Connection Exception: {e}"
         }
 
+CATEGORY_HASHTAG_MAP = {
+    "AI & Tech": [
+        "#TechNews", "#AI", "#ArtificialIntelligence", "#Technology", "#SmartTech",
+        "#TechTrends", "#Innovation", "#FutureTech", "#Gadgets", "#CyberSecurity",
+        "#BigTech", "#MachineLearning", "#DigitalTransformation"
+    ],
+    "Global Sports": [
+        "#SportsNews", "#Cricket", "#Football", "#Soccer", "#WorldCup",
+        "#ChampionsTrophy", "#MatchDay", "#SportsHighlights", "#CricketFans",
+        "#LiveSports", "#TrendingSports", "#Athletes"
+    ],
+    "Future Science": [
+        "#ScienceNews", "#Discovery", "#SpaceExploration", "#Physics", "#Astronomy",
+        "#Research", "#ScienceFacts", "#Innovation", "#DeepTech", "#FutureScience",
+        "#ScientificBreakthrough"
+    ],
+    "Markets & Finance": [
+        "#FinanceNews", "#StockMarket", "#Crypto", "#Bitcoin", "#Economy",
+        "#Investing", "#GlobalEconomy", "#MarketWatch", "#Trading", "#WallStreet",
+        "#FinancialFreedom", "#Wealth"
+    ],
+    "Geopolitics": [
+        "#WorldNews", "#BreakingNews", "#Geopolitics", "#GlobalAffairs", "#InternationalNews",
+        "#Headlines", "#CurrentEvents", "#ForeignPolicy", "#GlobalPulse", "#WorldPolitics"
+    ],
+    "Entertainment": [
+        "#EntertainmentNews", "#Hollywood", "#Movies", "#Cinema", "#Streaming",
+        "#CelebrityNews", "#PopCulture", "#TVSeries", "#TrendingNow"
+    ]
+}
+
+VIRAL_CORE_TAGS = ["#Trending", "#Viral", "#Explore", "#TopStories", "#DailyNews", "#Breaking", "#GlobalPulseAI"]
+
+STOP_WORDS = {
+    "a", "an", "the", "and", "or", "but", "if", "because", "as", "what",
+    "which", "this", "that", "these", "those", "then", "just", "so", "than",
+    "such", "both", "through", "about", "for", "is", "of", "while", "during",
+    "to", "from", "in", "out", "on", "off", "over", "under", "again", "further",
+    "then", "once", "here", "there", "when", "where", "why", "how", "all", "any",
+    "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor",
+    "not", "only", "own", "same", "so", "than", "too", "very", "can", "will",
+    "just", "don", "should", "now", "does", "into", "with", "makes", "shed", "light"
+}
+
+def generate_facebook_hashtags(title: str, category: Optional[str] = None) -> str:
+    """
+    Generates 12-16 high-volume, high-traffic search hashtags for maximum viral reach on Facebook.
+    Combines:
+    1. Targeted niche tags based on category
+    2. Dynamic keyword tags extracted directly from the article headline
+    3. Evergreen high-engagement discovery tags
+    """
+    selected_tags = []
+
+    # 1. Category specific niche tags
+    matched_cat = None
+    if category:
+        for cat_key in CATEGORY_HASHTAG_MAP:
+            if cat_key.lower() in category.lower() or category.lower() in cat_key.lower():
+                matched_cat = cat_key
+                break
+    
+    if matched_cat and matched_cat in CATEGORY_HASHTAG_MAP:
+        selected_tags.extend(CATEGORY_HASHTAG_MAP[matched_cat][:6])
+    else:
+        selected_tags.extend(["#WorldNews", "#BreakingNews", "#GlobalNews", "#Headlines", "#NewsUpdate"])
+
+    # 2. Extract 2-3 capitalized keyword hashtags from the headline
+    import re
+    words = re.findall(r"[A-Za-z0-9]+", title or "")
+    keyword_tags = []
+    for w in words:
+        w_lower = w.lower()
+        if len(w) >= 4 and w_lower not in STOP_WORDS:
+            tag = f"#{w.capitalize()}"
+            if tag not in selected_tags and tag not in keyword_tags:
+                keyword_tags.append(tag)
+        if len(keyword_tags) >= 4:
+            break
+    selected_tags.extend(keyword_tags)
+
+    # 3. Add viral search tags
+    for vt in VIRAL_CORE_TAGS:
+        if vt not in selected_tags:
+            selected_tags.append(vt)
+        if len(selected_tags) >= 15:
+            break
+
+    return " ".join(selected_tags[:16])
+
 def post_article_to_facebook(
     title: str,
     summary: str,
@@ -101,16 +191,17 @@ def post_article_to_facebook(
     if not page_id or not token:
         return {"success": False, "message": "Facebook credentials missing in environment."}
 
-    # Format engaging Facebook post caption
-    clean_summary = (summary or "").replace("*", "").strip()[:240]
-    category_tag = f"#{category.replace(' ', '').replace('&', '')}" if category else "#GlobalNews"
-    hashtags = f"{category_tag} #BreakingNews #GlobalPulseAI #NewsUpdate"
+    # Format engaging Facebook post caption with high-volume search hashtags
+    clean_summary = (summary or "").replace("*", "").strip()[:260]
+    hashtags = generate_facebook_hashtags(title, category)
 
     message = (
         f"⚡ {title}\n\n"
-        f"{clean_summary}...\n\n"
-        f"👉 Read full dossier and verified intelligence on GlobalPulse AI:\n"
+        f"📌 BRIEFING:\n{clean_summary}...\n\n"
+        f"👉 Read verified analysis & full intelligence dossier on GlobalPulse AI:\n"
         f"🔗 {article_url}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔍 SEARCH TAGS & TOPICS:\n"
         f"{hashtags}"
     )
 
@@ -139,6 +230,59 @@ def post_article_to_facebook(
         return {"success": False, "error": err_body}
     except Exception as e:
         print(f"[Facebook Post Exception] {e}")
+        return {"success": False, "error": str(e)}
+
+def post_to_facebook_group(
+    group_id: str,
+    title: str,
+    summary: str,
+    article_url: str,
+    category: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Publishes a post directly to a Facebook Group feed.
+    Requirements:
+    1. The Facebook App or Page must have been added to the Group in Group Settings -> Apps.
+    2. The Page or User must have posting privileges in the Group.
+    """
+    creds = get_facebook_credentials()
+    token = creds["access_token"]
+    if not token:
+        return {"success": False, "message": "Facebook access token missing."}
+
+    clean_summary = (summary or "").replace("*", "").strip()[:260]
+    hashtags = generate_facebook_hashtags(title, category)
+
+    message = (
+        f"⚡ {title}\n\n"
+        f"📌 BRIEFING:\n{clean_summary}...\n\n"
+        f"👉 Read verified analysis & full intelligence dossier on GlobalPulse AI:\n"
+        f"🔗 {article_url}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔍 SEARCH TAGS:\n"
+        f"{hashtags}"
+    )
+
+    payload = urllib.parse.urlencode({
+        "message": message,
+        "link": article_url,
+        "access_token": token
+    }).encode("utf-8")
+
+    endpoint = f"{BASE_GRAPH_URL}/{group_id}/feed"
+    try:
+        req = urllib.request.Request(endpoint, data=payload, headers={"User-Agent": "GlobalPulseAI/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            res_data = json.loads(resp.read().decode("utf-8"))
+            post_id = res_data.get("id")
+            print(f"[Facebook Group Auto-Post] Published to Group {group_id}: {post_id}")
+            return {
+                "success": True,
+                "post_id": post_id,
+                "post_url": f"https://www.facebook.com/{post_id}" if post_id else None
+            }
+    except Exception as e:
+        print(f"[Facebook Group Post Error] {e}")
         return {"success": False, "error": str(e)}
 
 def post_photo_to_facebook(
