@@ -69,26 +69,29 @@ export const ViralPoll: React.FC = () => {
   };
 
   return (
-    <section className="my-10 neu-flat p-6 sm:p-8 relative overflow-hidden">
+    <section className="my-10 neu-flat p-6 sm:p-8 relative overflow-hidden border border-white/10">
+      {/* Top Emerald/Cyan Accent Line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]" />
+
       {/* Background Subtle Gradient */}
-      <div className="absolute top-0 left-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <BarChart3 className="w-4 h-4 text-[#1a8cff]" />
-            <span className="text-[11px] font-mono uppercase font-black text-[#1a8cff] tracking-widest">
+            <BarChart3 className="w-4 h-4 text-emerald-400" />
+            <span className="text-[11px] font-mono uppercase font-black text-emerald-400 tracking-widest">
               DAILY GLOBAL SENTIMENT PULSE • LIVE COMMUNITY VOTE
             </span>
           </div>
-          <h3 className="text-xl sm:text-2xl font-bold font-serif text-[#2d3748] tracking-tight">
+          <h3 className="text-xl sm:text-2xl font-bold font-serif text-white tracking-tight">
             {pollQuestion}
           </h3>
         </div>
 
-        <div className="neu-sm px-3 py-1 text-xs font-mono font-bold text-[#718096] shrink-0 self-start sm:self-center">
-          Verified Votes: <strong className="text-[#2d3748]">{totalVotes.toLocaleString()}</strong>
+        <div className="neu-sm px-3 py-1 text-xs font-mono font-bold text-slate-400 shrink-0 self-start sm:self-center border border-white/5">
+          Verified Votes: <strong className="text-white">{totalVotes.toLocaleString()}</strong>
         </div>
       </div>
 
@@ -102,18 +105,18 @@ export const ViralPoll: React.FC = () => {
             <div
               key={opt.id}
               onClick={() => handleVote(opt.id)}
-              className={`neu-sm p-4 rounded-xl transition-all relative overflow-hidden cursor-pointer select-none ${
+              className={`neu-sm p-4 rounded-xl transition-all relative overflow-hidden cursor-pointer select-none border border-white/5 ${
                 hasVoted
                   ? isSelected
-                    ? "ring-2 ring-[#1a8cff]"
+                    ? "ring-2 ring-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.3)] bg-emerald-950/20"
                     : "opacity-90"
-                  : "hover:scale-[1.01] active:scale-[0.99]"
+                  : "hover:scale-[1.01] active:scale-[0.99] hover:border-emerald-400/40"
               }`}
             >
               {/* Animated Progress Bar fill when voted */}
               {hasVoted && (
                 <div
-                  className="absolute inset-y-0 left-0 bg-[#1a8cff]/10 transition-all duration-700 ease-out"
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500/25 to-teal-500/15 transition-all duration-700 ease-out"
                   style={{ width: `${percent}%` }}
                 />
               )}
@@ -123,24 +126,24 @@ export const ViralPoll: React.FC = () => {
                   <div
                     className={`w-4 h-4 rounded-full flex items-center justify-center border transition ${
                       isSelected
-                        ? "border-[#1a8cff] bg-[#1a8cff] text-white"
-                        : "border-[#b8bec7] bg-white"
+                        ? "border-emerald-400 bg-emerald-500 text-white"
+                        : "border-slate-600 bg-slate-900"
                     }`}
                   >
                     {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
 
-                  <span className="text-xs sm:text-sm font-medium text-[#2d3748]">
+                  <span className="text-xs sm:text-sm font-medium text-slate-200">
                     {opt.text}
                   </span>
                 </div>
 
                 {hasVoted && (
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs sm:text-sm font-bold font-mono text-[#1a8cff]">
+                    <span className="text-xs sm:text-sm font-bold font-mono text-emerald-300">
                       {percent}%
                     </span>
-                    <span className="text-[10px] font-mono text-[#718096] hidden sm:inline">
+                    <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">
                       ({opt.votes.toLocaleString()})
                     </span>
                   </div>
@@ -152,8 +155,8 @@ export const ViralPoll: React.FC = () => {
       </div>
 
       {/* Footer / Social Share */}
-      <div className="mt-6 pt-4 border-t border-[#b8bec7]/40 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-xs font-mono text-[#718096]">
+      <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+        <span className="text-xs font-mono text-slate-400">
           {hasVoted
             ? "✓ Your vote has been verified on the global ledger."
             : "Click any option above to cast your vote and reveal live results."}
@@ -164,7 +167,7 @@ export const ViralPoll: React.FC = () => {
           <button
             type="button"
             onClick={handleWhatsAppShare}
-            className="neu-sm px-3 py-1.5 text-xs font-mono font-bold text-emerald-700 hover:text-emerald-800 transition flex items-center gap-1.5 cursor-pointer"
+            className="neu-sm px-3 py-1.5 text-xs font-mono font-bold text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1.5 cursor-pointer border border-white/5"
           >
             <span>💬 WhatsApp</span>
           </button>
@@ -172,7 +175,7 @@ export const ViralPoll: React.FC = () => {
           <button
             type="button"
             onClick={handleTwitterShare}
-            className="neu-sm px-3 py-1.5 text-xs font-mono font-bold text-[#1a8cff] hover:text-sky-600 transition flex items-center gap-1.5 cursor-pointer"
+            className="neu-sm px-3 py-1.5 text-xs font-mono font-bold text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1.5 cursor-pointer border border-white/5"
           >
             <span>🐦 Share on X</span>
           </button>
@@ -180,7 +183,7 @@ export const ViralPoll: React.FC = () => {
           <button
             type="button"
             onClick={handleCopy}
-            className="neu-sm px-3 py-1.5 text-xs font-mono font-bold text-[#2d3748] hover:text-[#1a8cff] transition flex items-center gap-1.5 cursor-pointer"
+            className="neu-sm px-3 py-1.5 text-xs font-mono font-bold text-slate-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer border border-white/5"
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>{copied ? "✓ Copied!" : "Copy Link"}</span>

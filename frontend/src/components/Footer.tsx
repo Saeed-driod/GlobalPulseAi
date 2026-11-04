@@ -32,43 +32,43 @@ export const Footer: React.FC = () => {
 
           {/* Categories */}
           <div>
-            <h4 className="text-[#2d3748] font-bold uppercase text-[11px] font-mono tracking-wider mb-4 pb-1 border-b border-[#d1d9e6]">
+            <h4 className="text-white font-bold uppercase text-[11px] font-mono tracking-wider mb-4 pb-1 border-b border-white/10">
               Editorial Coverage
             </h4>
             <ul className="space-y-2.5 text-xs font-medium">
               <li>
-                <Link href="/" className="hover:text-[#1a8cff] transition-colors">
+                <Link href="/" className="hover:text-cyan-300 transition-colors">
                   AI &amp; Computing Architecture
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-[#1a8cff] transition-colors">
+                <Link href="/" className="hover:text-emerald-300 transition-colors">
                   Global Markets &amp; Macro Liquidity
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-[#1a8cff] transition-colors">
+                <Link href="/" className="hover:text-indigo-300 transition-colors">
                   World Politics &amp; Global Diplomacy
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-[#1a8cff] transition-colors">
+                <Link href="/" className="hover:text-purple-300 transition-colors">
                   Future Science &amp; Fusion Energy
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-[#1a8cff] transition-colors">
+                <Link href="/" className="hover:text-amber-300 transition-colors">
                   Global Sports &amp; Championship Telemetry
                 </Link>
               </li>
               <li>
-                <Link href="/live" className="text-red-600 hover:text-red-700 font-bold transition-colors flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                <Link href="/live" className="text-rose-400 hover:text-rose-300 font-bold transition-colors flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                   🔴 24/7 Live Stream Broadcast Hub
                 </Link>
               </li>
               <li>
-                <Link href="/movies" className="text-[#1a8cff] hover:text-[#0052cc] font-bold transition-colors flex items-center gap-1.5">
+                <Link href="/movies" className="text-pink-300 hover:text-pink-200 font-bold transition-colors flex items-center gap-1.5">
                   <span>🎬</span>
                   Cinema &amp; Streaming Radar (Where to Watch)
                 </Link>
@@ -78,9 +78,9 @@ export const Footer: React.FC = () => {
                   href="https://www.youtube.com/@GloblePulseAi"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-red-600 font-bold hover:text-red-700 font-mono text-[11px]"
+                  className="inline-flex items-center gap-1.5 text-red-400 font-bold hover:text-red-300 font-mono text-[11px]"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-red-500" />
+                  <Sparkles className="w-3.5 h-3.5 text-red-400" />
                   GlobalPulse AI on YouTube →
                 </a>
               </li>
@@ -89,28 +89,28 @@ export const Footer: React.FC = () => {
 
           {/* Legal / AI Ethics */}
           <div>
-            <h4 className="text-[#2d3748] font-bold uppercase text-[11px] font-mono tracking-wider mb-4 pb-1 border-b border-[#d1d9e6]">
+            <h4 className="text-white font-bold uppercase text-[11px] font-mono tracking-wider mb-4 pb-1 border-b border-white/10">
               Verification &amp; Protocol
             </h4>
-            <p className="text-[#718096] text-[11px] leading-relaxed">
+            <p className="text-slate-400 text-[11px] leading-relaxed">
               All intelligence reports are synthesized from primary wire artifacts (Reuters, BBC, TechCrunch, The Verge), verified via automated neural cross-referencing, and adapted for vertical video syndication.
             </p>
-            <div className="mt-4 p-3.5 rounded-2xl neu-pressed text-[10px] text-[#718096] font-mono flex items-center gap-2 font-semibold">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <div className="mt-4 p-3.5 rounded-2xl neu-pressed text-[10px] text-slate-300 font-mono flex items-center gap-2 font-semibold border border-white/5">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>TIER-1 AUDIENCE INTELLIGENCE VERIFIED</span>
             </div>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-[#d1d9e6] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#718096] font-mono">
+        <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400 font-mono">
           <div>
             © 2026 GlobalPulse AI Media Network Inc. All Rights Reserved.
           </div>
           <div className="flex flex-wrap items-center gap-5">
-            <Link href="/about" className="hover:text-[#1a8cff] transition">
+            <Link href="/about" className="hover:text-cyan-300 transition">
               About &amp; Editorial Standards
             </Link>
-            <Link href="/privacy-policy" className="hover:text-[#1a8cff] transition">
+            <Link href="/privacy-policy" className="hover:text-cyan-300 transition">
               Privacy Policy
             </Link>
             <Link href="/terms" className="hover:text-[#1a8cff] transition">

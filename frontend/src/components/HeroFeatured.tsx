@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { Article } from "../types/article";
 import { Eye, Clock, Video, Sparkles, ChevronRight } from "./Icons";
+import { getCategoryTheme } from "../lib/categoryTheme";
 
 interface HeroFeaturedProps {
   articles: Article[];
@@ -44,28 +45,33 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
     setPrimaryImgSrc(primary.image_url || primaryFallback);
   }, [primary.image_url, primaryFallback]);
 
+  const primaryTheme = getCategoryTheme(primary.category);
+
   return (
     <section className="mb-8 sm:mb-14">
       {/* Section Header */}
       <div className="flex items-center justify-between mb-3 sm:mb-5">
         <div className="flex items-center gap-2 min-w-0">
           <div className="relative flex h-2 w-2 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1a8cff] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#1a8cff]"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
           </div>
-          <h2 className="text-[10px] sm:text-xs uppercase font-mono font-bold tracking-wider sm:tracking-widest text-[#1a8cff] truncate">
+          <h2 className="text-[10px] sm:text-xs uppercase font-mono font-bold tracking-wider sm:tracking-widest text-cyan-400 truncate">
             Lead Global Intelligence • Priority 1 Dispatch
           </h2>
         </div>
-        <div className="hidden sm:flex items-center gap-2 text-xs text-[#718096] font-mono shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 font-mono shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span>SYNTHESIZED REAL-TIME BY TIER-1 AI ENGINE</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         {/* Main Hero Card (8 Cols) */}
-        <div className="lg:col-span-8 group neu-flat p-3.5 sm:p-8 flex flex-col justify-between transition-all duration-300">
+        <div className="lg:col-span-8 group neu-flat p-3.5 sm:p-8 flex flex-col justify-between transition-all duration-300 relative overflow-hidden">
+          {/* Chromatic Spectral Top Accent Line */}
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-400 via-purple-500 via-pink-500 to-amber-400 shadow-[0_0_12px_rgba(6,182,212,0.6)]" />
+
           <div>
             {/* Top Inset Thumbnail Container */}
             <Link
@@ -83,15 +89,17 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
                     }
                   }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
 
                 <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-wrap items-center gap-2">
-                  <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs uppercase font-mono font-bold rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.3)] backdrop-blur-md">
+                  <span
+                    className={`px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs uppercase font-mono font-bold rounded-lg border backdrop-blur-md ${primaryTheme.badge}`}
+                  >
                     {primary.category}
                   </span>
                   {primary.youtube_video_id && (
-                    <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-[11px] font-mono font-bold rounded-lg bg-red-950/80 border border-red-500/40 text-red-400 flex items-center gap-1.5 shadow-[0_0_10px_rgba(239,68,68,0.3)] backdrop-blur-md">
-                      <Video className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-[11px] font-mono font-bold rounded-lg bg-red-950/85 border border-red-500/50 text-red-300 flex items-center gap-1.5 shadow-[0_0_10px_rgba(239,68,68,0.35)] backdrop-blur-md">
+                      <Video className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-400" />
                       Shorts Ready
                     </span>
                   )}
@@ -111,7 +119,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
 
             {/* Headline */}
             <Link href={`/news/${primary.slug}`}>
-              <h1 className="text-xl sm:text-3xl lg:text-4xl font-black text-white font-serif leading-snug sm:leading-tight tracking-tight hover:text-cyan-300 transition-colors">
+              <h1 className={`text-xl sm:text-3xl lg:text-4xl font-black text-white font-serif leading-snug sm:leading-tight tracking-tight transition-colors ${primaryTheme.hoverTextColor}`}>
                 {primary.title}
               </h1>
             </Link>
@@ -137,10 +145,10 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
           </div>
 
           {/* Bottom Bar & CTA */}
-          <div className="mt-6 pt-4 border-t border-[#b8bec7]/40 flex items-center justify-between text-xs">
-            <div className="text-[#718096] font-mono flex items-center gap-2">
+          <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+            <div className="text-slate-400 font-mono flex items-center gap-2">
               <span>Source:</span>
-              <span className="text-[#2d3748] font-bold">{primary.source_name || "Global Wire"}</span>
+              <span className="text-slate-200 font-bold">{primary.source_name || "Global Wire"}</span>
             </div>
 
             <Link
@@ -156,40 +164,48 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
         {/* Secondary Stack (4 Cols) */}
         <div className="lg:col-span-4 flex flex-col gap-6">
           {secondary.map((article) => {
+            const secTheme = getCategoryTheme(article.category);
             return (
               <div
                 key={article.id}
-                className="flex-1 neu-flat p-6 flex flex-col justify-between transition-all duration-300 hover:scale-[1.01]"
+                className="flex-1 neu-flat p-6 flex flex-col justify-between transition-all duration-300 hover:scale-[1.01] relative overflow-hidden group"
               >
+                {/* Secondary card chromatic top edge on hover */}
+                <div
+                  className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${secTheme.accentGradient} opacity-40 group-hover:opacity-100 transition-opacity`}
+                />
+
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="neu-sm px-2.5 py-0.5 text-[10px] uppercase font-bold text-[#1a8cff]">
+                    <span
+                      className={`px-2.5 py-0.5 text-[10px] uppercase font-mono font-bold tracking-wider rounded-md border backdrop-blur-md ${secTheme.badge}`}
+                    >
                       {article.category}
                     </span>
 
-                    <span className="text-[11px] text-[#718096] font-mono flex items-center gap-1">
-                      <Eye className="w-3 h-3 text-emerald-600" /> {article.views.toLocaleString()}
+                    <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+                      <Eye className="w-3 h-3 text-emerald-400" /> {article.views.toLocaleString()}
                     </span>
                   </div>
 
                   <Link href={`/news/${article.slug}`}>
-                    <h3 className="text-lg font-bold text-[#2d3748] font-serif leading-snug hover:text-[#1a8cff] transition-colors line-clamp-2">
+                    <h3 className={`text-lg font-bold text-white font-serif leading-snug transition-colors line-clamp-2 ${secTheme.hoverTextColor}`}>
                       {article.title}
                     </h3>
                   </Link>
 
-                  <p className="mt-2.5 text-xs text-[#718096] line-clamp-2 leading-relaxed">
+                  <p className="mt-2.5 text-xs text-slate-400 line-clamp-2 leading-relaxed font-sans">
                     {article.summary.replace(/•/g, "").replace(/\*\*/g, "").split("\n")[0]}
                   </p>
                 </div>
 
-                <div className="mt-5 pt-3.5 border-t border-[#b8bec7]/40 flex items-center justify-between text-xs">
-                  <span className="text-[11px] text-[#718096] font-mono truncate max-w-[130px]">
+                <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between text-xs">
+                  <span className="text-[11px] text-slate-400 font-mono truncate max-w-[130px]">
                     {article.source_name || "Tier-1 Desk"}
                   </span>
                   <Link
                     href={`/news/${article.slug}`}
-                    className="neu-sm px-3 py-1 text-xs font-bold text-[#1a8cff] hover:text-[#0066d6] flex items-center gap-1 active:scale-95 transition"
+                    className={`neu-sm px-3 py-1 text-xs font-bold ${secTheme.textColor} hover:brightness-125 flex items-center gap-1 active:scale-95 transition`}
                   >
                     <span>Details</span>
                     <ChevronRight className="w-3.5 h-3.5" />

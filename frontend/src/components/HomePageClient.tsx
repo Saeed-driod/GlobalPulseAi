@@ -12,6 +12,7 @@ import { ArticleCard } from "./ArticleCard";
 import { AdBanner } from "./AdBanner";
 import { Footer } from "./Footer";
 import { Sparkles, RefreshCw, ShieldCheck } from "./Icons";
+import { getCategoryTheme } from "../lib/categoryTheme";
 
 interface HomePageClientProps {
   initialArticles?: Article[];
@@ -80,17 +81,17 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
         <AiNewsAnalyst />
 
         {/* Section Heading & Category Filter Controls */}
-        <div className="mt-6 mb-6 sm:mt-8 sm:mb-8 neu-flat p-3.5 sm:p-6 flex flex-col gap-3 sm:gap-5">
+        <div className="mt-6 mb-6 sm:mt-8 sm:mb-8 neu-flat p-3.5 sm:p-6 flex flex-col gap-3 sm:gap-5 border border-white/10">
           {/* Top Row: Title, Subtext, and Refresh Feed Action */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#1a8cff] shadow-[0_0_8px_rgba(26,140,255,0.6)]" />
-                <h2 className="text-xl sm:text-2xl font-bold font-serif text-[#2d3748] tracking-tight">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)] animate-pulse" />
+                <h2 className="text-xl sm:text-2xl font-bold font-serif text-white tracking-tight">
                   {selectedCategory === "All Stories" ? "Latest Verified Dispatches" : selectedCategory}
                 </h2>
               </div>
-              <p className="text-xs text-[#718096] mt-1 font-mono">
+              <p className="text-xs text-slate-400 mt-1 font-mono">
                 Displaying {articles.length} verified intelligence reports synthesized for Tier-1 decision makers.
               </p>
             </div>
@@ -99,30 +100,31 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
               <button
                 onClick={() => loadData(selectedCategory, searchQuery)}
                 disabled={loading}
-                className="neu-sm px-4 py-2 flex items-center gap-2 text-xs text-[#2d3748] font-bold active:scale-95 transition cursor-pointer"
+                className="neu-sm px-4 py-2 flex items-center gap-2 text-xs text-slate-200 hover:text-white font-bold active:scale-95 transition cursor-pointer border border-white/5"
               >
-                <RefreshCw className={`w-3.5 h-3.5 text-[#1a8cff] ${loading ? "animate-spin" : ""}`} />
+                <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${loading ? "animate-spin" : ""}`} />
                 <span>{loading ? "Syncing..." : "Refresh Feed"}</span>
               </button>
             </div>
           </div>
 
-          {/* Clean Interactive Neumorphic Category Pills Bar */}
+          {/* Clean Interactive Chromatic Category Pills Bar */}
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 scrollbar-none">
             {CATEGORIES.map((cat) => {
               const Icon = cat.icon;
               const isActive = selectedCategory === cat.name;
+              const catTheme = getCategoryTheme(cat.name);
               return (
                 <button
                   key={cat.name}
                   onClick={() => setSelectedCategory(cat.name)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer border ${
                     isActive
-                      ? "neu-pressed text-[#1a8cff] font-extrabold"
-                      : "neu-sm text-[#718096] hover:text-[#2d3748]"
+                      ? `${catTheme.pillActive} font-extrabold`
+                      : `neu-sm text-slate-300 ${catTheme.pillHover} border-white/5`
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#1a8cff]" : "text-[#718096]"}`} />
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? `${catTheme.textColor} animate-pulse` : "text-slate-400"}`} />
                   <span>{cat.name}</span>
                 </button>
               );

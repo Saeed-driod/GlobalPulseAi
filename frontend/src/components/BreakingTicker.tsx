@@ -134,27 +134,29 @@ export const BreakingTicker: React.FC<BreakingTickerProps> = ({ articles }) => {
         {/* Right: Compact Live Financial Telemetry (Fear/Greed + Live Assets) */}
         <div className="hidden md:flex items-center gap-2 shrink-0 pl-3 border-l border-white/10 font-mono text-[10px]">
           {/* Sentiment Badge */}
-          <div className="neu-sm px-2 py-0.5 flex items-center gap-1 text-[10px]">
+          <div className="neu-sm px-2 py-0.5 flex items-center gap-1.5 text-[10px] border border-white/5">
             <span
               className={`w-1.5 h-1.5 rounded-full ${
                 fearGreed.value >= 60
-                  ? "bg-emerald-500"
+                  ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]"
                   : fearGreed.value >= 40
-                  ? "bg-amber-500"
-                  : "bg-red-500"
+                  ? "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.7)]"
+                  : "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)]"
               }`}
             />
-            <span className="text-[#718096] font-bold">
-              {fearGreed.sentiment} ({fearGreed.value})
+            <span className="text-slate-300 font-bold">
+              {fearGreed.sentiment} <span className="text-slate-400">({fearGreed.value})</span>
             </span>
           </div>
 
           {/* Crypto & Gold rates */}
           {assets.map((item) => (
-            <div key={item.symbol} className="neu-sm px-2 py-0.5 flex items-center gap-1 text-[10px]">
-              <span className="text-[#718096] font-bold">{item.symbol}</span>
-              <span className="font-semibold text-[#2d3748]">{item.price}</span>
-              <span className={`font-bold ${item.isPositive ? "text-emerald-600" : "text-red-500"}`}>
+            <div key={item.symbol} className="neu-sm px-2 py-0.5 flex items-center gap-1.5 text-[10px] border border-white/5">
+              <span className={`font-bold ${item.symbol === "XAU" ? "text-amber-300" : "text-cyan-400"}`}>
+                {item.symbol}
+              </span>
+              <span className="font-semibold text-white">{item.price}</span>
+              <span className={`font-bold ${item.isPositive ? "text-emerald-400" : "text-rose-400"}`}>
                 {item.change}
               </span>
             </div>

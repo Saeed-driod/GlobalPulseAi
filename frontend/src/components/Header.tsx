@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sparkles, Newspaper, BarChart3, Globe, Zap, Search, Trophy, Video, Youtube } from "./Icons";
+import { getCategoryTheme } from "../lib/categoryTheme";
 
 interface HeaderProps {
   selectedCategory?: string;
@@ -80,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Cinema & Streaming Radar Button */}
             <Link
               href="/movies"
-              className="inline-flex items-center gap-1 neu-sm px-2.5 py-1 text-xs font-bold text-[#1a8cff] hover:text-[#0052cc] transition shrink-0"
+              className="inline-flex items-center gap-1 neu-sm px-2.5 py-1 text-xs font-bold text-pink-300 hover:text-pink-200 border border-purple-500/40 bg-purple-950/40 shadow-[0_0_12px_rgba(236,72,153,0.25)] hover:border-pink-400 transition shrink-0"
               title="Global Cinema & Streaming Radar"
             >
               <span>🎬</span>
@@ -90,11 +91,11 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Live TV Button */}
             <Link
               href="/live"
-              className="inline-flex items-center gap-1.5 neu-sm px-2.5 py-1 text-xs font-black text-red-600 hover:text-red-700 transition shrink-0"
+              className="inline-flex items-center gap-1.5 neu-sm px-2.5 py-1 text-xs font-black text-rose-300 hover:text-rose-200 border border-rose-500/40 bg-rose-950/40 shadow-[0_0_12px_rgba(244,63,94,0.3)] transition shrink-0"
             >
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
               </span>
               <span className="font-mono text-[11px]">LIVE TV</span>
             </Link>
@@ -105,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
               target="_blank"
               rel="noreferrer"
               title="Official YouTube Channel @GloblePulseAi"
-              className="neu-sm p-1.5 text-red-600 hover:text-red-700 transition shrink-0 inline-flex items-center justify-center"
+              className="neu-sm p-1.5 text-rose-400 hover:text-rose-300 border border-red-500/30 bg-red-950/30 shadow-[0_0_10px_rgba(239,68,68,0.25)] transition shrink-0 inline-flex items-center justify-center"
             >
               <Youtube className="w-3.5 h-3.5" />
             </a>
@@ -118,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
                 className={`neu-sm p-1.5 transition active:scale-95 ${
-                  mobileSearchOpen ? "neu-pressed text-[#1a8cff]" : "text-[#718096]"
+                  mobileSearchOpen ? "neu-pressed text-cyan-400 border-cyan-400/50" : "text-slate-400"
                 }`}
                 aria-label="Toggle Search"
               >
@@ -128,7 +129,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <Link
               href="/movies"
-              className="inline-flex items-center gap-1 neu-sm px-2 py-1 text-[11px] font-bold text-[#1a8cff] shrink-0"
+              className="inline-flex items-center gap-1 neu-sm px-2 py-1 text-[11px] font-bold text-pink-300 border border-purple-500/40 bg-purple-950/40 shadow-[0_0_10px_rgba(236,72,153,0.2)] shrink-0"
             >
               <span>🎬</span>
               <span className="font-mono text-[10px]">MOVIES</span>
@@ -136,9 +137,9 @@ export const Header: React.FC<HeaderProps> = ({
 
             <Link
               href="/live"
-              className="inline-flex items-center gap-1 neu-sm px-2 py-1 text-[11px] font-bold text-red-600 shrink-0"
+              className="inline-flex items-center gap-1 neu-sm px-2 py-1 text-[11px] font-bold text-rose-300 border border-rose-500/40 bg-rose-950/40 shadow-[0_0_10px_rgba(244,63,94,0.25)] shrink-0"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
               <span className="font-mono text-[10px]">LIVE</span>
             </Link>
           </div>
@@ -177,17 +178,18 @@ export const Header: React.FC<HeaderProps> = ({
               {CATEGORIES.map((cat) => {
                 const Icon = cat.icon;
                 const isActive = selectedCategory === cat.name;
+                const theme = getCategoryTheme(cat.name);
                 return (
                   <button
                     key={cat.name}
                     onClick={() => onSelectCategory(cat.name)}
-                    className={`flex items-center gap-1.5 px-3 py-1 text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer rounded-xl ${
+                    className={`flex items-center gap-1.5 px-3 py-1 text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer rounded-xl border ${
                       isActive
-                        ? "bg-gradient-to-r from-cyan-500/25 via-blue-500/20 to-cyan-500/10 border border-cyan-400 text-cyan-300 font-extrabold shadow-[0_0_12px_rgba(6,182,212,0.35)]"
-                        : "neu-sm text-slate-300 hover:text-white"
+                        ? `${theme.pillActive} font-extrabold`
+                        : `neu-sm text-slate-300 ${theme.pillHover} border-white/5`
                     }`}
                   >
-                    <Icon className={`w-3 h-3 ${isActive ? "text-cyan-300 animate-pulse" : "text-slate-400"}`} />
+                    <Icon className={`w-3 h-3 ${isActive ? `${theme.textColor} animate-pulse` : "text-slate-400"}`} />
                     <span>{cat.name}</span>
                   </button>
                 );
