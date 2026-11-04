@@ -23,14 +23,14 @@ def main():
 
     auth = check_facebook_auth()
     if not auth.get("authenticated"):
-        print("\n❌ Facebook is NOT connected.")
+        print("\n[!] Facebook is NOT connected.")
         print(f"Details: {auth.get('message')}")
         print("\nTo connect your Facebook Page, add the following to backend/.env:")
         print("  FACEBOOK_PAGE_ID=your_page_numeric_id")
         print("  FACEBOOK_PAGE_ACCESS_TOKEN=your_page_access_token")
         return
 
-    print("\n✅ Facebook Page Successfully Connected!")
+    print("\n[SUCCESS] Facebook Page Successfully Connected!")
     print(f"  Page Name : {auth.get('page_name')}")
     print(f"  Page ID   : {auth.get('page_id')}")
     print(f"  Page Link : {auth.get('page_link')}")
@@ -46,9 +46,10 @@ def main():
             category="AI & Tech"
         )
         if res.get("success"):
-            print(f"🎉 Success! Post is live on Facebook: {res.get('post_url')}")
+            print(f"[SUCCESS] Post is live on Facebook: {res.get('post_url')}")
         else:
-            print(f"❌ Failed to post: {res.get('error')}")
+            print(f"[ERROR] Failed to post: {res.get('error')}")
 
 if __name__ == "__main__":
     main()
+

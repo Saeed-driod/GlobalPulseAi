@@ -561,6 +561,13 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
                 .all()
             )
 
+            # Auto-Pilot Facebook Posts (paced every 20 minutes)
+            try:
+                from services.facebook_poster import maybe_auto_post_next_article
+                maybe_auto_post_next_article(db, min_interval_seconds=1200)
+            except Exception as fb_sync_err:
+                pass
+
             if can_post and pending_pool:
                 # Select ONLY the highest rank / highest quality article ready for upload
                 sorted_candidates = sorted(pending_pool, key=get_article_quality_score, reverse=True)

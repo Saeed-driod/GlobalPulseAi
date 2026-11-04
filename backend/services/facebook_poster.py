@@ -20,11 +20,22 @@ import json
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+from dotenv import load_dotenv
+
+# Ensure backend/.env is loaded
+_env_path = Path(__file__).resolve().parent.parent / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path)
+load_dotenv()
+
 GRAPH_API_VERSION = "v21.0"
 BASE_GRAPH_URL = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
 
 # Resolve credentials from environment
 def get_facebook_credentials() -> Dict[str, str]:
+    # Re-check env if needed
+    if not os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN") and _env_path.exists():
+        load_dotenv(_env_path, override=True)
     page_id = (os.getenv("FACEBOOK_PAGE_ID") or "").strip()
     access_token = (os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN") or "").strip()
     return {
@@ -249,3 +260,48 @@ def post_video_to_facebook(
     except Exception as e:
         print(f"[Facebook Video Upload Error] {e}")
         return {"success": False, "error": str(e)}
+
+_last_fb_auto_post_timestamp = 0
+
+def maybe_auto_post_next_article(db, min_interval_seconds: int = 1200) -> Optional[Dict[str, Any]]:
+    """
+    Auto-pilot helper: periodically posts the latest high-rank unposted article
+    to the Facebook Page, strictly adhering to pacing (default: 20 mins) to prevent spam flags.
+    """
+    global _last_fb_auto_post_timestamp
+    import time
+    from models import Article
+
+    now = time.time()
+    if (now - _last_fb_auto_post_timestamp) < min_interval_seconds:
+        return None
+
+    auth = check_facebook_auth()
+    if not auth.get("authenticated"):
+        return None
+
+    article = (
+        db.query(Article)
+        .filter((Article.facebook_post_id == None) | (Article.facebook_post_id == ""))
+        .order_by(Article.views.desc(), Article.id.desc())
+        .first()
+    )
+    if not article:
+        return None
+
+    art_url = f"https://globalpulseai.vercel.app/news/{article.slug}"
+    res = post_article_to_facebook(
+        title=article.title,
+        summary=article.summary,
+        article_url=art_url,
+        category=article.category
+    )
+    if res.get("success"):
+        article.facebook_post_id = res.get("post_id")
+        db.commit()
+        _last_fb_auto_post_timestamp = now
+        print(f"[Facebook Auto-Pilot] Published article #{article.id} to Facebook: {res.get('post_url')}")
+        return res
+    return None
+
+
