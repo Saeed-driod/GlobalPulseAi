@@ -109,6 +109,21 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
 
+        {/* Monetag In-Page Push & Vignette (Zone 12187520) */}
+        <Script
+          src="https://nap5k.com/tag.min.js"
+          data-zone="12187520"
+          data-cfasync="false"
+          strategy="afterInteractive"
+        />
+        <Script
+          id="monetag-zone-12187520"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(s){s.dataset.zone='12187520',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
+          }}
+        />
+
         {/* OneSignal Web Push Notifications (Free Global Audience Retention) */}
         <Script
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
