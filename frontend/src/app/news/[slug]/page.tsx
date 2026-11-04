@@ -13,6 +13,25 @@ const getCachedArticleBySlug = cache(async (slug: string) => {
   return await fetchArticleBySlug(slug);
 });
 
+// Ensures dates are compliant with Google Structured Data ISO 8601 with explicit timezone (Z or offset)
+function formatIsoWithTimezone(dateStr?: string | null): string {
+  if (!dateStr) return new Date().toISOString();
+  try {
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString(); // Format: 2026-11-04T07:56:00.000Z
+    }
+  } catch {
+    // fallback
+  }
+
+  let clean = String(dateStr).trim().replace(" ", "T");
+  if (!clean.endsWith("Z") && !/[+-]\d{2}:\d{2}$/.test(clean)) {
+    clean += "Z";
+  }
+  return clean;
+}
+
 // Robust helper to extract FAQ items from article markdown content for JSON-LD FAQPage schema
 function extractFaqItems(content: string): Array<{ question: string; answer: string }> {
   if (!content) return [];
@@ -94,7 +113,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: article.title,
       description: cleanSummary,
       siteName: "GlobalPulse AI",
-      publishedTime: article.published_at || article.created_at,
+      publishedTime: formatIsoWithTimezone(article.published_at || article.created_at),
       authors: [authorName, "https://www.youtube.com/@GloblePulseAi"],
       images: [
         {
@@ -139,8 +158,8 @@ export default async function Page({ params }: PageProps) {
         headline: article.title,
         description: cleanSummary,
         image: [article.image_url || `${siteUrl}/default-thumbnail.jpg`],
-        datePublished: article.published_at || article.created_at,
-        dateModified: article.published_at || article.created_at,
+        datePublished: formatIsoWithTimezone(article.published_at || article.created_at),
+        dateModified: formatIsoWithTimezone(article.published_at || article.created_at),
         author: {
           "@type": "Person",
           name: "Muhammad Saeed",
@@ -173,9 +192,9 @@ export default async function Page({ params }: PageProps) {
             `https://img.youtube.com/vi/${article.youtube_video_id}/hqdefault.jpg`,
             article.image_url || `${siteUrl}/default-thumbnail.jpg`,
           ],
-          uploadDate: article.published_at || article.created_at,
+          uploadDate: formatIsoWithTimezone(article.published_at || article.created_at),
           contentUrl: `https://www.youtube.com/watch?v=${article.youtube_video_id}`,
-          embedUrl: `https://www.youtube-nocookie.com/embed/${article.youtube_video_id}`,
+          embedUrl: `https://www.youtube.com/embed/${article.youtube_video_id}`,
           publisher: {
             "@type": "Organization",
             name: "GlobalPulse AI",
