@@ -33,9 +33,17 @@ const CHANNELS: Channel[] = [
     id: "sky-news",
     name: "Sky News International Live",
     category: "Global Breaking News",
-    youtubeId: "umLWFz4izTM",
+    youtubeId: "WUTDiO_fXdE",
     badge: "24/7 GLOBAL WIRE",
     description: "Official 24/7 continuous international news stream delivering verified breaking telemetry across world politics and global capitals.",
+  },
+  {
+    id: "abc-news",
+    name: "ABC News Live (US)",
+    category: "US & World Headlines",
+    youtubeId: "wF8X-K_l5kY",
+    badge: "US TIER-1 WIRE",
+    description: "24/7 continuous live news coverage, breaking dispatches, and in-depth investigative reports from ABC News headquarters.",
   },
   {
     id: "al-jazeera",
@@ -65,7 +73,7 @@ const CHANNELS: Channel[] = [
     id: "official-studio",
     name: "GlobalPulse AI Studio Channel",
     category: "Official AI Broadcast",
-    youtubeId: "umLWFz4izTM",
+    youtubeId: "WUTDiO_fXdE",
     badge: "OFFICIAL STREAM",
     description: "Automated neural AI broadcast studio syndicating synthesized 60-second video dispatches and daily executive intelligence summaries.",
   },
@@ -80,6 +88,7 @@ interface ChatMessage {
 }
 
 export default function LiveStreamPage() {
+  const [channels, setChannels] = useState<Channel[]>(CHANNELS);
   const [selectedChannel, setSelectedChannel] = useState<Channel>(CHANNELS[0]);
   const [viewerCount, setViewerCount] = useState<number>(1842);
   const [reactions, setReactions] = useState<{ [key: string]: number }>({
@@ -115,12 +124,42 @@ export default function LiveStreamPage() {
   const [recentArticles, setRecentArticles] = useState<Article[]>([]);
   const [copied, setCopied] = useState<boolean>(false);
 
+  // Auto-heal live stream IDs dynamically via Next.js API
+  useEffect(() => {
+    const syncLiveStreams = async () => {
+      try {
+        const res = await fetch("/api/live-streams");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.streams) {
+          setChannels((prev) =>
+            prev.map((ch) => {
+              const liveId = data.streams[ch.id];
+              return liveId ? { ...ch, youtubeId: liveId } : ch;
+            })
+          );
+          setSelectedChannel((current) => {
+            const updatedId = data.streams[current.id];
+            return updatedId ? { ...current, youtubeId: updatedId } : current;
+          });
+        }
+      } catch (err) {
+        console.error("Live stream sync error:", err);
+      }
+    };
+    syncLiveStreams();
+  }, []);
+
   // Load custom live stream ID from localStorage if configured by Admin
   useEffect(() => {
     if (typeof window !== "undefined") {
       const customId = localStorage.getItem("gp_custom_live_id");
       if (customId) {
-        CHANNELS[3].youtubeId = customId;
+        setChannels((prev) =>
+          prev.map((ch) =>
+            ch.id === "official-studio" ? { ...ch, youtubeId: customId } : ch
+          )
+        );
       }
     }
   }, []);
@@ -227,7 +266,7 @@ export default function LiveStreamPage() {
           <span className="text-[11px] font-mono uppercase font-bold text-[#718096] px-2 shrink-0 hidden md:inline">
             Select Live Feed:
           </span>
-          {CHANNELS.map((ch) => {
+          {channels.map((ch) => {
             const isActive = selectedChannel.id === ch.id;
             return (
               <button
