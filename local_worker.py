@@ -250,22 +250,54 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
             export_disk_path = str(BACKEND_DIR / export_disk_path.lstrip("/"))
         export_to_tiktok_package(article, export_disk_path)
 
-        # Step 2.5: Auto-Post Article to Facebook Page (if configured)
+        # Step 2.5: Auto-Post Article Link & Auto-Upload Native Facebook Reel
         try:
-            from services.facebook_poster import post_article_to_facebook, check_facebook_auth
+            from services.facebook_poster import (
+                post_article_to_facebook,
+                post_video_to_facebook,
+                check_facebook_auth,
+                generate_facebook_hashtags
+            )
             fb_auth = check_facebook_auth()
-            if fb_auth.get("authenticated") and not article.facebook_post_id:
+            if fb_auth.get("authenticated"):
                 art_url = f"https://globalpulseai.vercel.app/news/{article.slug}"
-                fb_res = post_article_to_facebook(
-                    title=article.title,
-                    summary=article.summary,
-                    article_url=art_url,
-                    category=article.category
-                )
-                if fb_res.get("success"):
-                    article.facebook_post_id = fb_res.get("post_id")
-                    db.commit()
-                    print(f"[Facebook Auto-Post] Published Article #{article.id} to Facebook: {fb_res.get('post_url')}")
+
+                # A: Post Link Card if not yet posted
+                if not article.facebook_post_id:
+                    fb_res = post_article_to_facebook(
+                        title=article.title,
+                        summary=article.summary,
+                        article_url=art_url,
+                        category=article.category
+                    )
+                    if fb_res.get("success"):
+                        article.facebook_post_id = fb_res.get("post_id")
+                        db.commit()
+                        print(f"[Facebook Auto-Post] Published Article #{article.id} to Facebook: {fb_res.get('post_url')}")
+
+                # B: Upload Native Facebook Reel
+                if export_disk_path and Path(export_disk_path).exists() and not getattr(article, "facebook_video_id", None):
+                    print(f"[Facebook Reels] Uploading video for #{article.id} to Facebook Page as Reel...")
+                    hashtags = generate_facebook_hashtags(article.title, article.category)
+                    clean_summ = (article.summary or "").replace("*", "").strip()[:240]
+                    reel_desc = (
+                        f"⚡ {article.title}\n\n"
+                        f"📢 Attention @followers | Video Briefing\n\n"
+                        f"{clean_summ}...\n\n"
+                        f"👉 Read complete verified dossier & stats on GlobalPulse AI:\n"
+                        f"🔗 {art_url}\n\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"🔍 TOPICS:\n{hashtags}"
+                    )
+                    reel_res = post_video_to_facebook(
+                        video_path=export_disk_path,
+                        title=article.title,
+                        description=reel_desc
+                    )
+                    if reel_res.get("success"):
+                        article.facebook_video_id = reel_res.get("video_id")
+                        db.commit()
+                        print(f"[Facebook Reels SUCCESS] Video published to Facebook Reels: https://www.facebook.com/reel/{reel_res.get('video_id')}/")
         except Exception as fb_err:
             print(f"[Facebook Auto-Post Notice] {fb_err}")
 

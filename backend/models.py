@@ -39,7 +39,8 @@ class Article(Base):
     youtube_script = Column(Text, nullable=True)  # 60-sec engaging Shorts script
     video_path = Column(String(600), nullable=True)  # Local path or cloud URL to generated MP4
     youtube_video_id = Column(String(100), nullable=True)  # YouTube Shorts/Video ID
-    facebook_post_id = Column(String(100), nullable=True)  # Facebook Post / Reel ID
+    facebook_post_id = Column(String(100), nullable=True)  # Facebook Post Link ID
+    facebook_video_id = Column(String(100), nullable=True)  # Facebook Reel / Video ID
     
     # Live Video Generation & Upload Progress Tracking
     video_status = Column(String(50), default="IDLE", index=True, nullable=False)
