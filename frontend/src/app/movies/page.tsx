@@ -33,6 +33,7 @@ export default function MoviesPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeMovie, setActiveMovie] = useState<MovieItem | null>(null);
   const [currentTrailerId, setCurrentTrailerId] = useState<string>("Way9Dexny3w");
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [searching, setSearching] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
@@ -40,6 +41,7 @@ export default function MoviesPage() {
   // Sync and auto-resolve trailer ID for active movie
   useEffect(() => {
     if (!activeMovie) return;
+    setIsPlaying(false);
     if (activeMovie.trailerId) {
       setCurrentTrailerId(activeMovie.trailerId);
       return;
@@ -238,14 +240,64 @@ export default function MoviesPage() {
                   </div>
                 </div>
 
-                <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-2xl relative">
-                  <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${currentTrailerId}?autoplay=0&rel=0`}
-                    title={`${activeMovie.title} Official Trailer`}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
+                <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-2xl relative group">
+                  {isPlaying ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${currentTrailerId}?autoplay=1&rel=0&enablejsapi=1`}
+                      title={`${activeMovie.title} Official Trailer`}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <div
+                      onClick={() => setIsPlaying(true)}
+                      className="w-full h-full relative cursor-pointer flex items-center justify-center overflow-hidden bg-slate-950 group select-none"
+                    >
+                      {/* Movie poster backdrop */}
+                      <img
+                        src={activeMovie.image || `https://img.youtube.com/vi/${currentTrailerId}/hqdefault.jpg`}
+                        alt={activeMovie.title}
+                        className="w-full h-full object-cover opacity-50 blur-[1px] group-hover:opacity-65 group-hover:scale-105 transition-all duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />
+
+                      {/* Center Play Button & Title */}
+                      <div className="absolute flex flex-col items-center justify-center text-center p-4 z-10">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:bg-red-600 transition-all duration-300">
+                          <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-white text-white translate-x-0.5" />
+                        </div>
+                        <h3 className="mt-4 text-base sm:text-xl font-bold font-serif text-white tracking-wide drop-shadow-md">
+                          Watch {activeMovie.title} Trailer
+                        </h3>
+                        <p className="text-xs text-white/80 font-mono mt-1">
+                          Click to play official 4K trailer
+                        </p>
+                      </div>
+
+                      <div className="absolute bottom-3 right-3 z-10">
+                        <span className="neu-sm bg-black/60 backdrop-blur-md text-white text-[10px] font-mono px-2.5 py-1 rounded-md border border-white/20">
+                          4K ULTRA HD
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Helper notice */}
+                <div className="flex items-center justify-between text-[11px] text-[#718096] font-mono px-1">
+                  <span className="flex items-center gap-1">
+                    ⚡ {isPlaying ? "Playing official trailer" : "Interactive preview"}
+                  </span>
+                  <a
+                    href={`https://www.youtube.com/watch?v=${currentTrailerId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-red-600 hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    Watch in 4K on YouTube <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               </div>
 

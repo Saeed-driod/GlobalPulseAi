@@ -277,7 +277,9 @@ def main():
         f.write(f"file '{last_path}'\n")
 
     # 4. Render Final Video via FFmpeg
-    output_mp4 = OUTPUT_DIR / f"trending_movies_promo_{int(os.times().system * 100)}.mp4"
+    promo_id = int(os.times().system * 100)
+    output_mp4 = OUTPUT_DIR / f"trending_movies_promo_{promo_id}.mp4"
+    output_caption = OUTPUT_DIR / f"trending_movies_promo_{promo_id}_caption.txt"
     print(f"\n[3/4] Encoding vertical video with FFmpeg...")
 
     cmd = [
@@ -300,9 +302,35 @@ def main():
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if res.returncode == 0 and output_mp4.exists():
         size_mb = output_mp4.stat().st_size / (1024 * 1024)
-        print(f"\n[4/4] ✨ SUCCESS! Promo video is ready!")
-        print(f"📍 File Path: {output_mp4}")
-        print(f"📦 Size: {size_mb:.2f} MB")
+        
+        # 5. Automatically create TikTok & Shorts Ready-to-Copy Caption File
+        caption_text = (
+            "================================================================================\n"
+            "🎬 TIKTOK READY-TO-POST CAPTION (100% COMMUNITY GUIDELINES COMPLIANT)\n"
+            "================================================================================\n"
+            "NOTE: No external web URLs are used below to protect your TikTok account\n"
+            "from automated community guidelines strikes. Direct viewers to Link in Bio!\n"
+            "--------------------------------------------------------------------------------\n\n"
+            "🍿 Weekend movie night sorted! Which one are you streaming tonight? (1, 2, or 3?)\n\n"
+            "1️⃣ Dune: Part Two (Max & Prime Video)\n"
+            "2️⃣ Deadpool & Wolverine (Disney+)\n"
+            "3️⃣ Jawan (Netflix)\n\n"
+            "👉 Want to find where ANY movie or show is streaming worldwide? Link in bio! 🍿✨\n\n"
+            "#whattowatch #movierecommendation #dune2 #deadpool #deadpoolandwolverine #jawan #netflix #primevideo #disneyplus #movienight #cinema #fyp #foryou #foryoupage #viral\n\n"
+            "--------------------------------------------------------------------------------\n"
+            "💬 RECOMMENDED PINNED FIRST COMMENT (Post this immediately after uploading):\n"
+            "--------------------------------------------------------------------------------\n"
+            "Drop your movie recommendation below! 👇 Full global streaming guide in our bio link 🍿\n"
+            "================================================================================\n"
+        )
+        
+        with open(output_caption, "w", encoding="utf-8") as cf:
+            cf.write(caption_text)
+
+        print(f"\n[4/4] ✨ SUCCESS! Promo video & caption file are ready!")
+        print(f"🎥 Video File   : {output_mp4}")
+        print(f"📝 Caption File : {output_caption}")
+        print(f"📦 Size         : {size_mb:.2f} MB")
         print("\nReady to upload to TikTok / YouTube Shorts / Instagram Reels!")
     else:
         print(f"FFmpeg error: {res.stderr.decode('utf-8', errors='ignore')}")

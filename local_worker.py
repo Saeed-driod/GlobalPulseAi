@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 """
 ========================================================================================
@@ -158,7 +159,7 @@ def export_to_tiktok_package(article: Article, source_video_path: str):
             f"⚡ {title}\n\n"
             f"{summary}...\n\n"
             f"👇 Follow @globalpulseai for daily global AI & Tech breakthroughs!\n"
-            f"🌐 Full story & analysis: https://globalpulseai.vercel.app/article/{article.slug}\n\n"
+            f"🔗 Full story & analysis: Link in bio! 🍿\n\n"
             f"{hashtags}\n"
         )
         
@@ -509,17 +510,19 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
             else:
                 target_fmt = "short"
 
-            # Quality scoring function
+            # Quality scoring function prioritizing High-Rank, high-impact articles
             def get_article_quality_score(art):
                 score = 0
+                views = getattr(art, "views", 0) or 0
+                score += min(150, views * 10)  # High view count boost
                 if art.image_url and str(art.image_url).startswith("http"):
                     score += 50
                 if art.summary and len(str(art.summary).strip()) > 80:
                     score += 20
                 if art.youtube_script and len(str(art.youtube_script).strip()) > 40:
-                    score += 15
+                    score += 25
                 if art.content and len(str(art.content).strip()) > 200:
-                    score += 10
+                    score += 15
                 return score
 
             # Check if YouTube upload can proceed right now
@@ -534,39 +537,28 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
                     (Article.youtube_video_id == "dQw4w9WgXcQ")
                 )
                 .filter(Article.video_status != "PAUSED")
-                .order_by(Article.id.desc())
+                .order_by(Article.views.desc(), Article.id.desc())
                 .limit(20)
                 .all()
             )
 
-            # Pool 2: Articles that have NO video rendered yet on local PC
-            pending_render = [
-                a for a in pending_pool 
-                if not a.video_path or not os.path.exists(str(a.video_path).lstrip("/"))
-            ]
-
             if can_post and pending_pool:
+                # Select ONLY the highest rank / highest quality article ready for upload
                 sorted_candidates = sorted(pending_pool, key=get_article_quality_score, reverse=True)
                 candidate = sorted_candidates[0]
-                print(f"\n[Worker Auto-Schedule] Selected Article #{candidate.id} for daily {target_fmt.upper()} Video & Upload: '{candidate.title[:50]}'")
-                print(f"  Daily Quota Status: Shorts {shorts_today}/{MAX_DAILY_SHORTS} | Longs {longs_today}/{MAX_DAILY_LONGS}")
-                target_tasks.append((candidate.id, target_fmt, False))
-            elif pending_render:
-                # Upload cooldown active, but videos need rendering on local PC!
-                # Render video locally so website and TikTok packages are ready immediately!
-                sorted_candidates = sorted(pending_render, key=get_article_quality_score, reverse=True)
-                candidate = sorted_candidates[0]
-                print(f"\n[Worker Local Render Pipeline] Generating video on Local PC for Article #{candidate.id}: '{candidate.title[:50]}'")
-                print(f"  Note: YouTube upload will pace according to daily schedule ({reason[:60]}).")
+                print(f"\n[Worker High-Rank Scheduler] Selected Top High-Rank Article #{candidate.id} for {target_fmt.upper()} Video & Upload: '{candidate.title[:50]}'")
+                print(f"  Views: {candidate.views or 0} | Daily Quota Status: Shorts {shorts_today}/{MAX_DAILY_SHORTS} | Longs {longs_today}/{MAX_DAILY_LONGS}")
                 target_tasks.append((candidate.id, target_fmt, False))
             elif not can_post:
-                print(f"[Worker Pacing Gate] All current articles rendered! {reason}")
-                send_worker_heartbeat(status="IDLE", active_title=f"Pacing: {reason[:80]}")
+                # STRICT PACING: When upload cooldown is active, DO NOT churn out endless background videos!
+                # Only render when an upload slot is open, or when manually triggered by the user.
+                print(f"[Worker Pacing Gate] Upload cooldown/quota active ({reason[:75]}). Sleeping until next upload window...")
+                send_worker_heartbeat(status="IDLE", active_title=f"Waiting for slot: {reason[:80]}")
                 return
             else:
                 # All articles have videos and are uploaded!
-                print(f"\n[Worker Auto-Schedule] All articles have videos & are uploaded. Fetching fresh breaking RSS news...")
-                fetch_and_publish_news(target_category=category or "AI & Tech", video_format=target_fmt, do_upload=do_upload)
+                print(f"\n[Worker High-Rank Scheduler] All high-rank articles processed. Idle and standing by...")
+                send_worker_heartbeat(status="IDLE", active_title="All high-rank articles processed")
                 return
 
     except Exception as e:

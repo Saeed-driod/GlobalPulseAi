@@ -85,6 +85,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <head>
+        <meta name="referrer" content="strict-origin-when-cross-origin" />
         <meta name="monetag" content="debefa1274cfb3da902e7d4ca24045da" />
         <meta name="tiktok-developers-site-verification" content="qtGjolrbl9OJ5MgmnT9xzAyWXy8bM0Kh" />
         <meta name="tiktok-developers-site-verification" content="QFp2awRN7qTwaTOTSh824lhTKoK2Q9tO" />
