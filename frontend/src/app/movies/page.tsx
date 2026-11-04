@@ -32,9 +32,29 @@ export default function MoviesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeMovie, setActiveMovie] = useState<MovieItem | null>(null);
+  const [currentTrailerId, setCurrentTrailerId] = useState<string>("Way9Dexny3w");
   const [loading, setLoading] = useState<boolean>(true);
   const [searching, setSearching] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+
+  // Sync and auto-resolve trailer ID for active movie
+  useEffect(() => {
+    if (!activeMovie) return;
+    if (activeMovie.trailerId) {
+      setCurrentTrailerId(activeMovie.trailerId);
+      return;
+    }
+
+    // Resolve dynamically for searched movies
+    fetch(`/api/movies/trailer?title=${encodeURIComponent(activeMovie.title)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.videoId) {
+          setCurrentTrailerId(data.videoId);
+        }
+      })
+      .catch((err) => console.warn("Dynamic trailer resolve failed:", err));
+  }, [activeMovie]);
 
   // Fetch initial catalog
   useEffect(() => {
@@ -185,7 +205,7 @@ export default function MoviesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* Left: 16:9 HD Embedded YouTube Trailer */}
               <div className="lg:col-span-7 space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="neu-sm px-2.5 py-0.5 text-[10px] font-mono font-bold text-red-600 uppercase flex items-center gap-1">
                       <Play className="w-3 h-3 text-red-600 fill-red-600" /> OFFICIAL 4K TRAILER
@@ -195,23 +215,35 @@ export default function MoviesPage() {
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => handleShare(activeMovie)}
-                    className="neu-sm px-3 py-1 text-xs font-mono font-bold text-[#2d3748] hover:text-[#1a8cff] flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>{copied ? "✓ Link Copied!" : "Share Movie"}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`https://www.youtube.com/watch?v=${currentTrailerId}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="neu-sm px-2.5 py-1 text-xs font-mono font-bold text-red-600 hover:text-red-700 flex items-center gap-1.5 transition"
+                      title="Open trailer in official YouTube app/tab"
+                    >
+                      <Video className="w-3 h-3" />
+                      <span>Watch on YouTube</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+
+                    <button
+                      onClick={() => handleShare(activeMovie)}
+                      className="neu-sm px-3 py-1 text-xs font-mono font-bold text-[#2d3748] hover:text-[#1a8cff] flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>{copied ? "✓ Link Copied!" : "Share"}</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-2xl relative">
                   <iframe
-                    src={`https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(
-                      activeMovie.title + " official trailer"
-                    )}&autoplay=0&rel=0`}
+                    src={`https://www.youtube-nocookie.com/embed/${currentTrailerId}?autoplay=0&rel=0`}
                     title={`${activeMovie.title} Official Trailer`}
                     className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
                 </div>

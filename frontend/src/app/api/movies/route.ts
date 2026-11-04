@@ -12,6 +12,7 @@ export interface MovieItem {
   image: string;
   description?: string;
   type?: string;
+  trailerId?: string;
   watchLinks: {
     netflix?: string;
     prime?: string;
@@ -34,7 +35,8 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Hollywood",
     stars: "Timothée Chalamet, Zendaya, Rebecca Ferguson",
     rating: "8.5 / 10 (IMDb)",
-    image: "https://m.media-amazon.com/images/M/MV5BN2QyZGUgkOGMtYjhkYS00OGM1LWIyOTktMTk5MGMwNjQ4YjRkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://m.media-amazon.com/images/M/MV5BNTc0YmQxMjEtODI5MC00NjFiLTlkMWUtOGQ5NjFmYWUyZGJhXkEyXkFqcGc@._V1_.jpg",
+    trailerId: "Way9Dexny3w",
     description: "Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.",
     watchLinks: {
       max: "https://play.max.com/search?q=Dune+Part+Two",
@@ -52,6 +54,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     stars: "Cillian Murphy, Emily Blunt, Matt Damon, Robert Downey Jr.",
     rating: "8.9 / 10 (Oscar Best Picture)",
     image: "https://m.media-amazon.com/images/M/MV5BMDBmYTZjNjctNDhlNy00N2EzLTk5ODgtZTIxMmY0ZWZlZDFkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    trailerId: "uYPbbksJxIg",
     description: "The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb during World War II.",
     watchLinks: {
       prime: "https://www.amazon.com/s?k=Oppenheimer&i=instant-video",
@@ -67,7 +70,8 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Bollywood",
     stars: "Shah Rukh Khan, Nayanthara, Vijay Sethupathi",
     rating: "7.0 / 10 (Record Box Office)",
-    image: "https://m.media-amazon.com/images/M/MV5BOWI5NmU3NTUtOTZiMS00YzA1LThlYTktNDExN2FjZTEGNGMwXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://m.media-amazon.com/images/M/MV5BMGExNGI1NDktOWI2Mi00NDM3LWIxMmQtNTQxYTgzMzI0MTA1XkEyXkFqcGc@._V1_.jpg",
+    trailerId: "MWOlnZSnXJo",
     description: "A high-octane action thriller outlining the emotional journey of a prison warden driven by personal vendetta to rectify societal injustice.",
     watchLinks: {
       netflix: "https://www.netflix.com/search?q=Jawan",
@@ -83,6 +87,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     stars: "Lee Jung-jae, Park Hae-soo, Wi Ha-joon",
     rating: "8.0 / 10 (Global Phenomenon)",
     image: "https://m.media-amazon.com/images/M/MV5BYWE3MDVkN2EtNjQ5MS00ZDQ4LTliNzYtMjc2YWMzMDEwMTA3XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    trailerId: "oqxAJKy0ii4",
     description: "Hundreds of cash-strapped players accept a strange invitation to compete in children's games with tempting prize and deadly high stakes.",
     watchLinks: {
       netflix: "https://www.netflix.com/search?q=Squid+Game",
@@ -98,6 +103,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     stars: "Song Kang-ho, Lee Sun-kyun, Cho Yeo-jeong",
     rating: "8.5 / 10 (Oscar Best Picture)",
     image: "https://m.media-amazon.com/images/M/MV5BYWZjMjk3ZTItODQ2ZC00MGI5LWE0ZTItODg5ZThiYWM0ZDA4XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    trailerId: "isOGD_7hNIY",
     description: "Greed and class discrimination threaten the newly formed symbiotic relationship between the wealthy Park family and the destitute Kim clan.",
     watchLinks: {
       max: "https://play.max.com/search?q=Parasite",
@@ -115,6 +121,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     stars: "N.T. Rama Rao Jr., Ram Charan, Ajay Devgn, Alia Bhatt",
     rating: "7.8 / 10 (Oscar Winner)",
     image: "https://m.media-amazon.com/images/M/MV5BODUwNDNjMTctODUxNy00ZTA2LWIyYTEtZjUwZmQ2NDBiNWFlXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    trailerId: "GY4BgdUSpbE",
     description: "A fearless revolutionary and an officer in the British force come together to embark on an unbelievable journey of heroism.",
     watchLinks: {
       netflix: "https://www.netflix.com/search?q=RRR",
@@ -130,6 +137,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     stars: "Rumi Hiiragi, Miyu Irino, Mari Natsuki",
     rating: "8.6 / 10 (Studio Ghibli Masterpiece)",
     image: "https://m.media-amazon.com/images/M/MV5BNTEyNmEwOWUtYzkyOC00ZTQ4LTllZmUtMjk0Y2Y5ZWU3Y2ExXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    trailerId: "ByXuk9QqQkk",
     description: "During her family's move to the suburbs, a sullen 10-year-old girl wanders into a world ruled by gods, witches, and spirits.",
     watchLinks: {
       max: "https://play.max.com/search?q=Spirited+Away",
@@ -145,7 +153,8 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Hollywood",
     stars: "Ryan Reynolds, Hugh Jackman, Emma Corrin",
     rating: "7.7 / 10 (Marvel Blockbuster)",
-    image: "https://m.media-amazon.com/images/M/MV5BNzRiMjg0MzUtNTQ1Eg00Y2Q5LWEwM2MtMzUwZDU5NmVjN2FiXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://m.media-amazon.com/images/M/MV5BZTk5ODY0MmQtMzA3Ni00NGY1LThiYzItZThiNjFiNDM4MTM3XkEyXkFqcGc@._V1_.jpg",
+    trailerId: "73_1biulkYk",
     description: "Wolverine is recovering from his injuries when he crosses paths with the loudmouth, Deadpool. They team up to defeat a common enemy.",
     watchLinks: {
       disney: "https://www.disneyplus.com/search?q=Deadpool+Wolverine",
@@ -163,6 +172,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     stars: "Matthew McConaughey, Anne Hathaway, Jessica Chastain",
     rating: "8.7 / 10 (Sci-Fi Epic)",
     image: "https://m.media-amazon.com/images/M/MV5BYzdjMDAxZGItMjI2My00ODA1LTlkNzItOWFjMDU5ZDJlYWY3XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    trailerId: "zSWdZVtXT7E",
     description: "When Earth becomes uninhabitable in the future, a farmer and ex-NASA pilot, Joseph Cooper, is tasked to pilot a spacecraft through a wormhole.",
     watchLinks: {
       prime: "https://www.amazon.com/s?k=Interstellar&i=instant-video",
@@ -179,6 +189,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     stars: "Duane Jones, Judith O'Dea, Karl Hardman",
     rating: "7.8 / 10 (Public Domain Legend)",
     image: "https://m.media-amazon.com/images/M/MV5BNDUyODAzNDgtZjhhMi00MThjLTlhNDgtNWZkZWFkMzgwNzE0XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    trailerId: "5gUKVMJPmfU",
     description: "A ragtag group of Pennsylvanians barricade themselves in an old farmhouse to remain safe from a bloodthirsty, flesh-eating breed of monsters.",
     watchLinks: {
       youtubeFree: "https://www.youtube.com/results?search_query=Night+of+the+Living+Dead+1968+full+movie",
@@ -195,6 +206,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     stars: "Charles Chaplin, Paulette Goddard, Henry Bergman",
     rating: "8.5 / 10 (Cinema Masterpiece)",
     image: "https://m.media-amazon.com/images/M/MV5BYmRhYjc4MWQtMzZkZi00YmU3LWEzZWYtZWM4OGFiYWIwZDVjXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    trailerId: "GLeDdzGUTq0",
     description: "The Tramp struggles to live in modern industrial society with the help of a young homeless woman. Legally free to stream online.",
     watchLinks: {
       youtubeFree: "https://www.youtube.com/results?search_query=Charlie+Chaplin+Modern+Times+full+movie",
@@ -210,6 +222,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     stars: "Natsuki Hanae, Akari Kito, Hiro Shimono",
     rating: "8.2 / 10 (Anime Box Office Record)",
     image: "https://m.media-amazon.com/images/M/MV5BNTI0NGVkY2MtZWZhMi00MDVlLWE1NDAtNmFlOWFlZTkxM2U4XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    trailerId: "ATJYac_dORw",
     description: "After his family was brutally murdered and his sister turned into a demon, Tanjiro Kamado's journey as a demon slayer begins.",
     watchLinks: {
       netflix: "https://www.netflix.com/search?q=Demon+Slayer",
