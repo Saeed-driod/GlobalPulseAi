@@ -204,13 +204,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-[#e0e5ec] text-[#2d3748] font-sans relative overflow-x-hidden selection:bg-[#1a8cff] selection:text-white">
-        {/* Subtle Decorative Floating Neumorphic 3D Spheres */}
-        <div className="bg-circle w-72 sm:w-96 h-72 sm:h-96 -top-20 -left-20 opacity-70" />
-        <div className="bg-circle w-60 sm:w-80 h-60 sm:h-80 top-[35%] -right-24 opacity-60" />
-        <div className="bg-circle w-56 sm:w-72 h-56 sm:h-72 top-[70%] -left-16 opacity-50" />
-        <div className="bg-circle w-48 sm:w-64 h-48 sm:h-64 bottom-24 right-10 opacity-60" />
-
+      <body className="min-h-full flex flex-col bg-[#080c14] text-slate-100 font-sans relative overflow-x-hidden selection:bg-cyan-500 selection:text-black">
         <div className="relative z-10 flex flex-col flex-1 min-h-screen">
           <AnalyticsTracker />
           <PushNotificationPrompt />
