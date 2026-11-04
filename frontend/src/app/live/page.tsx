@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Header } from "../../components/Header";
 import { Footer } from "../../components/Footer";
-import { LiveMarketTicker } from "../../components/LiveMarketTicker";
 import { AdBanner } from "../../components/AdBanner";
 import {
   Video,
@@ -176,9 +175,8 @@ export default function LiveStreamPage() {
 
   return (
     <div className="min-h-screen bg-[#e0e5ec] text-[#2d3748] flex flex-col font-sans selection:bg-[#1a8cff] selection:text-white">
-      {/* 1. Header & Live Market Telemetry */}
+      {/* 1. Header */}
       <Header />
-      <LiveMarketTicker />
 
       {/* 2. Main Live Streaming Theater */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-6">

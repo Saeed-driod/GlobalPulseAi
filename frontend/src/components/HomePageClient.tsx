@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { Article } from "../types/article";
 import { fetchArticles } from "../lib/api";
 import { BreakingTicker } from "./BreakingTicker";
-import { LiveMarketTicker } from "./LiveMarketTicker";
 import { AiNewsAnalyst } from "./AiNewsAnalyst";
 import { ViralPoll } from "./ViralPoll";
 import { Header, CATEGORIES } from "./Header";
@@ -69,15 +68,9 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
       />
 
       <BreakingTicker articles={articles} />
-      <LiveMarketTicker />
 
       {/* 2. Main Newsroom Grid */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-6 pb-20">
-        {/* Top Leaderboard Ad Slot in Neumorphic frame */}
-        <div className="neu-flat p-4 mb-8">
-          <AdBanner slot="header" />
-        </div>
-
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-3 pb-16">
         {/* Hero Featured Story (Shown when browsing All Stories without search query) */}
         {!searchQuery && selectedCategory === "All Stories" && !loading && (
           <HeroFeatured articles={articles} />
