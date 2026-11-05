@@ -1,9 +1,11 @@
 @echo off
-title GlobalPulse AI - Viral TikTok Movie Promo Generator
+title GlobalPulse AI - Viral TikTok & Reels Movie Promo Generator
 color 0b
 
 echo ======================================================================
-echo    🎬 GlobalPulse AI - Viral TikTok & Shorts Movie Promo Generator
+echo    🎬 GlobalPulse AI - Viral TikTok & Reels Movie Promo Generator
+echo ======================================================================
+echo  Output Location : All videos saved in ONE folder: "videos\"
 echo ======================================================================
 echo.
 
@@ -11,15 +13,15 @@ cd /d "%~dp0"
 
 if exist "backend\venv\Scripts\python.exe" (
     echo [*] Starting automated promo generation pipeline...
-    "backend\venv\Scripts\python.exe" generate_movie_promo.py
+    "backend\venv\Scripts\python.exe" local_worker.py --movie-promo
 ) else (
     echo [!] backend\venv not found. Falling back to system python...
-    python generate_movie_promo.py
+    python local_worker.py --movie-promo
 )
 
 echo.
 echo ======================================================================
-echo [OK] Done! Check your video in: exports\tiktok\
+echo [OK] Done! Check your video and caption in: videos\
 echo ======================================================================
 pause
 

@@ -689,9 +689,11 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "auto", do
     print(f"   Target Video Mode      : {'AUTO (3 Shorts + 1 Long Daily)' if video_format == 'auto' else video_format.upper()}")
     print(f"   YouTube Auto-Upload    : {'ENABLED' if do_upload else 'DISABLED'}")
     print(f"   Database Poll Interval : Every {interval_seconds} seconds")
+    print(f"   Unified Video Folder   : d:\\Global English Audience\\videos (All videos here!)")
     print(f"   Cloud RAM Impact       : 0 MB (100% offloaded to your Local PC!)")
-    print(f"   Status                 : Watching for new articles... (Press Ctrl+C to stop)\n")
+    print(f"   Status                 : Watching for new articles & movie promos... (Press Ctrl+C to stop)\n")
     sync_token_to_render()
+    last_movie_promo_date = None
     try:
         while True:
             try:
@@ -701,6 +703,20 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "auto", do
 
                 send_worker_heartbeat(status="IDLE")
                 process_pending_articles(video_format=video_format, limit=1, do_upload=effective_upload)
+
+                # Daily Viral Movie Promo check (renders into unified videos/ folder)
+                today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                if last_movie_promo_date != today_str:
+                    try:
+                        from generate_movie_promo import generate_movie_promo
+                        print("\n[Master Worker] 🎬 Generating Daily Viral Movie Promo into videos/ ...")
+                        res = generate_movie_promo(auto_post_facebook=True)
+                        if res.get("success"):
+                            last_movie_promo_date = today_str
+                            print(f"✔ [Master Worker] Daily Movie Promo rendered: {res.get('video_path')}")
+                    except Exception as mp_err:
+                        print(f"[Master Worker Movie Promo Notice] {mp_err}")
+
             except Exception as loop_err:
                 print(f"[Worker Daemon Loop Warning] Transient error recovered: {loop_err}")
                 time.sleep(3)
@@ -789,9 +805,11 @@ def interactive_menu():
         print("  [4] Start Background Daemon / Watchdog Mode")
         print("  [5] List Recent Articles & Media Status")
         print("  [6] Re-Authorize YouTube Channel (@GloblePulseAi)")
-        print("  [7] Exit")
+        print("  [7] Generate Viral Movie Promo (TikTok / Reels 9:16)")
+        print("  [8] Batch Index All Articles to Search Engines (IndexNow)")
+        print("  [9] Exit")
 
-        choice = input("\nEnter choice [1-7]: ").strip()
+        choice = input("\nEnter choice [1-9]: ").strip()
         if choice == "1":
             fmt = input("Select format: 'long' (16:9 HD) or 'short' (9:16 Shorts) [default: short]: ").strip().lower() or "short"
             u_in = input(f"Auto-upload to YouTube ({auth.get('channel', 'GloblePulseAi')})? (y/n) [default: {default_upload}]: ").strip().lower()
@@ -825,10 +843,24 @@ def interactive_menu():
             is_auth = bool(auth and auth.get("authenticated"))
             default_upload = "y" if is_auth else "n"
         elif choice == "7":
+            try:
+                from generate_movie_promo import generate_movie_promo
+                fb_in = input("Auto-post to Facebook Reels? (y/n) [default: y]: ").strip().lower()
+                do_fb = (fb_in != "n")
+                generate_movie_promo(auto_post_facebook=do_fb)
+            except Exception as mp_e:
+                print(f"[Movie Promo Error] {mp_e}")
+        elif choice == "8":
+            try:
+                from backend.scripts.submit_all_urls_to_indexnow import batch_index_all_articles
+                batch_index_all_articles()
+            except Exception as in_e:
+                print(f"[IndexNow Error] {in_e}")
+        elif choice == "9":
             print("Exiting worker. Goodbye!")
             break
         else:
-            print("Invalid choice, please select 1-7.")
+            print("Invalid choice, please select 1-9.")
 
 
 def main():
@@ -844,6 +876,8 @@ def main():
     parser.add_argument("--list", action="store_true", help="List recent articles and their video generation status")
     parser.add_argument("--watch", "--daemon", action="store_true", dest="daemon", help="Run continuous worker loop")
     parser.add_argument("--interval", type=int, default=60, help="Daemon polling interval in seconds (default: 60)")
+    parser.add_argument("--movie-promo", action="store_true", help="Generate viral 9:16 vertical movie promo video into videos/ folder")
+    parser.add_argument("--indexnow", action="store_true", help="Batch submit all articles to IndexNow for instant search indexing")
 
     args = parser.parse_args()
 
@@ -878,6 +912,21 @@ def main():
 
     if args.list:
         list_recent_articles()
+    elif args.movie_promo:
+        try:
+            from generate_movie_promo import generate_movie_promo
+            res = generate_movie_promo(auto_post_facebook=True)
+            if res.get("success"):
+                print(f"\n✔ [SUCCESS] Viral Movie Promo rendered directly to: {res.get('video_path')}")
+                print(f"✔ [SUCCESS] TikTok Caption saved to: {res.get('caption_path')}")
+        except Exception as e:
+            print(f"[Error] Failed generating movie promo: {e}")
+    elif args.indexnow:
+        try:
+            from backend.scripts.submit_all_urls_to_indexnow import batch_index_all_articles
+            batch_index_all_articles()
+        except Exception as e:
+            print(f"[Error] Failed submitting to IndexNow: {e}")
     elif args.fetch:
         fetch_and_publish_news(target_category=args.fetch, video_format=args.format, do_upload=should_upload)
     elif args.article:

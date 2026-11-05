@@ -1399,19 +1399,24 @@ def compose_video(
             pass
     gc.collect()
 
-    # Auto-Export ready-to-post package for TikTok (Video + Caption TXT file)
-    if not is_long:
-        try:
-            import shutil
-            root_dir = Path(__file__).resolve().parent.parent.parent  # D:\Global English Audience
-            tiktok_dir = root_dir / "exports" / "tiktok"
-            tiktok_dir.mkdir(parents=True, exist_ok=True)
+    # Unified Video Directory Export (All videos in d:\Global English Audience\videos)
+    try:
+        import shutil
+        root_dir = Path(__file__).resolve().parent.parent.parent  # D:\Global English Audience
+        unified_dir = root_dir / "videos"
+        unified_dir.mkdir(parents=True, exist_ok=True)
 
+        # 1. Copy video file to unified videos folder
+        dest_main_video = unified_dir / output_video_path.name
+        shutil.copy2(str(output_video_path.resolve()), str(dest_main_video.resolve()))
+
+        # 2. For vertical shorts, create ready-to-post TikTok / Reels video & caption package
+        if not is_long:
             slug = re.sub(r"[^\w\s-]", "", title.lower()).strip()
             slug = re.sub(r"[-\s]+", "-", slug)[:30]
             clean_name = f"TikTok_{article_id}_{slug}"
-            dest_video = tiktok_dir / f"{clean_name}.mp4"
-            dest_caption = tiktok_dir / f"{clean_name}_caption.txt"
+            dest_video = unified_dir / f"{clean_name}.mp4"
+            dest_caption = unified_dir / f"{clean_name}_caption.txt"
 
             shutil.copy2(str(output_video_path.resolve()), str(dest_video.resolve()))
 
@@ -1438,9 +1443,11 @@ def compose_video(
             with open(dest_caption, "w", encoding="utf-8") as f:
                 f.write(caption_content)
 
-            print(f"[TikTok Export] Saved ready-to-post package: {dest_video.name} and {dest_caption.name}")
-        except Exception as export_err:
-            print(f"[TikTok Export Notice] Failed saving tiktok package: {export_err}")
+            print(f"[Unified Video Hub] Saved video & caption to {unified_dir.name}/: {dest_video.name}")
+        else:
+            print(f"[Unified Video Hub] Saved 16:9 HD video to {unified_dir.name}/: {dest_main_video.name}")
+    except Exception as export_err:
+        print(f"[Unified Video Hub Notice] Error syncing to videos folder: {export_err}")
 
     return {
         "success": True,

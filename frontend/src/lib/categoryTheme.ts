@@ -167,3 +167,4 @@ export function getCategoryTheme(category?: string): CategoryTheme {
     dotColor: "bg-cyan-400",
   };
 }
+

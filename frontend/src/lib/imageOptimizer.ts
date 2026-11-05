@@ -67,3 +67,4 @@ export function getPollinationsFallback(title: string, category: string, seed: n
 
   return `https://image.pollinations.ai/prompt/${query}?width=1280&height=720&model=flux&enhance=true&nologo=true&seed=${seed}`;
 }
+

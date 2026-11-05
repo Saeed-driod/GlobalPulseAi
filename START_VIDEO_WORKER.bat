@@ -1,36 +1,34 @@
 @echo off
-title GlobalPulse AI - Local Video Worker & YouTube Shorts Uploader
+title GlobalPulse AI - ALL-IN-ONE MASTER AUTONOMOUS WORKER
 color 0b
 cls
 echo ===============================================================================
-echo     GLOBALPULSE AI - HIGH PERFORMANCE LOCAL VIDEO GENERATION WORKER
+echo     GLOBALPULSE AI - ALL-IN-ONE MASTER AUTONOMOUS WORKER & MEDIA HUB
 echo ===============================================================================
-echo  Target Channel  : @GloblePulseAi (YouTube Shorts & Longs)
-echo  Daily Auto Cap   : Strictly 3 Shorts + 1 Long Video (Max 4/Day)
-echo  Database Sync    : Neon PostgreSQL Cloud
-echo  Rendering Unit   : 100%% Local PC Hardware (FFmpeg 7.1 + Edge-TTS)
-echo  Cloud RAM Used   : 0 MB (Completely Offloaded from Render Free Tier)
+echo  Target YouTube     : @GloblePulseAi (YouTube Shorts & Longs)
+echo  Facebook Page      : Pari Hoor / GlobalPulse AI (Feed Posts & Reels Auto-Upload)
+echo  Viral Movie Promos : Auto-renders 9:16 vertical TikTok/Reel trailers into videos/
+echo  Search Engines     : IndexNow Protocol (Bing, Yahoo, Yandex, Naver Instant Index)
+echo  Unified Storage    : ALL videos saved in ONE folder -> "videos\"
+echo  Cloud RAM Used     : 0 MB (100%% Hardware Accelerated on your Local PC)
 echo ===============================================================================
 echo.
 echo  Mission Control: Open https://globalpulseai.vercel.app/admin in your browser.
-echo  Daily Auto-Schedule: 3 Shorts + 1 Long Video distributed across peak hours.
-echo  When you click "Render & Upload Video" in Admin, this worker renders it
-echo  and streams real-time progress (%%, ETA, step) directly to your screen!
+echo  All generated videos (News, Shorts, Longs, Movie Promos) go directly into:
+echo    ==^> D:\Global English Audience\videos\
 echo.
-echo  TIP: If YouTube token expires, double-click REAUTH_YOUTUBE.bat to renew it!
-echo.
-echo  Starting worker daemon loop... (Press Ctrl+C to stop)
+echo  Starting Master Autonomous Daemon Loop... (Press Ctrl+C to stop)
 echo -------------------------------------------------------------------------------
 echo.
 
 cd /d "%~dp0"
 
 IF EXIST "backend\venv\Scripts\python.exe" (
-    "backend\venv\Scripts\python.exe" local_worker.py --daemon --watch --format auto --interval 15 --upload
+    "backend\venv\Scripts\python.exe" -u local_worker.py --daemon --watch --format auto --interval 15 --upload
 ) ELSE (
-    python local_worker.py --daemon --watch --format auto --interval 15 --upload
+    python -u local_worker.py --daemon --watch --format auto --interval 15 --upload
 )
 
 echo.
-echo [Worker] Worker exited.
+echo [Master Worker] Worker exited.
 pause

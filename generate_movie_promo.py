@@ -18,6 +18,7 @@ import sys
 import asyncio
 import subprocess
 import urllib.request
+from typing import Optional, Dict, Any, List
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
@@ -31,7 +32,7 @@ import edge_tts
 import imageio_ffmpeg
 
 ROOT_DIR = Path(__file__).resolve().parent
-OUTPUT_DIR = ROOT_DIR / "exports" / "tiktok"
+OUTPUT_DIR = ROOT_DIR / "videos"  # Unified Single Videos Folder
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 TEMP_DIR = ROOT_DIR / "backend" / "static" / "temp_promo"
@@ -335,9 +336,13 @@ def render_slide_image(slide: dict, index: int) -> Path:
     img.save(out_file, "PNG")
     return out_file
 
-def main():
+def generate_movie_promo(output_dir: Optional[Path] = None, auto_post_facebook: bool = False) -> Dict[str, Any]:
+    target_out_dir = output_dir or OUTPUT_DIR
+    target_out_dir.mkdir(parents=True, exist_ok=True)
+
     print("=" * 75)
-    print("🎬 GlobalPulse AI - High-Octane Viral TikTok Movie Promo Generator")
+    print("🎬 GlobalPulse AI - High-Octane Viral TikTok & Reels Movie Promo Generator")
+    print(f"📁 Target Video Output Directory: {target_out_dir}")
     print("===========================================================================")
 
     # 1. Generate Voiceover
@@ -346,7 +351,7 @@ def main():
     speech_ok = generate_speech(VOICEOVER_SCRIPT, vox_path)
     if not speech_ok:
         print("[!] Voiceover generation failed.")
-        return
+        return {"success": False, "error": "Voiceover generation failed"}
     print(f"✓ Voiceover ready: {vox_path.name}")
 
     # 2. Render Slide Graphics
@@ -427,8 +432,8 @@ def main():
 
     # 5. Final Encode: Video + Mastered Soundtrack
     promo_id = int(os.times().system * 100)
-    output_mp4 = OUTPUT_DIR / f"trending_movies_promo_{promo_id}.mp4"
-    output_caption = OUTPUT_DIR / f"trending_movies_promo_{promo_id}_caption.txt"
+    output_mp4 = target_out_dir / f"trending_movies_promo_{promo_id}.mp4"
+    output_caption = target_out_dir / f"trending_movies_promo_{promo_id}_caption.txt"
 
     print(f"\n[5/5] Finalizing viral 9:16 vertical video package...")
     cmd_final = [
@@ -448,6 +453,15 @@ def main():
 
     if res_final.returncode == 0 and output_mp4.exists():
         size_mb = output_mp4.stat().st_size / (1024 * 1024)
+
+        # Also copy to backend/static/videos so web player can stream it
+        try:
+            import shutil
+            static_dir = ROOT_DIR / "backend" / "static" / "videos"
+            static_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(str(output_mp4), str(static_dir / output_mp4.name))
+        except Exception:
+            pass
 
         # Generate Safe Ready-to-Copy Caption
         caption_text = (
@@ -481,8 +495,32 @@ def main():
         print(f"🎵 Audio Track  : Epic Action Trailer Music + Voiceover Ducking")
         print(f"🎬 Motion       : Dynamic Ken Burns Camera Zoom on all scenes")
         print("=" * 75)
+
+        # Optional Auto-Post to Facebook Reels
+        if auto_post_facebook:
+            try:
+                from backend.services.facebook_poster import post_video_to_facebook
+                print(f"[Facebook Reels] Uploading movie promo to Facebook Reels...")
+                fb_res = post_video_to_facebook(
+                    video_path=str(output_mp4),
+                    title="Weekend Movie Night | Top 3 Streaming Blockbusters",
+                    description="🍿 Stop scrolling! 3 Blockbusters streaming tonight: Dune 2, Deadpool & Wolverine, and Jawan! Check globalpulseai.vercel.app/movies for verified streaming links #MovieNight #WhatToWatch"
+                )
+                if fb_res.get("success"):
+                    print(f"✔ [Facebook Reels] Movie promo published to Reels: https://www.facebook.com/reel/{fb_res.get('video_id')}")
+            except Exception as fb_err:
+                print(f"[Facebook Reels Notice] {fb_err}")
+
+        return {
+            "success": True,
+            "video_path": str(output_mp4),
+            "caption_path": str(output_caption),
+            "promo_id": promo_id
+        }
     else:
-        print(f"Final encode error: {res_final.stderr.decode('utf-8', errors='ignore')}")
+        err = res_final.stderr.decode('utf-8', errors='ignore')
+        print(f"Final encode error: {err}")
+        return {"success": False, "error": err}
 
 if __name__ == "__main__":
-    main()
+    generate_movie_promo()
