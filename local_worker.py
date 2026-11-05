@@ -483,6 +483,14 @@ def fetch_and_publish_news(target_category: str = "Global Sports", video_format:
             db.refresh(new_article)
 
             print(f"\n[Worker] Published story #{new_article.id}: '{new_article.title}'")
+
+            # Instant Search Engine Indexing (IndexNow + Bing/Google Ping)
+            try:
+                from services.indexing_service import notify_search_engines_new_article
+                notify_search_engines_new_article(new_article.slug)
+            except Exception as idx_err:
+                print(f"[Search Indexer Notice] {idx_err}")
+
             # Render video immediately on local machine
             render_article_video(new_article.id, video_format=video_format, do_upload=do_upload)
             break  # Process top 1 story per fetch run

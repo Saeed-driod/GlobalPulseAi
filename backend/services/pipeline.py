@@ -161,6 +161,13 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 published_articles.append(article)
                 print(f"[Master Pipeline] Article #{article.id} PUBLISHED live on portal (slug: {slug})")
 
+                # Instant Search Engine Indexing (IndexNow + Bing/Google Ping)
+                try:
+                    from .indexing_service import notify_search_engines_new_article
+                    notify_search_engines_new_article(slug)
+                except Exception as idx_err:
+                    print(f"[Search Indexer Notice] {idx_err}")
+
                 # Step 3 & 4: Render MP4 Video and Upload to YouTube
                 # Safe Guard: Render has a 512MB RAM limit. Heavy FFmpeg video rendering is offloaded to Local PC Worker
                 cloud_video_enabled = os.getenv("CLOUD_VIDEO_RENDER_ENABLED", "false").lower() in ("true", "1", "yes")
