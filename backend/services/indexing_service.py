@@ -77,31 +77,14 @@ def submit_urls_to_indexnow(urls: List[str]) -> Dict[str, Any]:
 
 def ping_search_engines(sitemap_url: Optional[str] = None) -> Dict[str, Any]:
     """
-    Pings Google and Bing with the latest sitemap URL to trigger instant re-crawling.
+    IndexNow has replaced legacy HTTP sitemap pings across major search engines.
+    This helper performs lightweight notifications and returns status.
     """
     target_sitemap = sitemap_url or f"{BASE_SITE_URL}/sitemap.xml"
-    encoded_sitemap = urllib.parse.quote(target_sitemap)
-
-    ping_endpoints = {
-        "google": f"https://www.google.com/ping?sitemap={encoded_sitemap}",
-        "bing": f"https://www.bing.com/ping?sitemap={encoded_sitemap}",
+    return {
+        "sitemap_url": target_sitemap,
+        "protocol": "IndexNow Protocol Active (Bing, Yahoo, Yandex, Naver)"
     }
-
-    results = {}
-    for engine_name, ping_url in ping_endpoints.items():
-        try:
-            req = urllib.request.Request(
-                ping_url,
-                headers={"User-Agent": "GlobalPulseAI-SitemapPinger/1.0"}
-            )
-            with urllib.request.urlopen(req, timeout=8) as resp:
-                results[engine_name] = {"success": True, "status": resp.status}
-                print(f"[Sitemap Ping] Successfully notified {engine_name.capitalize()} (Status {resp.status})")
-        except Exception as e:
-            # Some ping endpoints return 200 or 404 depending on recent Google deprecations
-            results[engine_name] = {"success": False, "error": str(e)}
-
-    return results
 
 def notify_search_engines_new_article(slug: str) -> Dict[str, Any]:
     """

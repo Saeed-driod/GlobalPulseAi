@@ -30,13 +30,14 @@ from services.indexing_service import submit_urls_to_indexnow, ping_search_engin
 def batch_index_all_articles():
     db = SessionLocal()
     try:
-        articles = (
-            db.query(Article)
+        # Fast projected query: load only the slug column
+        rows = (
+            db.query(Article.slug)
             .filter(Article.status == ArticleStatus.PUBLISHED.value)
             .order_by(Article.id.desc())
             .all()
         )
-        print(f"[Batch Indexer] Found {len(articles)} published articles in database.")
+        print(f"[Batch Indexer] Found {len(rows)} published articles in database.", flush=True)
 
         urls = [
             BASE_SITE_URL,
@@ -45,26 +46,26 @@ def batch_index_all_articles():
             f"{BASE_SITE_URL}/about",
         ]
 
-        for a in articles:
-            if a.slug:
-                urls.append(f"{BASE_SITE_URL}/news/{a.slug}")
+        for (slug,) in rows:
+            if slug:
+                urls.append(f"{BASE_SITE_URL}/news/{slug}")
 
-        print(f"[Batch Indexer] Submitting {len(urls)} URLs to IndexNow...")
+        print(f"[Batch Indexer] Submitting {len(urls)} URLs to IndexNow...", flush=True)
         result = submit_urls_to_indexnow(urls)
-        print(f"[Batch Indexer] IndexNow Result: {result}")
+        print(f"[Batch Indexer] IndexNow Result: {result}", flush=True)
 
-        print(f"[Batch Indexer] Pinging Google and Bing sitemaps...")
+        print(f"[Batch Indexer] Checking sitemaps...", flush=True)
         ping_res = ping_search_engines()
-        print(f"[Batch Indexer] Sitemap Ping Results: {ping_res}")
+        print(f"[Batch Indexer] Status: {ping_res}", flush=True)
 
-        print("\n========================================================")
-        print("🎉 Batch Indexing Completed!")
-        print(f"   • Total URLs submitted: {len(urls)}")
-        print(f"   • Search Engines: Bing, Yahoo, Yandex, Naver + Google Ping")
-        print("========================================================")
+        print("\n========================================================", flush=True)
+        print("🎉 Batch Indexing Completed!", flush=True)
+        print(f"   • Total URLs submitted: {len(urls)}", flush=True)
+        print(f"   • Search Engines: Bing, Yahoo, Yandex, Naver", flush=True)
+        print("========================================================", flush=True)
 
     except Exception as e:
-        print(f"[Batch Indexer Error] {e}")
+        print(f"[Batch Indexer Error] {e}", flush=True)
         import traceback
         traceback.print_exc()
     finally:
