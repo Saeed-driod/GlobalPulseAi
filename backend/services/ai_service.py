@@ -57,7 +57,7 @@ def call_gemini_api(prompt: str, api_key: str) -> str:
                 return parts[0].get("text", "")
     return ""
 
-from .image_resolver import resolve_article_image, is_generic_placeholder
+from .image_resolver import resolve_article_image, is_generic_placeholder, upgrade_image_url_to_hd, is_low_res_thumbnail
 
 def process_raw_news(
     raw_title: str, 
@@ -133,12 +133,15 @@ Return ONLY a valid JSON object with the following keys:
                 if not data.get("author_name"):
                     data["author_name"] = "Muhammad Saeed (Chief Editor, GlobalPulse AI)"
                 img = data.get("image_url")
-                if not img or is_generic_placeholder(img):
-                    data["image_url"] = raw_image_url or resolve_article_image(
+                if not img or is_generic_placeholder(img) or is_low_res_thumbnail(img):
+                    data["image_url"] = resolve_article_image(
                         title=data.get("title", raw_title),
                         source_url=source_url,
-                        category=data.get("category", suggested_category)
+                        category=data.get("category", suggested_category),
+                        current_image_url=raw_image_url
                     )
+                else:
+                    data["image_url"] = upgrade_image_url_to_hd(img)
                 return data
         except Exception as e:
             print(f"Gemini API request note ({e}); utilizing high-fidelity neural fallback synthesizer.")
@@ -267,9 +270,10 @@ Subscribe to GlobalPulse AI on YouTube at GloblePulseAi for rapid intelligence b
         "summary": summary,
         "content": content,
         "youtube_script": youtube_script,
-        "image_url": raw_image_url or resolve_article_image(
+        "image_url": resolve_article_image(
             title=refined_title,
             source_url=source_url,
-            category=category
+            category=category,
+            current_image_url=raw_image_url
         ),
     }

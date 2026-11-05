@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Article } from "../types/article";
 import { Eye, Clock, Video, ChevronRight } from "./Icons";
 import { getCategoryTheme } from "../lib/categoryTheme";
+import { getHdImageUrl, getPollinationsFallback } from "../lib/imageOptimizer";
 
 interface ArticleCardProps {
   article: Article;
@@ -32,24 +33,18 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
 
   const fallbackUrl = React.useMemo(() => {
     const seed = typeof article.id === "number" ? article.id : 100;
-    const cleanWords = (article.title || "tech news")
-      .replace(/[^a-zA-Z0-9\s]/g, " ")
-      .split(" ")
-      .filter((w) => w.length > 2)
-      .slice(0, 5)
-      .join(" ");
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      cleanWords || article.category
-    )}%20editorial%20news%20photography%20realistic%208k?width=800&height=450&nologo=true&seed=${seed}`;
+    return getPollinationsFallback(article.title, article.category, seed);
   }, [article.id, article.title, article.category]);
 
-  const [imgSrc, setImgSrc] = React.useState<string>(
-    article.image_url || fallbackUrl
-  );
+  const hdOriginalUrl = React.useMemo(() => {
+    return article.image_url ? getHdImageUrl(article.image_url) : fallbackUrl;
+  }, [article.image_url, fallbackUrl]);
+
+  const [imgSrc, setImgSrc] = React.useState<string>(hdOriginalUrl);
 
   React.useEffect(() => {
-    setImgSrc(article.image_url || fallbackUrl);
-  }, [article.image_url, fallbackUrl]);
+    setImgSrc(hdOriginalUrl);
+  }, [hdOriginalUrl]);
 
   return (
     <article className="group neu-flat p-3.5 sm:p-5 flex flex-col justify-between transition-all duration-300 hover:scale-[1.01] relative overflow-hidden">

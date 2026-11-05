@@ -21,6 +21,7 @@ import {
   ExternalLink,
 } from "../../../components/Icons";
 import { getCategoryTheme } from "../../../lib/categoryTheme";
+import { getHdImageUrl, getPollinationsFallback } from "../../../lib/imageOptimizer";
 
 interface ArticleDetailClientProps {
   initialArticle?: Article | null;
@@ -547,21 +548,12 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
               <div className="rounded-3xl overflow-hidden neu-flat p-3 mb-8 aspect-video relative">
                 <div className="w-full h-full rounded-2xl overflow-hidden relative">
                   <img
-                    src={article.image_url}
+                    src={getHdImageUrl(article.image_url)}
                     alt={article.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const seed = typeof article.id === "number" ? article.id : 100;
-                      const cleanWords = (article.title || "tech news")
-                        .replace(/[^a-zA-Z0-9\s]/g, " ")
-                        .split(" ")
-                        .filter((w) => w.length > 2)
-                        .slice(0, 5)
-                        .join(" ");
-                      const fallback = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-                        cleanWords || article.category
-                      )}%20editorial%20news%20photography%20realistic%208k?width=1200&height=700&nologo=true&seed=${seed}`;
-                      (e.target as HTMLImageElement).src = fallback;
+                      (e.target as HTMLImageElement).src = getPollinationsFallback(article.title, article.category, seed);
                     }}
                   />
                   <div className="absolute bottom-3 right-3 text-[10px] text-white/90 bg-slate-900/80 px-2.5 py-1 rounded-lg backdrop-blur font-mono">
@@ -651,7 +643,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                         {rel.image_url && (
                           <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden bg-slate-900 mb-3">
                             <img
-                              src={rel.image_url}
+                              src={getHdImageUrl(rel.image_url)}
                               alt={rel.title}
                               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                               loading="lazy"
@@ -843,7 +835,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                         {item.image_url ? (
                           <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-slate-900 mb-3.5">
                             <img
-                              src={item.image_url}
+                              src={getHdImageUrl(item.image_url)}
                               alt={item.title}
                               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                               loading="lazy"

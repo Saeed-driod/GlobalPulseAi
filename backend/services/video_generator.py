@@ -12,6 +12,14 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 import imageio_ffmpeg
 
+try:
+    from .image_resolver import upgrade_image_url_to_hd
+except ImportError:
+    try:
+        from services.image_resolver import upgrade_image_url_to_hd
+    except ImportError:
+        upgrade_image_url_to_hd = None
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_VIDEOS_DIR = BASE_DIR / "static" / "videos"
 STATIC_VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -737,7 +745,19 @@ def fetch_scene_images(
         is_generic = any(m in main_image_url for m in generic_markers)
 
     if main_image_url and main_image_url.startswith("http") and not is_generic:
-        primary_downloaded = download_web_image(main_image_url, primary_img_path, timeout=3.5)
+        hd_main_url = upgrade_image_url_to_hd(main_image_url) if upgrade_image_url_to_hd else main_image_url
+        primary_downloaded = download_web_image(hd_main_url, primary_img_path, timeout=4.0)
+
+        # Quality Guard: Check real image dimensions to prevent pixelation in video frames
+        if primary_downloaded and primary_img_path.exists():
+            try:
+                with Image.open(primary_img_path) as check_img:
+                    w, h = check_img.size
+                    if w < 500 or h < 300:
+                        print(f"[Video Generator] Warning: Image #{article_id} resolution ({w}x{h}) is too low for video! Discarding to avoid pixelation.")
+                        primary_downloaded = False
+            except Exception:
+                primary_downloaded = False
 
     # Step 2: Fallback to a unique lead photo for this specific article from shuffled pool
     if not primary_downloaded:
@@ -838,6 +858,12 @@ def create_fullbleed_cinematic_frame(
     y1 = max(0, min(y1, new_h - target_h))
 
     frame = resized.crop((x1, y1, x1 + target_w, y1 + target_h))
+
+    # Apply subtle unsharp mask so zoomed/re-framed video frames remain razor-sharp
+    try:
+        frame = frame.filter(ImageFilter.UnsharpMask(radius=1.0, percent=115, threshold=3))
+    except Exception:
+        pass
 
     # Dual gradient vignette (top header fade + bottom caption fade)
     vignette = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))

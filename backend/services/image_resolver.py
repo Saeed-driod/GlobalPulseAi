@@ -30,6 +30,65 @@ def is_generic_placeholder(url: Optional[str]) -> bool:
         return True
     return any(p in url for p in GENERIC_PLACEHOLDERS)
 
+def is_low_res_thumbnail(url: Optional[str]) -> bool:
+    """Checks if an image URL points to a low-res thumbnail."""
+    if not url:
+        return True
+    u = url.lower()
+    low_indicators = [
+        "/standard/240/", "/standard/320/", "/standard/480/",
+        "/news/240/", "/news/320/", "/news/480/",
+        "width=140", "width=150", "width=200", "width=240", "width=300",
+        "w=140", "w=150", "w=200", "w=240", "w=300",
+        "/tmb/", "_thumb", "-thumb", "thumbnail", "/small/",
+        "/mini/", "_mini.", "-mini."
+    ]
+    return any(ind in u for ind in low_indicators)
+
+def upgrade_image_url_to_hd(url: Optional[str]) -> Optional[str]:
+    """
+    Intelligently rewrites known CDN thumbnail patterns to crystal-clear 1024px+ HD.
+    """
+    if not url or not url.startswith("http"):
+        return url
+
+    # 1. BBC CDN (ichef.bbci.co.uk): Rewrite 240/320/480/640 to 1024 HD
+    if "ichef.bbci.co.uk" in url:
+        url = re.sub(r"/standard/\d+/", "/standard/1024/", url)
+        url = re.sub(r"/news/\d+/", "/news/1024/", url)
+        return url
+
+    # 2. Sanity CDN (CoinDesk, etc.): Rewrite w=800&h=450 to w=1600&h=900
+    if "cdn.sanity.io" in url:
+        url = re.sub(r"w=\d+&h=\d+", "w=1600&h=900", url)
+        url = re.sub(r"w=\d+", "w=1600", url)
+        if "fit=" not in url:
+            url += "&fit=crop"
+        return url
+
+    # 3. ScienceX CDN (scx1.b-cdn.net): Rewrite /tmb/ to /800/
+    if "b-cdn.net" in url and "/tmb/" in url:
+        return url.replace("/tmb/", "/800/")
+
+    # 4. Yahoo CDN (s.yimg.com): Rewrite /resize/ to 1200x675
+    if "s.yimg.com" in url:
+        url = re.sub(r"/resize/\d+x\d+/", "/resize/1200x675/", url)
+        return url
+
+    # 5. Pollinations AI: Upgrade to Flux 1280x720 with enhancement
+    if "image.pollinations.ai" in url:
+        url = re.sub(r"width=\d+&height=\d+", "width=1280&height=720", url)
+        if "model=" not in url:
+            url += "&model=flux&enhance=true"
+        return url
+
+    # 6. Unsplash CDN: Ensure 1280px width
+    if "images.unsplash.com" in url:
+        url = re.sub(r"w=\d+", "w=1280", url)
+        return url
+
+    return url
+
 def extract_rss_image(entry: Any) -> Optional[str]:
     """
     Tier 1: Extract image from RSS feed entry.
@@ -149,7 +208,7 @@ def generate_pollinations_image_url(title: str, category: str = "", seed: Option
     """
     Tier 3: Dynamic AI News Thumbnail Fallback using Pollinations AI.
     Generates a unique, photorealistic editorial news photography URL
-    based on headline keywords and category.
+    powered by Flux with enhancement (1280x720 8K) based on headline keywords and category.
     """
     # Clean headline into key topical keywords
     clean_title = re.sub(r"[^a-zA-Z0-9\s]", " ", title)
@@ -169,7 +228,7 @@ def generate_pollinations_image_url(title: str, category: str = "", seed: Option
     url_encoded = urllib.parse.quote(prompt_text.strip())
     resolved_seed = seed if seed is not None else random.randint(10000, 999999)
 
-    return f"https://image.pollinations.ai/prompt/{url_encoded}?width=800&height=450&nologo=true&seed={resolved_seed}"
+    return f"https://image.pollinations.ai/prompt/{url_encoded}?width=1280&height=720&model=flux&enhance=true&nologo=true&seed={resolved_seed}"
 
 def resolve_article_image(
     entry: Any = None,
@@ -180,36 +239,54 @@ def resolve_article_image(
     current_image_url: Optional[str] = None
 ) -> str:
     """
-    Full 3-Tier Image Resolution Pipeline:
-    - If current_image_url is valid and NOT a generic placeholder, keep it.
-    - Tier 1: Extract from RSS entry.
-    - Tier 2: Scrape OpenGraph from source_url.
-    - Tier 3: Generate dynamic Pollinations AI editorial news visual.
+    Full 3-Tier HD Image Resolution Pipeline:
+    - 0. Check current_image_url: Upgrade CDN to HD. If still a signed low-res thumbnail (e.g. Guardian 140px),
+      attempt Tier 2 (OpenGraph) before accepting.
+    - Tier 1: Extract from RSS entry and upgrade CDN to 1024px+ HD.
+      If Tier 1 yields a low-res thumbnail that cannot be CDN-upgraded, attempt Tier 2 before using it.
+    - Tier 2: Scrape OpenGraph (og:image) or Twitter Card (twitter:image) from source_url.
+    - Tier 3: Dynamic Pollinations AI fallback powered by Flux with enhancement (1280x720 8K).
     """
     # 0. Check existing
     if current_image_url and not is_generic_placeholder(current_image_url) and current_image_url.startswith("http"):
-        return current_image_url
+        upgraded = upgrade_image_url_to_hd(current_image_url)
+        if not is_low_res_thumbnail(upgraded):
+            return upgraded
+        # If it's a signed low-res thumbnail (e.g. Guardian signed width=140), scrape source_url for full 1200px master
+        if source_url:
+            og_img = scrape_opengraph_image(source_url)
+            if og_img and not is_low_res_thumbnail(og_img):
+                return upgrade_image_url_to_hd(og_img)
+        return upgraded
 
     # 1. Tier 1: RSS Media
     tier1_url = extract_rss_image(entry)
     if tier1_url:
-        return tier1_url
+        upgraded_t1 = upgrade_image_url_to_hd(tier1_url)
+        # If high-res, return immediately
+        if not is_low_res_thumbnail(upgraded_t1):
+            return upgraded_t1
+        # If still low-res, prioritize Tier 2 (OpenGraph) from source_url!
+        if source_url:
+            tier2_url = scrape_opengraph_image(source_url)
+            if tier2_url and not is_low_res_thumbnail(tier2_url):
+                return upgrade_image_url_to_hd(tier2_url)
+        return upgraded_t1
 
     # 2. Tier 2: OpenGraph scraping
     if source_url:
         tier2_url = scrape_opengraph_image(source_url)
         if tier2_url:
-            return tier2_url
+            return upgrade_image_url_to_hd(tier2_url)
 
-    # 3. Tier 3: Pollinations AI dynamic fallback
+    # 3. Tier 3: Pollinations AI dynamic fallback (Flux 1280x720 HD)
     return generate_pollinations_image_url(title, category, seed)
 
 def refresh_missing_images() -> int:
     """
     Backfill helper function:
-    Loops through all articles in SQLite database. If an article has a missing
-    or generic placeholder image (or waves graphic), resolves a real, unique image
-    using the 3-tier pipeline and updates the database.
+    Loops through all articles in database. If an article has a missing,
+    generic placeholder, or low-res thumbnail image, upgrades it to full HD (1024px+).
     """
     try:
         from backend.database import SessionLocal
@@ -225,28 +302,36 @@ def refresh_missing_images() -> int:
     updated_count = 0
     try:
         articles = db.query(Article).all()
-        print(f"[Image Engine] Checking {len(articles)} articles for image upgrade...")
+        print(f"[Image Engine] Checking {len(articles)} articles for HD image upgrade...")
 
         for article in articles:
-            if is_generic_placeholder(article.image_url) or not article.image_url:
+            needs_upgrade = (
+                not article.image_url
+                or is_generic_placeholder(article.image_url)
+                or is_low_res_thumbnail(article.image_url)
+            )
+
+            if needs_upgrade:
                 new_url = resolve_article_image(
                     entry=None,
                     title=article.title,
-                    source_url=article.source_url or "",
+                    source_url=getattr(article, "source_url", "") or "",
                     category=article.category or "",
-                    seed=article.id
+                    seed=article.id,
+                    current_image_url=article.image_url
                 )
-                article.image_url = new_url
-                updated_count += 1
-                print(f"[Image Engine] Backfilled Article #{article.id} ('{article.title[:35]}...') -> {new_url[:70]}...")
+                if new_url and new_url != article.image_url:
+                    article.image_url = new_url
+                    updated_count += 1
+                    print(f"[Image Engine] Upgraded Article #{article.id} ('{article.title[:35]}...') -> {new_url[:75]}...")
 
         if updated_count > 0:
             db.commit()
-            print(f"[Image Engine] Successfully backfilled {updated_count} articles with unique HD photos!")
+            print(f"[Image Engine] Successfully upgraded {updated_count} articles to full HD quality!")
         else:
-            print("[Image Engine] All articles already have custom unique images.")
+            print("[Image Engine] All articles already have high-definition HD images.")
     except Exception as e:
-        print(f"[Image Engine] Error during backfill: {e}")
+        print(f"[Image Engine] Error during HD upgrade: {e}")
         db.rollback()
     finally:
         db.close()

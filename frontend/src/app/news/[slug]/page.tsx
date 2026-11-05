@@ -2,6 +2,7 @@ import React, { Suspense, cache } from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchArticleBySlug } from "../../../lib/api";
+import { getHdImageUrl } from "../../../lib/imageOptimizer";
 import { ArticleDetailClient } from "./ArticleDetailClient";
 
 interface PageProps {
@@ -85,7 +86,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app").replace(/\/$/, "");
   const cleanSummary = article.summary.replace(/^[•▸*-\s]+/gm, " ").trim().slice(0, 160);
   const articleUrl = `${siteUrl}/news/${article.slug}`;
-  const imageUrl = article.image_url || `${siteUrl}/default-thumbnail.jpg`;
+  const imageUrl = article.image_url ? getHdImageUrl(article.image_url) : `${siteUrl}/default-thumbnail.jpg`;
   const authorName = article.author_name || "Muhammad Saeed (Chief Editor, GlobalPulse AI)";
 
   return {

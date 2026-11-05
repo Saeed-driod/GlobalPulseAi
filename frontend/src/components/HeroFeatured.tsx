@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Article } from "../types/article";
 import { Eye, Clock, Video, Sparkles, ChevronRight } from "./Icons";
 import { getCategoryTheme } from "../lib/categoryTheme";
+import { getHdImageUrl, getPollinationsFallback } from "../lib/imageOptimizer";
 
 interface HeroFeaturedProps {
   articles: Article[];
@@ -26,24 +27,18 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
 
   const primaryFallback = React.useMemo(() => {
     const seed = typeof primary.id === "number" ? primary.id : 99;
-    const cleanWords = (primary.title || "global technology")
-      .replace(/[^a-zA-Z0-9\s]/g, " ")
-      .split(" ")
-      .filter((w) => w.length > 2)
-      .slice(0, 5)
-      .join(" ");
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      cleanWords || primary.category
-    )}%20editorial%20news%20photography%20realistic%208k?width=1200&height=700&nologo=true&seed=${seed}`;
+    return getPollinationsFallback(primary.title, primary.category, seed);
   }, [primary.id, primary.title, primary.category]);
 
-  const [primaryImgSrc, setPrimaryImgSrc] = React.useState<string>(
-    primary.image_url || primaryFallback
-  );
+  const hdPrimaryUrl = React.useMemo(() => {
+    return primary.image_url ? getHdImageUrl(primary.image_url) : primaryFallback;
+  }, [primary.image_url, primaryFallback]);
+
+  const [primaryImgSrc, setPrimaryImgSrc] = React.useState<string>(hdPrimaryUrl);
 
   React.useEffect(() => {
-    setPrimaryImgSrc(primary.image_url || primaryFallback);
-  }, [primary.image_url, primaryFallback]);
+    setPrimaryImgSrc(hdPrimaryUrl);
+  }, [hdPrimaryUrl]);
 
   const primaryTheme = getCategoryTheme(primary.category);
 
