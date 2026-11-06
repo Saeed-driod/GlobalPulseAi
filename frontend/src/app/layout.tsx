@@ -72,7 +72,7 @@ export const metadata: Metadata = {
       "HzE1M4G8b8r0fI4mYFJ1mlcRpIuXTtlLYKJlWqfrVZw",
     ],
     other: {
-      "tiktok-developers-site-verification": "qtGjolrbl9OJ5MgmnT9xzAyWXy8bM0Kh",
+      "tiktok-developers-site-verification": "8ZtJ7ileN14xFRdPeEgUday0VvqUf7Zj",
     },
   },
 };
@@ -87,7 +87,7 @@ export default function RootLayout({
       <head>
         <meta name="referrer" content="strict-origin-when-cross-origin" />
         <meta name="monetag" content="debefa1274cfb3da902e7d4ca24045da" />
-        <meta name="tiktok-developers-site-verification" content="qtGjolrbl9OJ5MgmnT9xzAyWXy8bM0Kh" />
+        <meta name="tiktok-developers-site-verification" content="8ZtJ7ileN14xFRdPeEgUday0VvqUf7Zj" />
         <meta name="tiktok-developers-site-verification" content="QFp2awRN7qTwaTOTSh824lhTKoK2Q9tO" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

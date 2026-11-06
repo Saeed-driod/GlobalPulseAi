@@ -16,3 +16,4 @@ google.com, pub-5380114680461998, DIRECT, f08c47fec0942fa0
     },
   });
 }
+
