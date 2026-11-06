@@ -136,11 +136,11 @@ def update_article_progress(db, article: Article, percent: int, status: str, sta
 def export_to_tiktok_package(article: Article, source_video_path: str):
     """
     Exports a clean copy of the vertical Shorts video along with a viral TikTok caption file
-    to exports/tiktok/ so it can be uploaded directly to TikTok Studio or via mobile.
+    to the unified videos/ folder so it can be uploaded directly to TikTok Studio, mobile, or auto-uploader.
     """
     try:
         import shutil
-        tiktok_dir = ROOT_DIR / "exports" / "tiktok"
+        tiktok_dir = ROOT_DIR / "videos"
         tiktok_dir.mkdir(parents=True, exist_ok=True)
         
         slug = article.slug or f"article_{article.id}"
@@ -300,6 +300,20 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                         print(f"[Facebook Reels SUCCESS] Video published to Facebook Reels: https://www.facebook.com/reel/{reel_res.get('video_id')}/")
         except Exception as fb_err:
             print(f"[Facebook Auto-Post Notice] {fb_err}")
+
+        # Step 2.8: TikTok Auto-Upload (Active once authenticated)
+        try:
+            from services.tiktok_uploader import upload_video_to_tiktok, load_token_data
+            if load_token_data() and export_disk_path and Path(export_disk_path).exists():
+                print(f"[TikTok Auto-Post] Auto-uploading video for Article #{article.id} to TikTok...")
+                tt_title = f"{article.title[:90]} #GlobalPulseAI #News"
+                tt_res = upload_video_to_tiktok(video_path=export_disk_path, title=tt_title)
+                if tt_res.get("success"):
+                    print(f"✔ [TikTok SUCCESS] Video published to TikTok! (Publish ID: {tt_res.get('publish_id')})")
+                else:
+                    print(f"[TikTok Auto-Post Notice] {tt_res.get('error')}")
+        except Exception as tt_err:
+            print(f"[TikTok Auto-Post Notice] {tt_err}")
 
         # Step 3: YouTube Auto-Upload
         if do_upload:
