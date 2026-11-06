@@ -1,5 +1,5 @@
 # ==============================================================================
 # Google AdSense Authorized Digital Sellers (ads.txt) - GlobalPulse AI
-# Replace 'pub-0000000000000000' with your approved AdSense Publisher ID
+# Publisher: pub-5380114680461998
 # ==============================================================================
-google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+google.com, pub-5380114680461998, DIRECT, f08c47fec0942fa0

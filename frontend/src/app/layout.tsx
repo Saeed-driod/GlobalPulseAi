@@ -102,6 +102,14 @@ export default function RootLayout({
           href="/rss.xml"
         />
 
+        {/* Google AdSense Official Script */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5380114680461998"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+
         {/* Monetag MultiTag (All-In-One Ads - Zone 305177) */}
         <Script
           src="https://quge5.com/88/tag.min.js"
