@@ -443,11 +443,12 @@ def build_long_form_narration(
     return _strip_markdown(full_narration)
 
 async def synthesize_edge_tts(text: str, output_path: Path) -> bool:
-    """Generates authentic neural speech audio using Microsoft Edge TTS."""
+    """Generates authentic neural speech audio using Microsoft Edge TTS with crisp broadcaster pacing."""
     try:
         import edge_tts
         voice = "en-US-ChristopherNeural"
-        communicator = edge_tts.Communicate(text, voice)
+        # Fast, energetic +10% rate for punchy, modern news broadcaster pacing
+        communicator = edge_tts.Communicate(text, voice, rate="+10%", pitch="+0Hz")
         await communicator.save(str(output_path))
         return output_path.exists() and output_path.stat().st_size > 5000
     except Exception as e:
@@ -899,9 +900,9 @@ def draw_sentence_captions(
 ):
     """
     Renders high-impact TikTok/Reels style pop-up subtitles:
-    - Bold, large text with thick black outline stroke (4px) for 100% legibility on any background.
-    - First 2-3 impact words highlighted in Neon Yellow / Neon Cyan.
-    - Remaining words in crisp white.
+    - Positioned in the optimal middle-screen safe zone (Y=1050 to 1250) to avoid TikTok UI icons.
+    - Frosted dark pill background with subtle glow border for 100% legibility over any bright photo.
+    - First 2-3 impact words highlighted in Neon Yellow / Neon Cyan with thick stroke outline (5px).
     """
     words = sentence.split()
     if not words:
@@ -919,13 +920,14 @@ def draw_sentence_captions(
     if curr:
         lines.append(curr)
 
-    line_height = 68 if is_shorts else 50
+    line_height = 76 if is_shorts else 54
     total_height = len(lines) * line_height
 
     if is_shorts:
-        start_y = max(1200, 1550 - (total_height // 2))
+        # Optimal middle-lower safe zone: clear of top header and bottom TikTok UI
+        start_y = max(980, 1140 - (total_height // 2))
     else:
-        start_y = max(480, 580 - (total_height // 2))
+        start_y = max(440, 520 - (total_height // 2))
 
     word_counter = 0
     highlight_word_count = min(3, len(words))
@@ -937,6 +939,11 @@ def draw_sentence_captions(
         x = (canvas_w - line_w) // 2
         y = start_y + (i * line_height)
 
+        # Draw frosted-glass pill behind subtitle line
+        pad_x, pad_y = 24, 10
+        pill_rect = [(x - pad_x, y - pad_y), (x + line_w + pad_x, y + line_height - pad_y + 6)]
+        draw.rounded_rectangle(pill_rect, radius=12, fill=(8, 12, 24, 220), outline=(accent_color[0], accent_color[1], accent_color[2], 140), width=2)
+
         for w in line_words:
             w_str = w + " "
             is_accent = (word_counter < highlight_word_count)
@@ -946,7 +953,7 @@ def draw_sentence_captions(
                 w_str,
                 fill=color,
                 font=font,
-                stroke_width=4,
+                stroke_width=5,
                 stroke_fill=(0, 0, 0)
             )
             w_box = draw.textbbox((0, 0), w_str, font=font)
@@ -1239,83 +1246,122 @@ def compose_video(
         )
         slide_dur = max(audio_duration / float(len(slides)), 2.8)
 
-    # Step C & D: Compile Video with Smooth Transitions (xfade motion with concat fallback)
+    # Step C & D: Compile Video with Smooth Transitions (Ken Burns Motion + BGM Ducking with Concat Fallback)
     fade_duration = 0.5 if is_long else 0.4
     fade_out_start = max(audio_duration - fade_duration, 0.0)
-    fps_val = "24" if not is_long else "15"
-    scale_w, scale_h = (1280, 720) if is_long else (720, 1280)
-    fmt_label = "16:9 Widescreen HD (1280x720)" if is_long else "9:16 Shorts (720x1280)"
+    fps_val = "30"
+    fps_int = 30
+    scale_w, scale_h = (1920, 1080) if is_long else (1080, 1920)
+    fmt_label = "16:9 Widescreen Full HD (1920x1080)" if is_long else "9:16 Shorts Full HD (1080x1920)"
     ffmpeg_timeout = 360 if is_long else 180
     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+    bgm_path = BASE_DIR / "static" / "audio" / "action_trailer_bgm.mp3"
 
     if progress_callback:
-        progress_callback(70, "RENDERING_FFMPEG", f"Step 3/4: Encoding MP4 ({fmt_label}) with multi-threaded FFmpeg...", "~10s remaining")
+        progress_callback(70, "RENDERING_FFMPEG", f"Step 3/4: Encoding cinematic {fmt_label} with Ken Burns motion & BGM...", "~10s remaining")
 
     compiled_successfully = False
 
-    # Attempt 1: Smooth Crossfade Transitions via FFmpeg xfade filter (multi-threaded CPU acceleration)
-    if len(slides) >= 2:
+    # Attempt 1: Ultra-Dynamic Ken Burns Camera Motion + BGM Audio Ducking
+    if len(slides) >= 1:
         try:
-            trans_dur = 0.5
-            clip_dur = slide_dur + trans_dur
+            print(f"[Video Generator] Rendering {len(slides)} dynamic Ken Burns camera scenes at {scale_w}x{scale_h} (30 fps)...")
+            slide_clips = []
+            frames_count = int(slide_dur * fps_int)
 
-            xfade_inputs = []
-            for s in slides:
-                xfade_inputs.extend(["-loop", "1", "-t", f"{clip_dur:.2f}", "-i", str(s.resolve())])
-            xfade_inputs.extend(["-i", str(output_audio_path.resolve())])
+            for idx, s in enumerate(slides):
+                clip_p = STATIC_VIDEOS_DIR / f"temp_kb_clip_{article_id}_{idx}.mp4"
+                if idx % 2 == 0:
+                    vf = f"zoompan=z='min(zoom+0.0012,1.14)':d={frames_count}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={scale_w}x{scale_h}:fps={fps_int}"
+                else:
+                    vf = f"zoompan=z='if(lte(on,1),1.14,max(1.0,zoom-0.0012))':d={frames_count}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={scale_w}x{scale_h}:fps={fps_int}"
 
-            filter_parts = []
-            last_label = "0:v"
-            curr_offset = slide_dur - trans_dur
-            transitions_list = ["fade", "smoothleft", "wipeleft", "fadeblack", "smoothright"]
-            for i in range(1, len(slides)):
-                next_label = f"v{i}"
-                trans_type = transitions_list[(i - 1) % len(transitions_list)]
-                filter_parts.append(
-                    f"[{last_label}][{i}:v]xfade=transition={trans_type}:duration={trans_dur:.2f}:offset={curr_offset:.2f}[{next_label}]"
-                )
-                last_label = next_label
-                curr_offset += slide_dur - trans_dur
+                cmd_clip = [
+                    ffmpeg_exe, "-y",
+                    "-threads", "0",
+                    "-loop", "1",
+                    "-i", str(s.resolve()),
+                    "-vf", vf,
+                    "-t", f"{slide_dur:.2f}",
+                    "-c:v", "libx264",
+                    "-preset", "ultrafast",
+                    "-pix_fmt", "yuv420p",
+                    str(clip_p)
+                ]
+                res_clip = subprocess.run(cmd_clip, capture_output=True, text=True, timeout=60)
+                if res_clip.returncode == 0 and clip_p.exists() and clip_p.stat().st_size > 1000:
+                    slide_clips.append(clip_p)
 
-            filter_parts.append(
-                f"[{last_label}]scale={scale_w}:{scale_h},fps={fps_val},format=yuv420p,"
-                f"fade=t=in:st=0:d={fade_duration},"
-                f"fade=t=out:st={fade_out_start:.2f}:d={fade_duration}[vf]"
-            )
-            filter_str = ";".join(filter_parts)
+            if len(slide_clips) == len(slides):
+                temp_concat_list = STATIC_VIDEOS_DIR / f"temp_concat_{article_id}.txt"
+                with open(temp_concat_list, "w", encoding="utf-8") as f:
+                    for c in slide_clips:
+                        f.write(f"file '{c.name}'\n")
 
-            xfade_cmd = [
-                ffmpeg_exe, "-y",
-                "-threads", "0"
-            ] + xfade_inputs + [
-                "-filter_complex", filter_str,
-                "-map", "[vf]",
-                "-map", f"{len(slides)}:a",
-                "-c:v", "libx264",
-                "-preset", "ultrafast",
-                "-r", fps_val,
-                "-profile:v", "main",
-                "-pix_fmt", "yuv420p",
-                "-c:a", "aac",
-                "-b:a", "128k",
-                "-ar", "44100",
-                "-ac", "2",
-                "-movflags", "+faststart",
-                "-shortest",
-                str(output_video_path)
-            ]
+                merged_visuals = STATIC_VIDEOS_DIR / f"temp_merged_{article_id}.mp4"
+                concat_cmd = [
+                    ffmpeg_exe, "-y",
+                    "-threads", "0",
+                    "-f", "concat",
+                    "-safe", "0",
+                    "-i", str(temp_concat_list),
+                    "-c", "copy",
+                    str(merged_visuals)
+                ]
+                subprocess.run(concat_cmd, check=True, cwd=str(STATIC_VIDEOS_DIR), capture_output=True, timeout=60)
 
-            print(f"[Video Generator] Compiling {fmt_label} MP4 with smooth motion transitions ({len(slides)} slides, {trans_dur}s xfade): {output_video_path.name}...")
-            xfade_res = subprocess.run(xfade_cmd, capture_output=True, text=True, cwd=str(STATIC_VIDEOS_DIR), timeout=ffmpeg_timeout)
-            if xfade_res.returncode == 0 and output_video_path.exists() and output_video_path.stat().st_size > 100_000:
-                compiled_successfully = True
-                print(f"[Video Generator] Motion xfade compilation successful for {output_video_path.name}")
-            else:
-                print(f"[Video Generator Notice] xfade compilation returned code {xfade_res.returncode}; switching to concat demuxer fallback.")
-        except Exception as xfade_err:
-            print(f"[Video Generator Notice] xfade transition compilation note: {xfade_err}; engaging concat fallback.")
+                # Mux with Voiceover + Background Music with Audio Ducking
+                if bgm_path.exists():
+                    audio_filter = "[0:a]volume=1.0[vocal];[1:a]volume=0.11,aloop=loop=-1:size=2e+09[bgm];[vocal][bgm]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+                    mux_cmd = [
+                        ffmpeg_exe, "-y",
+                        "-threads", "0",
+                        "-i", str(output_audio_path),
+                        "-i", str(bgm_path),
+                        "-i", str(merged_visuals),
+                        "-filter_complex", audio_filter,
+                        "-map", "2:v",
+                        "-map", "[aout]",
+                        "-c:v", "copy",
+                        "-c:a", "aac",
+                        "-b:a", "192k",
+                        "-movflags", "+faststart",
+                        "-shortest",
+                        str(output_video_path)
+                    ]
+                else:
+                    mux_cmd = [
+                        ffmpeg_exe, "-y",
+                        "-threads", "0",
+                        "-i", str(merged_visuals),
+                        "-i", str(output_audio_path),
+                        "-c:v", "copy",
+                        "-c:a", "aac",
+                        "-b:a", "192k",
+                        "-movflags", "+faststart",
+                        "-shortest",
+                        str(output_video_path)
+                    ]
 
-    # Attempt 2 (Fallback): Concat demuxer with fade-in and fade-out
+                mux_res = subprocess.run(mux_cmd, capture_output=True, text=True, cwd=str(STATIC_VIDEOS_DIR), timeout=ffmpeg_timeout)
+                if mux_res.returncode == 0 and output_video_path.exists() and output_video_path.stat().st_size > 100_000:
+                    compiled_successfully = True
+                    print(f"✔ [Video Generator SUCCESS] Ken Burns Motion & BGM Ducking compilation successful: {output_video_path.name}")
+
+                # Clean temporary render artifacts
+                try:
+                    if merged_visuals.exists():
+                        merged_visuals.unlink(missing_ok=True)
+                    if temp_concat_list.exists():
+                        temp_concat_list.unlink(missing_ok=True)
+                    for c in slide_clips:
+                        c.unlink(missing_ok=True)
+                except Exception:
+                    pass
+        except Exception as kb_err:
+            print(f"[Video Generator Notice] Ken Burns compilation fallback: {kb_err}")
+
+    # Attempt 2 (Fallback): Concat demuxer with BGM Ducking
     if not compiled_successfully:
         with open(concat_list_file, "w", encoding="utf-8") as f:
             f.write("ffconcat version 1.0\n")
@@ -1331,27 +1377,48 @@ def compose_video(
             f"fade=t=out:st={fade_out_start:.2f}:d={fade_duration}"
         )
 
-        cmd = [
-            ffmpeg_exe, "-y",
-            "-threads", "0",
-            "-f", "concat",
-            "-safe", "0",
-            "-i", str(concat_list_file),
-            "-i", str(output_audio_path),
-            "-vf", video_filter,
-            "-c:v", "libx264",
-            "-preset", "ultrafast",
-            "-r", fps_val,
-            "-profile:v", "main",
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-ar", "44100",
-            "-ac", "2",
-            "-movflags", "+faststart",
-            "-shortest",
-            str(output_video_path)
-        ]
+        if bgm_path.exists():
+            audio_filter = "[1:a]volume=1.0[vocal];[2:a]volume=0.11,aloop=loop=-1:size=2e+09[bgm];[vocal][bgm]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+            cmd = [
+                ffmpeg_exe, "-y",
+                "-threads", "0",
+                "-f", "concat",
+                "-safe", "0",
+                "-i", str(concat_list_file),
+                "-i", str(output_audio_path),
+                "-i", str(bgm_path),
+                "-filter_complex", f"[0:v]{video_filter}[vf];{audio_filter}",
+                "-map", "[vf]",
+                "-map", "[aout]",
+                "-c:v", "libx264",
+                "-preset", "ultrafast",
+                "-r", fps_val,
+                "-pix_fmt", "yuv420p",
+                "-c:a", "aac",
+                "-b:a", "192k",
+                "-movflags", "+faststart",
+                "-shortest",
+                str(output_video_path)
+            ]
+        else:
+            cmd = [
+                ffmpeg_exe, "-y",
+                "-threads", "0",
+                "-f", "concat",
+                "-safe", "0",
+                "-i", str(concat_list_file),
+                "-i", str(output_audio_path),
+                "-vf", video_filter,
+                "-c:v", "libx264",
+                "-preset", "ultrafast",
+                "-r", fps_val,
+                "-pix_fmt", "yuv420p",
+                "-c:a", "aac",
+                "-b:a", "192k",
+                "-movflags", "+faststart",
+                "-shortest",
+                str(output_video_path)
+            ]
 
         print(f"[Video Generator] Compiling {fmt_label} MP4 with concat demuxer ({len(slides)} photo scenes): {output_video_path.name}...")
         run_res = subprocess.run(cmd, capture_output=True, text=True, cwd=str(STATIC_VIDEOS_DIR), timeout=ffmpeg_timeout)
