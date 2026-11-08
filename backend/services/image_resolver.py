@@ -105,3 +105,30 @@ def resolve_article_image(
 
     # Generate our branded OG card
     return generate_branded_og_url(title=title, category=category)
+
+def refresh_missing_images():
+    """Scans stored articles on startup and replaces publisher hotlinks or missing images with branded OG cards."""
+    try:
+        from database import SessionLocal
+        from models import Article
+    except ImportError:
+        try:
+            from ..database import SessionLocal
+            from ..models import Article
+        except Exception:
+            return
+
+    try:
+        with SessionLocal() as db:
+            articles = db.query(Article).all()
+            updated = 0
+            for art in articles:
+                if is_publisher_hotlink(art.image_url) or not art.image_url:
+                    art.image_url = generate_branded_og_url(art.title or "News Brief", art.category or "News")
+                    updated += 1
+            if updated > 0:
+                db.commit()
+                print(f"[Image Resolver] Upgraded {updated} article images to branded OG cards.")
+    except Exception as e:
+        print(f"[Image Resolver Notice] Startup refresh notice: {e}")
+

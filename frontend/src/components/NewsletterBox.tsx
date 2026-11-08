@@ -19,7 +19,7 @@ export const NewsletterBox: React.FC<{ className?: string }> = ({ className = ""
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem("gp_newsletter_subscribed", "true");
-        } catch {}
+        } catch { }
       }
     }, 700);
   };

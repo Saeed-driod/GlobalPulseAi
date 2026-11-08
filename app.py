@@ -2,10 +2,13 @@ import sys
 import os
 from pathlib import Path
 
-# Ensure root directory is on sys.path
+# Ensure root directory and backend directory are on sys.path
 ROOT_DIR = Path(__file__).resolve().parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+BACKEND_DIR = ROOT_DIR / "backend"
+
+for p in (ROOT_DIR, BACKEND_DIR):
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
 
 # Expose FastAPI app instance so 'gunicorn app:app' and 'uvicorn app:app' find it immediately
 from backend.main import app

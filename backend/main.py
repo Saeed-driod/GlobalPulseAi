@@ -1,12 +1,21 @@
+import sys
 import os
 import json
 import re
 import hashlib
 import traceback
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional, List
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
+
+# Ensure backend directory and project root are always in sys.path
+_backend_dir = Path(__file__).resolve().parent
+_root_dir = _backend_dir.parent
+for _p in (_backend_dir, _root_dir):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Header, status, BackgroundTasks, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
