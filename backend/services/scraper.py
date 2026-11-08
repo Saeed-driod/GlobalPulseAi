@@ -14,24 +14,24 @@ except (ImportError, ValueError):
 
 # Curated Tier-1 Global RSS Feeds grouped across all 5 Core Media Categories
 RSS_FEEDS = [
-    # 1. Global Sports (Top Tier Coverage: BBC, ESPN, Cricinfo, Sky Sports)
+    # 1. Sports (BBC, ESPN, Cricinfo, Sky Sports)
     {
-        "category": "Global Sports",
+        "category": "Sports",
         "name": "BBC Sport",
         "url": "http://feeds.bbci.co.uk/sport/rss.xml",
     },
     {
-        "category": "Global Sports",
+        "category": "Sports",
         "name": "ESPN Top Headlines",
         "url": "https://www.espn.com/espn/rss/news",
     },
     {
-        "category": "Global Sports",
+        "category": "Sports",
         "name": "ESPN Cricinfo",
         "url": "https://www.espncricinfo.com/rss/content/story/feeds/0.xml",
     },
     {
-        "category": "Global Sports",
+        "category": "Sports",
         "name": "Sky Sports News",
         "url": "https://www.skysports.com/rss/12040",
     },
@@ -56,14 +56,14 @@ RSS_FEEDS = [
         "name": "Hacker News",
         "url": "https://news.ycombinator.com/rss",
     },
-    # 3. Global Markets & Economy
+    # 3. Markets & Economy
     {
-        "category": "Global Markets",
+        "category": "Markets",
         "name": "CNBC Markets",
         "url": "https://search.cnbc.com/rs/search/view.html?partnerId=2000&keywords=markets&sort=date&output=rss",
     },
     {
-        "category": "Global Markets",
+        "category": "Markets",
         "name": "CoinDesk",
         "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
     },
@@ -93,24 +93,24 @@ RSS_FEEDS = [
         "name": "Al Jazeera World",
         "url": "https://www.aljazeera.com/xml/rss/all.xml",
     },
-    # 5. Future Science & Space Exploration
+    # 5. Science & Space Exploration
     {
-        "category": "Future Science",
+        "category": "Science",
         "name": "ScienceDaily",
         "url": "https://www.sciencedaily.com/rss/top/science.xml",
     },
     {
-        "category": "Future Science",
+        "category": "Science",
         "name": "Phys.org",
         "url": "https://phys.org/rss-feed/",
     },
     {
-        "category": "Future Science",
+        "category": "Science",
         "name": "NASA Breaking News",
         "url": "https://www.nasa.gov/news-release/feed/",
     },
     {
-        "category": "Future Science",
+        "category": "Science",
         "name": "Space.com",
         "url": "https://www.space.com/feeds/all",
     },
@@ -140,7 +140,7 @@ SPORTS_KEYWORDS = [
     "arteta", "athletics", "olympic", "paralympic"
 ]
 
-ALL_CATEGORIES = ["Global Sports", "AI & Tech", "Global Markets", "World Politics", "Future Science", "Entertainment"]
+ALL_CATEGORIES = ["AI & Tech", "Markets", "World Politics", "Science", "Sports", "Entertainment"]
 
 def clean_html(raw_html: str) -> str:
     """Strip HTML tags and unescape entities."""

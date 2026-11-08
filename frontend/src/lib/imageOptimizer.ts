@@ -1,51 +1,57 @@
 /**
- * GlobalPulse AI - Image Optimization & HD Upscaler Utility
- * Automatically rewrites known low-res CDN thumbnail URLs to crystal-clear 1024px+ HD.
+ * GlobalPulse AI - Image Optimization & Branded Card Utility
+ * Rejects third-party publisher hotlinking and AI-generated fake news photos.
+ * Provides custom self-hosted branded OG cards (/api/og) and licensed illustration handlers.
  */
 
-export function getHdImageUrl(url?: string | null): string {
-  if (!url || typeof url !== "string" || !url.startsWith("http")) {
-    return url || "";
+const PUBLISHER_DOMAINS = [
+  "ichef.bbci.co.uk", "bbci.co.uk", "bbc.com", "bbc.co.uk",
+  "guim.co.uk", "theguardian.com",
+  "reuters.com", "reutersmedia.net",
+  "espn.com", "espncdn.com", "espncricinfo.com",
+  "cnbc.com", "nbcnews.com",
+  "politico.com",
+  "aljazeera.com",
+  "scx1.b-cdn.net", "sciencedaily.com", "phys.org",
+  "cdn.sanity.io", "coindesk.com",
+  "s.yimg.com", "yahoo.com",
+  "variety.com",
+  "ign.com", "ignimgs.com",
+  "arstechnica.com", "condenast.com",
+  "theverge.com", "vox-cdn.com",
+  "techcrunch.com",
+  "image.pollinations.ai"
+];
+
+export function isPublisherHotlink(url?: string | null): boolean {
+  if (!url) return false;
+  const u = url.toLowerCase();
+  return PUBLISHER_DOMAINS.some((domain) => u.includes(domain));
+}
+
+export function getBrandedOgUrl(title: string, category: string = "AI & Tech"): string {
+  const cleanTitle = (title || "Global Breaking News").replace(/\|?\s*GlobalPulse AI/gi, "").trim();
+  const encodedTitle = encodeURIComponent(cleanTitle);
+  const encodedCat = encodeURIComponent(category || "News");
+  return `/api/og?title=${encodedTitle}&category=${encodedCat}`;
+}
+
+export function getHdImageUrl(url?: string | null, title?: string, category?: string): string {
+  if (!url || typeof url !== "string") {
+    return title ? getBrandedOgUrl(title, category) : "/default-thumbnail.jpg";
   }
 
-  // 1. BBC CDN (ichef.bbci.co.uk): Rewrite 240/320/480/640 to 1024 HD
-  if (url.includes("ichef.bbci.co.uk")) {
-    return url
-      .replace(/\/standard\/\d+\//g, "/standard/1024/")
-      .replace(/\/news\/\d+\//g, "/news/1024/");
+  // Reject publisher hotlinks and AI-generated photos
+  if (isPublisherHotlink(url)) {
+    return title ? getBrandedOgUrl(title, category) : "/default-thumbnail.jpg";
   }
 
-  // 2. Sanity CDN (CoinDesk, etc.): Rewrite w=800&h=450 to w=1600&h=900
-  if (url.includes("cdn.sanity.io")) {
-    let upgraded = url
-      .replace(/w=\d+&h=\d+/g, "w=1600&h=900")
-      .replace(/w=\d+/g, "w=1600");
-    if (!upgraded.includes("fit=")) {
-      upgraded += "&fit=crop";
-    }
-    return upgraded;
+  // Handle local /api/og routes
+  if (url.startsWith("/api/og")) {
+    return url;
   }
 
-  // 3. ScienceX CDN (scx1.b-cdn.net): Rewrite /tmb/ to /800/
-  if (url.includes("b-cdn.net") && url.includes("/tmb/")) {
-    return url.replace("/tmb/", "/800/");
-  }
-
-  // 4. Yahoo CDN (s.yimg.com): Rewrite /resize/ to 1200x675
-  if (url.includes("s.yimg.com")) {
-    return url.replace(/\/resize\/\d+x\d+\//g, "/resize/1200x675/");
-  }
-
-  // 5. Pollinations AI: Upgrade to Flux 1280x720 with enhancement
-  if (url.includes("image.pollinations.ai")) {
-    let upgraded = url.replace(/width=\d+&height=\d+/g, "width=1280&height=720");
-    if (!upgraded.includes("model=")) {
-      upgraded += "&model=flux&enhance=true";
-    }
-    return upgraded;
-  }
-
-  // 6. Unsplash CDN: Ensure 1280px width
+  // Handle licensed Unsplash photos
   if (url.includes("images.unsplash.com")) {
     return url.replace(/w=\d+/g, "w=1280");
   }
@@ -53,18 +59,7 @@ export function getHdImageUrl(url?: string | null): string {
   return url;
 }
 
+// Backward-compatible fallback helper that returns our own branded OG card
 export function getPollinationsFallback(title: string, category: string, seed: number = 100): string {
-  const cleanWords = (title || "global intelligence news")
-    .replace(/[^a-zA-Z0-9\s]/g, " ")
-    .split(" ")
-    .filter((w) => w.length > 2)
-    .slice(0, 5)
-    .join(" ");
-
-  const query = encodeURIComponent(
-    `${cleanWords || category} editorial news photography realistic 8k`
-  );
-
-  return `https://image.pollinations.ai/prompt/${query}?width=1280&height=720&model=flux&enhance=true&nologo=true&seed=${seed}`;
+  return getBrandedOgUrl(title, category);
 }
-

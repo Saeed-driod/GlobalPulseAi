@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { fetchArticles } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = (
     process.env.NEXT_PUBLIC_SITE_URL ||
@@ -53,6 +55,42 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    {
+      url: `${siteUrl}/category/ai-tech`,
+      lastModified: currentDate,
+      changeFrequency: "hourly",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/category/markets`,
+      lastModified: currentDate,
+      changeFrequency: "hourly",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/category/world-politics`,
+      lastModified: currentDate,
+      changeFrequency: "hourly",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/category/science`,
+      lastModified: currentDate,
+      changeFrequency: "hourly",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/category/sports`,
+      lastModified: currentDate,
+      changeFrequency: "hourly",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/category/entertainment`,
+      lastModified: currentDate,
+      changeFrequency: "hourly",
+      priority: 0.9,
+    },
   ];
 
   try {
@@ -65,7 +103,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
 
     const dynamicRoutes: MetadataRoute.Sitemap = allArticles
-      .filter((article) => article && article.slug)
+      .filter((article) => article && article.slug && !article.is_noindex)
       .map((article) => ({
         url: `${siteUrl}/news/${article.slug}`,
         lastModified: article.published_at

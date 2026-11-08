@@ -27,6 +27,93 @@ const MOODS = [
   { id: "free", label: "100% Free Full Movies", icon: "🍿", search: "Night of the Living Dead" },
 ];
 
+function MoviePosterCard({
+  src,
+  alt,
+  title,
+  category,
+  year,
+  rating,
+  trailerId,
+  className,
+}: {
+  src: string;
+  alt: string;
+  title: string;
+  category: string;
+  year?: string | number;
+  rating?: string;
+  trailerId?: string;
+  className?: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+  const [useTrailerThumb, setUseTrailerThumb] = useState(false);
+
+  const fallbackTrailerUrl = trailerId ? `https://img.youtube.com/vi/${trailerId}/hqdefault.jpg` : null;
+
+  const handleImgError = () => {
+    if (!useTrailerThumb && fallbackTrailerUrl && src !== fallbackTrailerUrl) {
+      setUseTrailerThumb(true);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  if (hasError) {
+    const gradients: Record<string, string> = {
+      Hollywood: "from-blue-900 via-indigo-950 to-slate-900",
+      Bollywood: "from-amber-900 via-red-950 to-slate-900",
+      "K-Drama": "from-purple-900 via-pink-950 to-slate-900",
+      Anime: "from-rose-900 via-orange-950 to-slate-900",
+      "Free Classic": "from-zinc-800 via-stone-900 to-black",
+      Worldwide: "from-cyan-900 via-blue-950 to-slate-900",
+    };
+    const gradient = gradients[category] || "from-slate-800 via-slate-900 to-black";
+
+    return (
+      <div className={`w-full h-full bg-gradient-to-br ${gradient} p-4 flex flex-col justify-between text-white select-none relative overflow-hidden border border-white/10 rounded-xl`}>
+        <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-white/5 blur-xl pointer-events-none" />
+        <div className="flex justify-between items-start gap-1 z-10">
+          <span className="text-[9px] font-mono uppercase tracking-wider text-white/80 bg-black/50 px-2 py-0.5 rounded backdrop-blur">
+            {category}
+          </span>
+          <span className="text-[10px] font-bold text-amber-300">
+            {rating ? rating.split(" ")[0] : "⭐ 8.0"}
+          </span>
+        </div>
+        <div className="my-auto text-center z-10 px-1">
+          <div className="w-10 h-10 rounded-full bg-white/15 border border-white/20 mx-auto mb-2 flex items-center justify-center shadow-lg">
+            <Video className="w-5 h-5 text-white" />
+          </div>
+          <h4 className="text-xs sm:text-sm font-bold font-serif line-clamp-3 leading-snug drop-shadow-md">
+            {title}
+          </h4>
+          {year && (
+            <p className="text-[10px] text-white/60 font-mono mt-1">{year}</p>
+          )}
+        </div>
+        <div className="text-center z-10 pt-2 border-t border-white/10">
+          <span className="text-[9px] font-mono tracking-widest text-[#1a8cff] uppercase font-bold">
+            Cinema Radar
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const effectiveSrc = useTrailerThumb && fallbackTrailerUrl ? fallbackTrailerUrl : src;
+
+  return (
+    <img
+      src={effectiveSrc}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      onError={handleImgError}
+    />
+  );
+}
+
 export default function MoviesPage() {
   const [movies, setMovies] = useState<MovieItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -260,6 +347,12 @@ export default function MoviesPage() {
                         src={activeMovie.image || `https://img.youtube.com/vi/${currentTrailerId}/hqdefault.jpg`}
                         alt={activeMovie.title}
                         className="w-full h-full object-cover opacity-50 blur-[1px] group-hover:opacity-65 group-hover:scale-105 transition-all duration-700"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (currentTrailerId && target.src !== `https://img.youtube.com/vi/${currentTrailerId}/hqdefault.jpg`) {
+                            target.src = `https://img.youtube.com/vi/${currentTrailerId}/hqdefault.jpg`;
+                          }
+                        }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />
 
@@ -483,11 +576,15 @@ export default function MoviesPage() {
               >
                 <div>
                   <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-slate-900 mb-2.5">
-                    <img
+                    <MoviePosterCard
                       src={movie.image}
                       alt={movie.title}
+                      title={movie.title}
+                      category={movie.category}
+                      year={movie.year}
+                      rating={movie.rating}
+                      trailerId={movie.trailerId}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
                       <span className="neu-btn-primary w-full py-1.5 text-[10px] text-center font-bold flex items-center justify-center gap-1">

@@ -35,7 +35,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Hollywood",
     stars: "Timothée Chalamet, Zendaya, Rebecca Ferguson",
     rating: "8.5 / 10 (IMDb)",
-    image: "https://m.media-amazon.com/images/M/MV5BNTc0YmQxMjEtODI5MC00NjFiLTlkMWUtOGQ5NjFmYWUyZGJhXkEyXkFqcGc@._V1_.jpg",
+    image: "https://img.youtube.com/vi/Way9Dexny3w/hqdefault.jpg",
     trailerId: "Way9Dexny3w",
     description: "Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.",
     watchLinks: {
@@ -53,7 +53,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Hollywood",
     stars: "Cillian Murphy, Emily Blunt, Matt Damon, Robert Downey Jr.",
     rating: "8.9 / 10 (Oscar Best Picture)",
-    image: "https://m.media-amazon.com/images/M/MV5BMDBmYTZjNjctNDhlNy00N2EzLTk5ODgtZTIxMmY0ZWZlZDFkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://img.youtube.com/vi/uYPbbksJxIg/hqdefault.jpg",
     trailerId: "uYPbbksJxIg",
     description: "The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb during World War II.",
     watchLinks: {
@@ -70,7 +70,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Bollywood",
     stars: "Shah Rukh Khan, Nayanthara, Vijay Sethupathi",
     rating: "7.0 / 10 (Record Box Office)",
-    image: "https://m.media-amazon.com/images/M/MV5BMGExNGI1NDktOWI2Mi00NDM3LWIxMmQtNTQxYTgzMzI0MTA1XkEyXkFqcGc@._V1_.jpg",
+    image: "https://img.youtube.com/vi/MWOlnZSnXJo/hqdefault.jpg",
     trailerId: "MWOlnZSnXJo",
     description: "A high-octane action thriller outlining the emotional journey of a prison warden driven by personal vendetta to rectify societal injustice.",
     watchLinks: {
@@ -86,7 +86,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "K-Drama",
     stars: "Lee Jung-jae, Park Hae-soo, Wi Ha-joon",
     rating: "8.0 / 10 (Global Phenomenon)",
-    image: "https://m.media-amazon.com/images/M/MV5BYWE3MDVkN2EtNjQ5MS00ZDQ4LTliNzYtMjc2YWMzMDEwMTA3XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://img.youtube.com/vi/oqxAJKy0ii4/hqdefault.jpg",
     trailerId: "oqxAJKy0ii4",
     description: "Hundreds of cash-strapped players accept a strange invitation to compete in children's games with tempting prize and deadly high stakes.",
     watchLinks: {
@@ -102,7 +102,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "K-Drama",
     stars: "Song Kang-ho, Lee Sun-kyun, Cho Yeo-jeong",
     rating: "8.5 / 10 (Oscar Best Picture)",
-    image: "https://m.media-amazon.com/images/M/MV5BYWZjMjk3ZTItODQ2ZC00MGI5LWE0ZTItODg5ZThiYWM0ZDA4XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://img.youtube.com/vi/isOGD_7hNIY/hqdefault.jpg",
     trailerId: "isOGD_7hNIY",
     description: "Greed and class discrimination threaten the newly formed symbiotic relationship between the wealthy Park family and the destitute Kim clan.",
     watchLinks: {
@@ -120,7 +120,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Bollywood",
     stars: "N.T. Rama Rao Jr., Ram Charan, Ajay Devgn, Alia Bhatt",
     rating: "7.8 / 10 (Oscar Winner)",
-    image: "https://m.media-amazon.com/images/M/MV5BODUwNDNjMTctODUxNy00ZTA2LWIyYTEtZjUwZmQ2NDBiNWFlXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://img.youtube.com/vi/GY4BgdUSpbE/hqdefault.jpg",
     trailerId: "GY4BgdUSpbE",
     description: "A fearless revolutionary and an officer in the British force come together to embark on an unbelievable journey of heroism.",
     watchLinks: {
@@ -136,7 +136,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Anime",
     stars: "Rumi Hiiragi, Miyu Irino, Mari Natsuki",
     rating: "8.6 / 10 (Studio Ghibli Masterpiece)",
-    image: "https://m.media-amazon.com/images/M/MV5BNTEyNmEwOWUtYzkyOC00ZTQ4LTllZmUtMjk0Y2Y5ZWU3Y2ExXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://img.youtube.com/vi/ByXuk9QqQkk/hqdefault.jpg",
     trailerId: "ByXuk9QqQkk",
     description: "During her family's move to the suburbs, a sullen 10-year-old girl wanders into a world ruled by gods, witches, and spirits.",
     watchLinks: {
@@ -153,7 +153,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Hollywood",
     stars: "Ryan Reynolds, Hugh Jackman, Emma Corrin",
     rating: "7.7 / 10 (Marvel Blockbuster)",
-    image: "https://m.media-amazon.com/images/M/MV5BZTk5ODY0MmQtMzA3Ni00NGY1LThiYzItZThiNjFiNDM4MTM3XkEyXkFqcGc@._V1_.jpg",
+    image: "https://img.youtube.com/vi/73_1biulkYk/hqdefault.jpg",
     trailerId: "73_1biulkYk",
     description: "Wolverine is recovering from his injuries when he crosses paths with the loudmouth, Deadpool. They team up to defeat a common enemy.",
     watchLinks: {
@@ -171,7 +171,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Hollywood",
     stars: "Matthew McConaughey, Anne Hathaway, Jessica Chastain",
     rating: "8.7 / 10 (Sci-Fi Epic)",
-    image: "https://m.media-amazon.com/images/M/MV5BYzdjMDAxZGItMjI2My00ODA1LTlkNzItOWFjMDU5ZDJlYWY3XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://img.youtube.com/vi/zSWdZVtXT7E/hqdefault.jpg",
     trailerId: "zSWdZVtXT7E",
     description: "When Earth becomes uninhabitable in the future, a farmer and ex-NASA pilot, Joseph Cooper, is tasked to pilot a spacecraft through a wormhole.",
     watchLinks: {
@@ -188,8 +188,8 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Free Classic",
     stars: "Duane Jones, Judith O'Dea, Karl Hardman",
     rating: "7.8 / 10 (Public Domain Legend)",
-    image: "https://m.media-amazon.com/images/M/MV5BNDUyODAzNDgtZjhhMi00MThjLTlhNDgtNWZkZWFkMzgwNzE0XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
-    trailerId: "5gUKVMJPmfU",
+    image: "https://img.youtube.com/vi/o7xO_ciIEeA/hqdefault.jpg",
+    trailerId: "o7xO_ciIEeA",
     description: "A ragtag group of Pennsylvanians barricade themselves in an old farmhouse to remain safe from a bloodthirsty, flesh-eating breed of monsters.",
     watchLinks: {
       youtubeFree: "https://www.youtube.com/results?search_query=Night+of+the+Living+Dead+1968+full+movie",
@@ -205,7 +205,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Free Classic",
     stars: "Charles Chaplin, Paulette Goddard, Henry Bergman",
     rating: "8.5 / 10 (Cinema Masterpiece)",
-    image: "https://m.media-amazon.com/images/M/MV5BYmRhYjc4MWQtMzZkZi00YmU3LWEzZWYtZWM4OGFiYWIwZDVjXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://img.youtube.com/vi/GLeDdzGUTq0/hqdefault.jpg",
     trailerId: "GLeDdzGUTq0",
     description: "The Tramp struggles to live in modern industrial society with the help of a young homeless woman. Legally free to stream online.",
     watchLinks: {
@@ -221,7 +221,7 @@ const CURATED_WORLDWIDE_CATALOG: MovieItem[] = [
     category: "Anime",
     stars: "Natsuki Hanae, Akari Kito, Hiro Shimono",
     rating: "8.2 / 10 (Anime Box Office Record)",
-    image: "https://m.media-amazon.com/images/M/MV5BNTI0NGVkY2MtZWZhMi00MDVlLWE1NDAtNmFlOWFlZTkxM2U4XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    image: "https://img.youtube.com/vi/ATJYac_dORw/hqdefault.jpg",
     trailerId: "ATJYac_dORw",
     description: "After his family was brutally murdered and his sister turned into a demon, Tanjiro Kamado's journey as a demon slayer begins.",
     watchLinks: {

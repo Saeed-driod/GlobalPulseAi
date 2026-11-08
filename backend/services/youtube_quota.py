@@ -64,11 +64,28 @@ def record_youtube_upload(
         return None
 
     try:
-        # Avoid duplicate log entries for the same YouTube ID
+        # 1. Update and commit Article record immediately so it can never be orphaned
+        if article_id:
+            art = db.query(Article).filter(Article.id == article_id).first()
+            if art:
+                art.youtube_video_id = clean_id
+                art.video_status = "COMPLETED"
+                art.video_progress = 100
+                art.video_stage_text = f"Completed! Video published to YouTube ({fmt.upper()})."
+                art.video_error = None
+                art.video_updated_at = datetime.now(timezone.utc)
+                if art.video_path:
+                    if "short_" in str(art.video_path).lower():
+                        fmt = "short"
+                    elif "long_" in str(art.video_path).lower():
+                        fmt = "long"
+
+        # 2. Avoid duplicate log entries for the same YouTube ID
         existing = db.query(YouTubeDailyUpload).filter(
             YouTubeDailyUpload.youtube_video_id == clean_id
         ).first()
         if existing:
+            db.commit()
             return existing
 
         log_entry = YouTubeDailyUpload(

@@ -4,14 +4,19 @@ import { Article } from "../types/article";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const NEON_CONNECTION_STRING =
-  process.env.DATABASE_URL ||
-  "postgresql://neondb_owner:npg_EcGX5KIFW9ej@ep-bold-feather-b4sildv7-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require";
-const NEON_SQL_ENDPOINT = "https://ep-bold-feather-b4sildv7-pooler.c-6.us-east-2.aws.neon.tech/sql";
+const NEON_CONNECTION_STRING = process.env.DATABASE_URL || "";
 
 async function getInitialArticles(): Promise<Article[]> {
+  if (!NEON_CONNECTION_STRING) {
+    return [];
+  }
   try {
-    const res = await fetch(NEON_SQL_ENDPOINT, {
+    let endpoint = "https://ep-bold-feather-b4sildv7-pooler.c-6.us-east-2.aws.neon.tech/sql";
+    const hostMatch = NEON_CONNECTION_STRING.match(/@([^/:]+)/);
+    if (hostMatch && hostMatch[1]) {
+      endpoint = `https://${hostMatch[1]}/sql`;
+    }
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Neon-Connection-String": NEON_CONNECTION_STRING,

@@ -3,11 +3,11 @@ import { NextResponse } from "next/server";
 export const revalidate = 900; // 15 minutes cache on edge
 
 const DEFAULT_STREAMS: Record<string, string> = {
-  "sky-news": "WUTDiO_fXdE",
+  "sky-news": "umLWFz4izTM",
   "al-jazeera": "gCNeDWCI0vo",
   "dw-news": "LuKwFajn37U",
   "nasa-live": "ROboUHfPUrU",
-  "abc-news": "wF8X-K_l5kY",
+  "abc-news": "KQhNZQ_Uag8",
 };
 
 const CHANNEL_URLS: Record<string, string> = {

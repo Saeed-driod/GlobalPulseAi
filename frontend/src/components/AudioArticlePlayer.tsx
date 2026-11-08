@@ -204,10 +204,10 @@ export function AudioArticlePlayer({ title, content, category, author }: AudioAr
             </div>
             <p className="text-xs sm:text-sm font-semibold text-[#2d3748] mt-1">
               {isPlaying
-                ? "Playing intelligence briefing..."
+                ? "Playing audio briefing..."
                 : isPaused
                 ? "Briefing paused"
-                : "Listen to this story (Audio synthesized for Tier-1 readers)"}
+                : "Listen to this story (Audio briefing)"}
             </p>
           </div>
         </div>

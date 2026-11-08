@@ -33,7 +33,7 @@ const CHANNELS: Channel[] = [
     id: "sky-news",
     name: "Sky News International Live",
     category: "Global Breaking News",
-    youtubeId: "WUTDiO_fXdE",
+    youtubeId: "umLWFz4izTM",
     badge: "24/7 GLOBAL WIRE",
     description: "Official 24/7 continuous international news stream delivering verified breaking telemetry across world politics and global capitals.",
   },
@@ -41,8 +41,8 @@ const CHANNELS: Channel[] = [
     id: "abc-news",
     name: "ABC News Live (US)",
     category: "US & World Headlines",
-    youtubeId: "wF8X-K_l5kY",
-    badge: "US TIER-1 WIRE",
+    youtubeId: "KQhNZQ_Uag8",
+    badge: "LIVE US WIRE",
     description: "24/7 continuous live news coverage, breaking dispatches, and in-depth investigative reports from ABC News headquarters.",
   },
   {
@@ -73,9 +73,9 @@ const CHANNELS: Channel[] = [
     id: "official-studio",
     name: "GlobalPulse AI Studio Channel",
     category: "Official AI Broadcast",
-    youtubeId: "WUTDiO_fXdE",
+    youtubeId: "umLWFz4izTM",
     badge: "OFFICIAL STREAM",
-    description: "Automated neural AI broadcast studio syndicating synthesized 60-second video dispatches and daily executive intelligence summaries.",
+    description: "GlobalPulse AI news studio delivering video dispatches and daily video summaries.",
   },
 ];
 

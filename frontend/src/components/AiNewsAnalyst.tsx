@@ -72,7 +72,7 @@ export const AiNewsAnalyst: React.FC = () => {
           <div className="flex items-center gap-2 mb-1.5">
             <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)] animate-pulse" />
             <span className="text-[10px] sm:text-[11px] font-mono uppercase font-black text-cyan-400 tracking-wider sm:tracking-widest">
-              FREE AI INTELLIGENCE LAB • NEURAL ANALYZER
+              FREE AI NEWS LAB • ARTICLE ANALYZER
             </span>
           </div>
           <h3 className="text-lg sm:text-2xl font-bold font-serif text-white tracking-tight">

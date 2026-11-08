@@ -18,14 +18,14 @@ export const Footer: React.FC = () => {
               </span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed max-w-md">
-              GlobalPulse AI is an autonomous, AI-powered intelligence and video media network delivering real-time geopolitical, financial market, and technological insights for a Tier-1 English audience across North America, Europe, and global financial hubs.
+              GlobalPulse AI is an independent digital news and video media network delivering fact-grounded reporting on technology, financial markets, world politics, science, sports, and entertainment for readers across the US, UK, and global English audiences.
             </p>
             <div className="pt-2 flex flex-wrap items-center gap-3 text-slate-400 font-mono text-[11px]">
-              <span className="text-slate-200 font-semibold">EDITIONS: US • UK • EU • GLOBAL</span>
+              <span className="text-slate-200 font-semibold">EDITIONS: US • UK • GLOBAL</span>
               <span>•</span>
               <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                NEURAL SYNDICATION ENGINE ACTIVE
+                GLOBAL NEWS WIRE ACTIVE
               </span>
             </div>
           </div>
@@ -37,28 +37,33 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2.5 text-xs font-medium">
               <li>
-                <Link href="/" className="hover:text-cyan-300 transition-colors">
-                  AI &amp; Computing Architecture
+                <Link href="/category/ai-tech" className="hover:text-cyan-300 transition-colors">
+                  AI &amp; Tech
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-emerald-300 transition-colors">
-                  Global Markets &amp; Macro Liquidity
+                <Link href="/category/markets" className="hover:text-emerald-300 transition-colors">
+                  Markets
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-indigo-300 transition-colors">
-                  World Politics &amp; Global Diplomacy
+                <Link href="/category/world-politics" className="hover:text-indigo-300 transition-colors">
+                  World Politics
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-purple-300 transition-colors">
-                  Future Science &amp; Fusion Energy
+                <Link href="/category/science" className="hover:text-purple-300 transition-colors">
+                  Science
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-amber-300 transition-colors">
-                  Global Sports &amp; Championship Telemetry
+                <Link href="/category/sports" className="hover:text-amber-300 transition-colors">
+                  Sports
+                </Link>
+              </li>
+              <li>
+                <Link href="/category/entertainment" className="hover:text-pink-300 transition-colors">
+                  Entertainment
                 </Link>
               </li>
               <li>
@@ -70,7 +75,7 @@ export const Footer: React.FC = () => {
               <li>
                 <Link href="/movies" className="text-pink-300 hover:text-pink-200 font-bold transition-colors flex items-center gap-1.5">
                   <span>🎬</span>
-                  Cinema &amp; Streaming Radar (Where to Watch)
+                  Cinema &amp; Streaming Radar
                 </Link>
               </li>
               <li className="pt-2">
@@ -90,21 +95,21 @@ export const Footer: React.FC = () => {
           {/* Legal / AI Ethics */}
           <div>
             <h4 className="text-white font-bold uppercase text-[11px] font-mono tracking-wider mb-4 pb-1 border-b border-white/10">
-              Verification &amp; Protocol
+              Editorial Standards
             </h4>
             <p className="text-slate-400 text-[11px] leading-relaxed">
-              All intelligence reports are synthesized from primary wire artifacts (Reuters, BBC, TechCrunch, The Verge), verified via automated neural cross-referencing, and adapted for vertical video syndication.
+              Articles are written with AI assistance using verified primary sources and official dispatches. We adhere to factual reporting, independent attribution, and strict editorial guidelines.
             </p>
             <div className="mt-4 p-3.5 rounded-2xl neu-pressed text-[10px] text-slate-300 font-mono flex items-center gap-2 font-semibold border border-white/5">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>TIER-1 AUDIENCE INTELLIGENCE VERIFIED</span>
+              <span>INDEPENDENT EDITORIAL OVERSIGHT</span>
             </div>
           </div>
         </div>
 
         <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400 font-mono">
           <div>
-            © 2026 GlobalPulse AI Media Network Inc. All Rights Reserved.
+            © 2026 GlobalPulse AI. All Rights Reserved.
           </div>
           <div className="flex flex-wrap items-center gap-5">
             <Link href="/about" className="hover:text-cyan-300 transition">

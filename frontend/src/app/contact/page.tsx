@@ -146,10 +146,10 @@ export default function ContactPage() {
                   {sending ? (
                     <>
                       <Sparkles className="w-4 h-4 animate-spin text-white" />
-                      <span>Transmitting Dossier...</span>
+                      <span>Sending Message...</span>
                     </>
                   ) : (
-                    <span>Transmit Message to Newsroom</span>
+                    <span>Send Message to Newsroom</span>
                   )}
                 </button>
               </form>

@@ -58,7 +58,7 @@ Text to analyze:
           }
         }
       } catch {
-        // fall back smoothly to neural heuristic analyzer
+        // fall back smoothly to heuristic text analyzer
       }
     }
 
@@ -81,26 +81,26 @@ Text to analyze:
       bullets = [
         "In simple terms: A major event just happened that changes how people operate in this field.",
         "Why it matters: It removes old complicated steps and makes everyday results significantly faster.",
-        "What happens next: Experts and global teams are already preparing to adopt this standard worldwide.",
+        "What happens next: Teams are already preparing to adopt this standard worldwide.",
       ];
     } else if (mode === "bias") {
       bullets = [
         "Sensationalism Assessment: Low to moderate. The core claims rely on measurable metrics and source citations.",
         "Perspective Balance: Primary emphasis is on efficiency and upside, with standard procedural counterpoints.",
-        "Verification Recommendation: Corroborated with multi-source industry reporting across global feeds.",
+        "Verification Recommendation: Corroborated with primary source reporting across global wires.",
       ];
     } else if (mode === "market") {
       bullets = [
-        "Capital Flow Impact: Capital allocators and funds are tracking adoption velocities across Tier-1 hubs.",
-        "Cost Arbitrage: Early operational adopters project between 15% to 35% margin improvements.",
-        "Counter-Party Risk: Organizations reliant on legacy architecture face increasing technical friction.",
+        "Capital Flow Impact: Analysts and funds are tracking adoption rates across major global financial hubs.",
+        "Cost Arbitrage: Early operational adopters project measurable margin improvements over coming quarters.",
+        "Market Dynamics: Organizations reliant on legacy infrastructure face increasing technical competition.",
       ];
     } else {
       // Executive mode
       bullets = [
-        sentences[0] ? sentences[0].slice(0, 160) : "Verified dispatch confirms accelerating industry transition.",
-        sentences[1] ? sentences[1].slice(0, 160) : "Performance indicators confirm substantial operational dividends over legacy baselines.",
-        sentences[2] ? sentences[2].slice(0, 160) : "Global teams and institutional allocators are standardizing integration corridors.",
+        sentences[0] ? sentences[0].slice(0, 160) : "Reporting confirms a notable development across the sector.",
+        sentences[1] ? sentences[1].slice(0, 160) : "Key stakeholders and industry participants are tracking unfolding consequences.",
+        sentences[2] ? sentences[2].slice(0, 160) : "Further updates are anticipated as additional verified dispatches arrive.",
       ];
     }
 

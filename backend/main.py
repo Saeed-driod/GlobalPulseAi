@@ -702,9 +702,28 @@ def clean_duplicates_endpoint(db: Session = Depends(get_db)):
     seen_titles = {}
     updated_articles = []
 
+    # First reconcile all articles against the YouTubeDailyUpload ledger
+    yt_uploads = db.query(YouTubeDailyUpload).filter(
+        YouTubeDailyUpload.youtube_video_id != None,
+        YouTubeDailyUpload.youtube_video_id != "",
+        YouTubeDailyUpload.youtube_video_id != "dQw4w9WgXcQ"
+    ).all()
+    upload_by_art_id = {u.article_id: u.youtube_video_id for u in yt_uploads if u.article_id}
+    upload_by_title = {re.sub(r'[^a-zA-Z0-9\s]', '', (u.title or '').lower()).strip(): u.youtube_video_id for u in yt_uploads if u.title}
+
     for a in articles:
         norm_title = re.sub(r'[^a-zA-Z0-9\s]', '', a.title.lower()).strip()
         words = tuple(sorted(set(w for w in norm_title.split() if len(w) > 3)))
+
+        # Sync from YouTubeDailyUpload if missing
+        if not a.youtube_video_id or a.youtube_video_id == "dQw4w9WgXcQ":
+            matched_yt = upload_by_art_id.get(a.id) or upload_by_title.get(norm_title)
+            if matched_yt:
+                a.youtube_video_id = matched_yt
+                a.video_status = "COMPLETED"
+                a.video_progress = 100
+                a.video_stage_text = f"Linked to YouTube ({matched_yt})"
+                updated_articles.append({"id": a.id, "linked_to_ledger": True, "yt_id": matched_yt, "title": a.title[:45]})
 
         if not words:
             continue

@@ -618,11 +618,11 @@ export default function AdminPage() {
                     LIVE VIDEO PROCESSING & YOUTUBE SHORTS CENTER
                   </h2>
                   <span className="neu-sm px-2.5 py-0.5 text-[10px] font-bold text-[#1a8cff] font-mono">
-                    LIVE TELEMETRY
+                    LIVE STATUS
                   </span>
                 </div>
                 <p className="text-xs text-[#718096] font-mono mt-0.5">
-                  Real-time Neural Voiceover • High-Definition Frames • FFmpeg Hardware MP4 Render • YouTube Channel @GloblePulseAi
+                  Automated Voiceover • High-Definition Frames • FFmpeg Hardware MP4 Render • YouTube Channel @GloblePulseAi
                 </p>
               </div>
             </div>
@@ -929,8 +929,8 @@ export default function AdminPage() {
               <span className="text-[11px] text-[#1a8cff] font-mono font-bold hover:underline">Analyse →</span>
             </div>
             <div className="text-[10px] text-[#718096] mt-1 font-mono flex items-center justify-between">
-              <span>Tier-1 Global Audience</span>
-              <span className="text-emerald-600 font-semibold">Live Telemetry</span>
+              <span>Global Reader Audience</span>
+              <span className="text-emerald-600 font-semibold">Active Metrics</span>
             </div>
           </div>
         </section>

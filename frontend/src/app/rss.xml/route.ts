@@ -71,10 +71,10 @@ export async function GET(request: Request) {
 
   const rawTitle = category
     ? `GlobalPulse AI - ${category} News`
-    : "GlobalPulse AI | Tier-1 Global Newsroom & Video Intelligence";
+    : "GlobalPulse AI | Independent Global News & Analysis";
   const rawDesc = category
-    ? `Real-time ${category} coverage and intelligence reports from GlobalPulse AI.`
-    : "Automated AI-powered global news, geopolitical telemetry, and video intelligence for Tier-1 decision makers.";
+    ? `Real-time ${category} coverage and news reports from GlobalPulse AI.`
+    : "Accurate, fact-grounded global news and plain-English analysis covering AI, markets, world politics, science, sports, and entertainment.";
   const feedSelf = category
     ? `${siteUrl}/rss.xml?category=${encodeURIComponent(category)}`
     : `${siteUrl}/rss.xml`;

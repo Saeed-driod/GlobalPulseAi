@@ -342,65 +342,26 @@ def post_video_to_facebook(
 
     endpoint = f"https://graph-video.facebook.com/{GRAPH_API_VERSION}/{page_id}/videos"
 
-    # Use multipart upload for local MP4 file
+    # Stream video upload using requests
     try:
-        import mimetypes
-        boundary = "----WebKitFormBoundaryGlobalPulseFacebook"
-        body = []
-
-        # Description field
-        body.extend([
-            f"--{boundary}".encode("utf-8"),
-            b'Content-Disposition: form-data; name="description"',
-            b"",
-            description.encode("utf-8"),
-        ])
-
-        # Title field
-        body.extend([
-            f"--{boundary}".encode("utf-8"),
-            b'Content-Disposition: form-data; name="title"',
-            b"",
-            title.encode("utf-8"),
-        ])
-
-        # Access token field
-        body.extend([
-            f"--{boundary}".encode("utf-8"),
-            b'Content-Disposition: form-data; name="access_token"',
-            b"",
-            token.encode("utf-8"),
-        ])
-
-        # Video source file
-        mime_type = mimetypes.guess_type(str(video_file))[0] or "video/mp4"
-        body.extend([
-            f"--{boundary}".encode("utf-8"),
-            f'Content-Disposition: form-data; name="source"; filename="{video_file.name}"'.encode("utf-8"),
-            f"Content-Type: {mime_type}".encode("utf-8"),
-            b"",
-            video_file.read_bytes(),
-            f"--{boundary}--".encode("utf-8"),
-            b"",
-        ])
-
-        content_body = b"\r\n".join(body)
-
-        req = urllib.request.Request(
-            endpoint,
-            data=content_body,
-            headers={
-                "Content-Type": f"multipart/form-data; boundary={boundary}",
-                "Content-Length": str(len(content_body)),
-                "User-Agent": "GlobalPulseAI/1.0"
+        import requests
+        with open(video_path, "rb") as vf:
+            files = {"source": (video_file.name, vf, "video/mp4")}
+            data = {
+                "title": title[:250],
+                "description": description,
+                "access_token": token
             }
-        )
-
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            res_data = json.loads(resp.read().decode("utf-8"))
+            resp = requests.post(endpoint, files=files, data=data, timeout=300)
+            res_data = resp.json()
             vid_id = res_data.get("id")
-            print(f"[Facebook Video Upload] Video published to Facebook Page: {vid_id}")
-            return {"success": True, "video_id": vid_id}
+            if vid_id:
+                print(f"[Facebook Video Upload] Video published to Facebook Page: {vid_id}")
+                return {"success": True, "video_id": vid_id}
+            else:
+                err_msg = res_data.get("error", {}).get("message") or str(res_data)
+                print(f"[Facebook Video Upload Error] API error: {err_msg}")
+                return {"success": False, "error": err_msg}
 
     except Exception as e:
         print(f"[Facebook Video Upload Error] {e}")
@@ -432,6 +393,18 @@ def maybe_auto_post_next_article(db, min_interval_seconds: int = 1200) -> Option
         .first()
     )
     if not article:
+        return None
+
+    # Deduplication check: Has a story with the same title already been posted to Facebook?
+    already_posted_same_title = db.query(Article).filter(
+        Article.title == article.title,
+        Article.facebook_post_id != None,
+        Article.facebook_post_id != "",
+        Article.id != article.id
+    ).first()
+    if already_posted_same_title:
+        article.facebook_post_id = already_posted_same_title.facebook_post_id
+        db.commit()
         return None
 
     art_url = f"https://globalpulseai.vercel.app/news/{article.slug}"

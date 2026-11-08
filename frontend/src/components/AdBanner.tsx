@@ -15,7 +15,7 @@ interface AdBannerProps {
 
 export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = "" }) => {
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
-  const channelUrl = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || "https://www.youtube.com/@GloblePulseAi";
+  const channelUrl = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || "https://www.youtube.com/@GlobalPulseAI?sub_confirmation=1";
   const channelName = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_NAME || "GlobalPulse AI";
 
   const [dismissed, setDismissed] = useState<boolean>(false);
@@ -80,27 +80,27 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = "" }) => {
             </div>
 
             <span className="text-[11px] font-bold text-red-400 uppercase tracking-widest font-mono">
-              YouTube Masterclasses
+              Official YouTube Channel
             </span>
             <h3 className="text-xl font-black text-white mt-2 leading-tight font-serif">
               {channelName}
             </h3>
             <p className="text-xs text-neutral-300 mt-3 leading-relaxed">
-              Accelerate your engineering and AI skills with high-yield tutorials, project breakdowns, and tech news summaries.
+              Watch our concise daily video news briefings, global market summaries, and breaking analysis.
             </p>
 
             <div className="mt-5 space-y-2.5 text-xs text-neutral-300 font-mono">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                <span>Modern Web & Next.js Architecture</span>
+                <span>Daily Video News Briefs</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                <span>Gemini & AI Agent Pipelines</span>
+                <span>Global Technology &amp; AI Updates</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>Python & FastAPI Automation</span>
+                <span>Markets &amp; Geopolitics Analysis</span>
               </div>
             </div>
           </div>
@@ -135,20 +135,20 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = "" }) => {
             <Youtube className="w-4 h-4" />
           </div>
           <div className="text-xs">
-            <span className="text-neutral-400">Sponsored Channel: </span>
+            <span className="text-neutral-400">Official Channel: </span>
             <span className="text-white font-bold">{channelName}</span>
             <span className="text-neutral-400 hidden sm:inline">
               {" "}
-              — Subscribe for daily AI development masterclasses & tech insights!
+              — Subscribe for daily video news briefings and analysis!
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           <a
-            href={channelUrl}
+            href="https://www.youtube.com/@GlobalPulseAI?sub_confirmation=1"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow"
           >
             <span>Subscribe Free</span>

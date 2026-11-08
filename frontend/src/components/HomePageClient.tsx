@@ -88,11 +88,11 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
               <div className="flex items-center gap-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)] animate-pulse" />
                 <h2 className="text-xl sm:text-2xl font-bold font-serif text-white tracking-tight">
-                  {selectedCategory === "All Stories" ? "Latest Verified Dispatches" : selectedCategory}
+                  {selectedCategory === "All Stories" ? "Latest News" : selectedCategory}
                 </h2>
               </div>
               <p className="text-xs text-slate-400 mt-1 font-mono">
-                Displaying {articles.length} verified intelligence reports synthesized for Tier-1 decision makers.
+                Displaying {articles.length} news stories and analysis.
               </p>
             </div>
 
@@ -174,13 +174,13 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
         {/* Daily Viral Sentiment Poll & Social Share */}
         <ViralPoll />
 
-        {/* Tier-1 Executive Dossier Newsletter Banner */}
+        {/* Daily Briefing Newsletter Banner */}
         <section className="mt-16 neu-flat p-8 sm:p-10 relative overflow-hidden">
           <div className="max-w-2xl relative z-10">
             <div className="flex items-center gap-2 mb-2.5">
               <ShieldCheck className="w-4 h-4 text-[#1a8cff]" />
               <span className="text-[11px] font-mono uppercase font-bold text-[#1a8cff] tracking-wider">
-                Priority Global Intelligence Dossier
+                Daily News &amp; Analysis Briefing
               </span>
             </div>
 
@@ -188,7 +188,7 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
               Receive Daily 60-Second AI Video &amp; Audio Briefings
             </h3>
             <p className="text-sm text-[#718096] mt-2.5 leading-relaxed font-sans">
-              Join 85,000+ institutional allocators, Silicon Valley founders, and policymakers receiving our confidential 06:00 EST executive intelligence dispatch.
+              Sign up for our concise morning dispatch covering global breaking news, financial markets, and technology updates.
             </p>
 
             <form onSubmit={handleNewsletterSubmit} className="mt-6 flex flex-col sm:flex-row gap-3">
@@ -197,14 +197,14 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
                 required
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
-                placeholder="Enter your executive or enterprise email..."
+                placeholder="Enter your email address..."
                 className="flex-1 neu-input px-4 py-3 text-sm placeholder:text-[#a0aec0]"
               />
               <button
                 type="submit"
                 className="neu-btn-primary px-6 py-3 text-xs uppercase tracking-wider shrink-0"
               >
-                {newsletterSubscribed ? "✓ Subscribed!" : "Subscribe Dossier"}
+                {newsletterSubscribed ? "✓ Subscribed!" : "Subscribe Free"}
               </button>
             </form>
           </div>

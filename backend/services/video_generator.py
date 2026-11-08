@@ -318,33 +318,53 @@ def prepare_text_for_tts(clean_text: str) -> str:
 
 def segment_script_into_sentences(text: str, fallback_title: str = "", count: int = 7) -> List[str]:
     """
-    Splits narration text into 6 to 8 punchy spoken sentences for slide synchronization.
-    Each sentence is displayed as a large pop-up caption on its own full-bleed cinematic scene.
+    Splits narration text into punchy, high-retention spoken clauses (6 to 10 words each)
+    for rapid TikTok/Shorts visual scene changes (2.5 - 3.5s per scene).
     """
     raw = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if len(s.strip()) > 8]
     sentences = [s for s in raw if "thank you for watching" not in s.lower()]
 
-    if len(sentences) < 4:
-        expanded = []
-        for s in sentences:
-            if len(s) > 90 and ("," in s or ";" in s):
-                parts = [p.strip() for p in re.split(r"[,;]", s) if len(p.strip()) > 15]
-                expanded.extend(parts)
+    refined = []
+    for s in sentences:
+        s_clean = s.strip()
+        if not s_clean:
+            continue
+        words = s_clean.split()
+        if len(words) > 11:
+            # First attempt splitting by clause punctuation (commas, semicolons, dashes)
+            subparts = [p.strip() for p in re.split(r"[,;—–\-]", s_clean) if len(p.strip().split()) >= 3]
+            if len(subparts) >= 2:
+                for sub in subparts:
+                    sub_words = sub.split()
+                    if len(sub_words) > 10:
+                        for k in range(0, len(sub_words), 8):
+                            chunk = " ".join(sub_words[k:k+8])
+                            if chunk:
+                                refined.append(chunk)
+                    else:
+                        refined.append(sub)
             else:
-                expanded.append(s)
-        sentences = expanded
+                chunk_size = 8
+                for k in range(0, len(words), chunk_size):
+                    chunk = " ".join(words[k:k+chunk_size])
+                    if chunk:
+                        if len(chunk.split()) < 3 and refined:
+                            refined[-1] = f"{refined[-1]} {chunk}"
+                        else:
+                            refined.append(chunk)
+        else:
+            refined.append(s_clean)
 
-    if not sentences:
-        sentences = [
+    if not refined:
+        refined = [
             fallback_title or "Breaking news dispatch.",
-            "Key developments have surfaced altering the competitive posture.",
-            "Verified reporting corroborates significant institutional impact.",
-            "Analysts highlight crucial strategic and tactical implications.",
-            "Stay tuned to GlobalPulse AI for comprehensive live updates."
+            "Key developments have surfaced on the world stage.",
+            "Verified reporting confirms significant global impact.",
+            "Analysts highlight crucial strategic consequences.",
+            "Stay tuned to GlobalPulse AI for rapid live briefings."
         ]
 
-    # Target 8 to 14 punchy sentences for dynamic 65s+ TikTok/Shorts pacing
-    return sentences[:14]
+    return refined[:18]
 
 def build_long_form_narration(
     title: str,
@@ -442,13 +462,22 @@ def build_long_form_narration(
     full_narration = f"{intro_lead} {intro_body} {exec_summary_text} {deep_dive_text} {implications_text} {outro_text}"
     return _strip_markdown(full_narration)
 
-async def synthesize_edge_tts(text: str, output_path: Path) -> bool:
+async def synthesize_edge_tts(text: str, output_path: Path, category: str = "") -> bool:
     """Generates authentic neural speech audio using Microsoft Edge TTS with crisp broadcaster pacing."""
     try:
         import edge_tts
-        voice = "en-US-ChristopherNeural"
-        # Fast, energetic +10% rate for punchy, modern news broadcaster pacing
-        communicator = edge_tts.Communicate(text, voice, rate="+10%", pitch="+0Hz")
+        cat_lower = str(category or "").lower()
+        if "sport" in cat_lower:
+            voice = "en-US-AndrewNeural"   # High-octane sports broadcast energy
+            rate = "+12%"
+        elif "science" in cat_lower or "future" in cat_lower:
+            voice = "en-US-BrianNeural"    # Sharp, modern tech narrator
+            rate = "+10%"
+        else:
+            voice = "en-US-GuyNeural"      # Deep, dramatic, authoritative documentary narrator (Vox / Netflix style)
+            rate = "+11%"
+
+        communicator = edge_tts.Communicate(text, voice, rate=rate, pitch="+0Hz")
         await communicator.save(str(output_path))
         return output_path.exists() and output_path.stat().st_size > 5000
     except Exception as e:
@@ -920,12 +949,15 @@ def draw_sentence_captions(
     if curr:
         lines.append(curr)
 
-    line_height = 76 if is_shorts else 54
+    # Strictly limit to 2 punchy lines per visual scene for modern TikTok/Shorts retention
+    lines = lines[:2]
+
+    line_height = 82 if is_shorts else 56
     total_height = len(lines) * line_height
 
     if is_shorts:
-        # Optimal middle-lower safe zone: clear of top header and bottom TikTok UI
-        start_y = max(980, 1140 - (total_height // 2))
+        # Centered in the middle-third of the screen for maximum eye-level engagement
+        start_y = max(1000, 1180 - (total_height // 2))
     else:
         start_y = max(440, 520 - (total_height // 2))
 
@@ -987,8 +1019,9 @@ def generate_news_slides(
 
     font_top_badge = get_font(26, bold=True)
     font_top_channel = get_font(22, bold=True)
-    font_caption = get_font(52, bold=True)
+    font_caption = get_font(56, bold=True)
     font_bottom = get_font(24, bold=True)
+    font_hook = get_font(34, bold=True)
 
     neon_keywords_color = (250, 204, 21) if category == "Global Sports" else (34, 211, 238)
 
@@ -1012,7 +1045,17 @@ def generate_news_slides(
         draw.rounded_rectangle([(width - 360, by1), (width - 50, by2)], radius=14, fill=(15, 23, 42, 200), outline=(51, 65, 85), width=1)
         draw.text((width - 335, by1 + 18), "GLOBALPULSE AI", fill=accent, font=font_top_channel)
 
-        # 2. Large Bold Pop-Up Captions (Lower-Middle: y=1340 to 1640)
+        # 1.5. Viral Hook Banner on First Slide (0-3s retention booster)
+        if idx == 1:
+            clean_h = title.split(":")[0].strip()[:60]
+            hb = draw.textbbox((0, 0), clean_h, font=font_hook)
+            h_w = hb[2] - hb[0]
+            hx1 = max(40, (width - h_w) // 2 - 30)
+            hx2 = min(width - 40, (width + h_w) // 2 + 30)
+            draw.rounded_rectangle([(hx1, 165), (hx2, 240)], radius=14, fill=(220, 38, 38, 230), outline=(254, 240, 138), width=2)
+            draw.text(((width - h_w) // 2, 180), clean_h, fill=(255, 255, 255), font=font_hook, stroke_width=2, stroke_fill=(0, 0, 0))
+
+        # 2. Large Bold Pop-Up Captions (Centered middle-third)
         draw_sentence_captions(
             draw=draw,
             sentence=sentence,
@@ -1020,7 +1063,7 @@ def generate_news_slides(
             canvas_h=height,
             font=font_caption,
             accent_color=neon_keywords_color,
-            max_chars=24,
+            max_chars=22,
             is_shorts=True
         )
 
@@ -1181,7 +1224,7 @@ def compose_video(
     # Step A: Synthesize Speech Voiceover (edge-tts -> gTTS -> Windows SAPI fallback)
     audio_ok = False
     try:
-        audio_ok = run_async_in_isolated_thread(synthesize_edge_tts, tts_text, output_audio_path, timeout=60.0)
+        audio_ok = run_async_in_isolated_thread(synthesize_edge_tts, tts_text, output_audio_path, category, timeout=60.0)
     except Exception as e:
         print(f"[Video Generator] Isolated edge-tts execution error: {e}")
         audio_ok = False

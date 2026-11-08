@@ -14,14 +14,26 @@ try:
     from .video_generator import compose_short_video, compose_video
     from .youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
     from .youtube_quota import can_post_now, record_youtube_upload
+    from ..editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE
 except (ImportError, ValueError):
-    from database import get_db, SessionLocal
-    from models import Article, ArticleStatus
-    from services.scraper import fetch_breaking_rss_news
-    from services.ai_service import process_raw_news
-    from services.video_generator import compose_short_video, compose_video
-    from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
-    from services.youtube_quota import can_post_now, record_youtube_upload
+    try:
+        from database import get_db, SessionLocal
+        from models import Article, ArticleStatus
+        from services.scraper import fetch_breaking_rss_news
+        from services.ai_service import process_raw_news
+        from services.video_generator import compose_short_video, compose_video
+        from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
+        from services.youtube_quota import can_post_now, record_youtube_upload
+        from editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE
+    except (ImportError, ValueError):
+        from backend.database import get_db, SessionLocal
+        from backend.models import Article, ArticleStatus
+        from backend.services.scraper import fetch_breaking_rss_news
+        from backend.services.ai_service import process_raw_news
+        from backend.services.video_generator import compose_short_video, compose_video
+        from backend.services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
+        from backend.services.youtube_quota import can_post_now, record_youtube_upload
+        from backend.editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE
 
 
 def slugify(text: str) -> str:
@@ -110,8 +122,26 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
 
         published_articles: List[Article] = []
 
+        # Check today's published count against DAILY_PUBLISHING_CAP
+        now_utc = datetime.now(timezone.utc)
+        start_of_day = datetime(now_utc.year, now_utc.month, now_utc.day, tzinfo=timezone.utc)
+        published_today = db.query(Article).filter(
+            Article.status == ArticleStatus.PUBLISHED.value,
+            Article.published_at >= start_of_day
+        ).count()
+
+        if published_today >= DAILY_PUBLISHING_CAP:
+            print(f"[Master Pipeline] Daily publishing cap of {DAILY_PUBLISHING_CAP} reached for today ({published_today} published). Halting further publishing.")
+            return {
+                "success": True,
+                "message": f"Daily publishing cap of {DAILY_PUBLISHING_CAP} stories reached for today.",
+                "processed_count": 0,
+                "articles": []
+            }
+
         for item in candidate_items:
-            if len(published_articles) >= limit:
+            if len(published_articles) >= limit or (published_today + len(published_articles)) >= DAILY_PUBLISHING_CAP:
+                print(f"[Master Pipeline] Reached target publication limit or daily cap.")
                 break
 
             try:
@@ -124,6 +154,16 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     source_url=item.get("source_url", ""),
                     raw_image_url=item.get("raw_image_url")
                 )
+
+                # Quality Gate 1: Check confidence
+                if ai_data.get("confidence") == "thin":
+                    print(f"[Master Pipeline] Quality Gate: Article '{ai_data['title'][:50]}' has 'thin' confidence (fewer than 3 distinct facts). Skipping publication.")
+                    continue
+
+                # Quality Gate 2: Check CATEGORY_FOCUS
+                if CATEGORY_FOCUS and ai_data["category"] not in CATEGORY_FOCUS:
+                    print(f"[Master Pipeline] Quality Gate: Category '{ai_data['category']}' not in active CATEGORY_FOCUS {CATEGORY_FOCUS}. Skipping.")
+                    continue
 
                 # Secondary check: verify synthesized title doesn't already exist
                 existing_synth = db.query(Article).filter(Article.title == ai_data["title"]).first()
@@ -149,7 +189,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     source_name=item.get("source_name"),
                     image_url=ai_data.get("image_url"),
                     youtube_script=ai_data.get("youtube_script"),
-                    author_name=ai_data.get("author_name", "Muhammad Saeed (Chief Editor, GlobalPulse AI)"),
+                    author_name=ai_data.get("author_name") or EDITORIAL_BYLINE,
                     status=ArticleStatus.PUBLISHED.value,
                     published_at=datetime.now(timezone.utc),
                     views=0,
@@ -194,7 +234,12 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                         print(f"[Master Pipeline] Video rendered successfully: {article.video_path} ({video_res.get('resolution')})")
 
                         # Step 4: Check Daily Limits & Upload to YouTube (GloblePulseAi channel)
-                        can_upload, quota_reason = can_post_now(db, video_format=video_format, ignore_cooldown=False)
+                        if article.youtube_video_id and article.youtube_video_id != "dQw4w9WgXcQ":
+                            print(f"[Master Pipeline] Article #{article.id} already has YouTube video: {article.youtube_video_id}")
+                            can_upload = False
+                            quota_reason = "Already uploaded to YouTube"
+                        else:
+                            can_upload, quota_reason = can_post_now(db, video_format=video_format, ignore_cooldown=False)
                         if not can_upload:
                             print(f"[Master Pipeline DAILY QUOTA LIMIT] Skipping YouTube upload: {quota_reason}")
                         else:

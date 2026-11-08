@@ -6,6 +6,7 @@ import { Article } from "../types/article";
 import { Eye, Clock, Video, ChevronRight } from "./Icons";
 import { getCategoryTheme } from "../lib/categoryTheme";
 import { getHdImageUrl, getPollinationsFallback } from "../lib/imageOptimizer";
+import { getCleanExcerpt } from "../lib/excerptHelper";
 
 interface ArticleCardProps {
   article: Article;
@@ -20,16 +21,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
       })
     : "Live Wire";
 
-  // Extract clean bullet snippet without raw markdown asterisks
-  const bulletSnippet = article.summary
-    ? (
-        article.summary
-          .replace(/•/g, "")
-          .replace(/\*\*/g, "")
-          .split("\n")
-          .filter((l) => l.trim().length > 0)[0] || ""
-      ).trim()
-    : "";
+  // Extract clean 110-140 char narrative snippet without boilerplate filler templates
+  const bulletSnippet = getCleanExcerpt(article);
 
   const fallbackUrl = React.useMemo(() => {
     const seed = typeof article.id === "number" ? article.id : 100;
@@ -116,22 +109,24 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
         </Link>
 
         {/* Summary Snippet */}
-        <p className="mt-2.5 text-xs text-slate-400 line-clamp-2 leading-relaxed font-sans">
-          {bulletSnippet}
-        </p>
+        {bulletSnippet ? (
+          <p className="mt-2.5 text-xs text-slate-400 line-clamp-2 leading-relaxed font-sans">
+            {bulletSnippet}
+          </p>
+        ) : null}
       </div>
 
-      {/* Footer Info & Tactile "Read Dispatch" Button */}
+      {/* Footer Info & Tactile "Read Story" Button */}
       <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between text-xs">
         <span className="text-slate-400 font-mono text-[11px] truncate max-w-[140px]">
-          {article.source_name || "Tier-1 Desk"}
+          {article.source_name || "News Wire"}
         </span>
 
         <Link
           href={`/news/${article.slug}`}
           className={`neu-sm px-3.5 py-1.5 text-xs font-bold ${catTheme.textColor} hover:brightness-125 flex items-center gap-1 active:scale-95 transition-all`}
         >
-          <span>Read Dispatch</span>
+          <span>Read Story</span>
           <ChevronRight className="w-3.5 h-3.5" />
         </Link>
       </div>

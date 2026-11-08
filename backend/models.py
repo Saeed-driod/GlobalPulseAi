@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import enum
-from sqlalchemy import Column, Integer, String, Text, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, Boolean
 try:
     from .database import Base
 except (ImportError, ValueError):
@@ -13,11 +13,15 @@ class ArticleStatus(str, enum.Enum):
 
 class ArticleCategory(str, enum.Enum):
     AI_TECH = "AI & Tech"
-    GLOBAL_MARKETS = "Global Markets"
+    MARKETS = "Markets"
+    GLOBAL_MARKETS = "Markets"  # Legacy backward-compatible alias
     WORLD_POLITICS = "World Politics"
     GEOPOLITICS = "World Politics"  # Legacy backward-compatible alias
-    FUTURE_SCIENCE = "Future Science"
-    GLOBAL_SPORTS = "Global Sports"
+    SCIENCE = "Science"
+    FUTURE_SCIENCE = "Science"  # Legacy backward-compatible alias
+    SPORTS = "Sports"
+    GLOBAL_SPORTS = "Sports"  # Legacy backward-compatible alias
+    ENTERTAINMENT = "Entertainment"
 
 class Article(Base):
     __tablename__ = "articles"
@@ -32,7 +36,7 @@ class Article(Base):
     content = Column(Text, nullable=False)  # Full markdown article
     source_url = Column(String(600), nullable=True)
     source_name = Column(String(150), nullable=True)
-    author_name = Column(String(200), default="Muhammad Saeed (Chief Editor, GlobalPulse AI)", nullable=True)
+    author_name = Column(String(200), default="GlobalPulse AI Desk", nullable=True)
     image_url = Column(String(800), nullable=True)
     
     # Automation & Video Workflow
@@ -57,6 +61,7 @@ class Article(Base):
         nullable=False
     )
     views = Column(Integer, default=0, nullable=False)
+    is_noindex = Column(Boolean, default=False, nullable=False, index=True)
     
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     published_at = Column(DateTime(timezone=True), nullable=True)

@@ -9,7 +9,7 @@ class ArticleBase(BaseModel):
     content: str
     source_url: Optional[str] = None
     source_name: Optional[str] = None
-    author_name: Optional[str] = "Muhammad Saeed (Chief Editor, GlobalPulse AI)"
+    author_name: Optional[str] = "GlobalPulse AI Desk"
     image_url: Optional[str] = None
     youtube_script: Optional[str] = None
     video_path: Optional[str] = None
@@ -21,6 +21,7 @@ class ArticleBase(BaseModel):
     video_eta: Optional[str] = None
     video_updated_at: Optional[datetime] = None
     status: Optional[str] = "DRAFT"
+    is_noindex: Optional[bool] = False
 
 class ArticleCreate(ArticleBase):
     slug: Optional[str] = None

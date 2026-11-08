@@ -14,6 +14,9 @@ export interface Article {
   author_name?: string | null;
   status: "DRAFT" | "VIDEO_READY" | "PUBLISHED";
   views: number;
+  is_noindex?: boolean;
+  meta_description?: string | null;
+  confidence?: string | null;
   created_at: string;
   published_at?: string | null;
   video_status?: string | null;

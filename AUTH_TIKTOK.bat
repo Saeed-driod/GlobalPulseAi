@@ -19,3 +19,4 @@ IF EXIST "backend\venv\Scripts\python.exe" (
 
 echo.
 pause
+

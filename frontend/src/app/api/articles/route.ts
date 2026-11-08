@@ -1,25 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const NEON_CONNECTION_STRING =
-  process.env.DATABASE_URL ||
-  "postgresql://neondb_owner:npg_EcGX5KIFW9ej@ep-bold-feather-b4sildv7-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require";
-const NEON_SQL_ENDPOINT = "https://ep-bold-feather-b4sildv7-pooler.c-6.us-east-2.aws.neon.tech/sql";
+const NEON_CONNECTION_STRING = process.env.DATABASE_URL || "";
 
 async function queryNeon<T = any>(query: string, params: any[] = []): Promise<T[]> {
-  const res = await fetch(NEON_SQL_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Neon-Connection-String": NEON_CONNECTION_STRING,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ query, params }),
-    next: { revalidate: 60 },
-  });
-  if (!res.ok) {
-    throw new Error(`Neon SQL error ${res.status}`);
+  if (!NEON_CONNECTION_STRING) {
+    return [];
   }
-  const data = await res.json();
-  return (data.rows || []) as T[];
+  try {
+    let endpoint = "https://ep-bold-feather-b4sildv7-pooler.c-6.us-east-2.aws.neon.tech/sql";
+    const hostMatch = NEON_CONNECTION_STRING.match(/@([^/:]+)/);
+    if (hostMatch && hostMatch[1]) {
+      endpoint = `https://${hostMatch[1]}/sql`;
+    }
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Neon-Connection-String": NEON_CONNECTION_STRING,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, params }),
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) {
+      console.warn(`Neon SQL error ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    return (data.rows || []) as T[];
+  } catch (err) {
+    console.error("Neon query error:", err);
+    return [];
+  }
 }
 
 export const dynamic = "force-dynamic";

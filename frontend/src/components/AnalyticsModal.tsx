@@ -193,7 +193,7 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
                   <span>🗺️</span>
                   <span>Audience Countries &amp; Geographies</span>
                 </h3>
-                <span className="text-[10px] font-mono text-[#718096]">Tier-1 Reach</span>
+                <span className="text-[10px] font-mono text-[#718096]">Global Reach</span>
               </div>
 
               <div className="space-y-4">
@@ -224,12 +224,12 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Top Most Read Content Dossiers */}
+          {/* 3. Top Most Read Articles */}
           <div className="p-6 rounded-3xl neu-flat">
             <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#d1d9e6]">
               <h3 className="text-xs uppercase font-mono font-bold tracking-widest text-[#2d3748] flex items-center gap-2">
                 <span>🏆</span>
-                <span>Top Performing Articles &amp; Intelligence Dossiers</span>
+                <span>Top Performing Stories &amp; Articles</span>
               </h3>
               <span className="text-[10px] font-mono text-[#718096]">Ranked by Reads</span>
             </div>

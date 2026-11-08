@@ -15,18 +15,27 @@ export const ViralPoll: React.FC = () => {
   const [copied, setCopied] = useState<boolean>(false);
 
   const [options, setOptions] = useState<PollOption[]>([
-    { id: "opt1", text: "🚀 Yes, transformation is exponential and irreversible", votes: 2480 },
-    { id: "opt2", text: "🛡️ No, security risks & regulatory compliance will limit it", votes: 890 },
-    { id: "opt3", text: "⚖️ Only in entry-level & routine administrative tasks", votes: 560 },
+    { id: "opt1", text: "🚀 Yes, transformation is exponential and irreversible", votes: 0 },
+    { id: "opt2", text: "🛡️ No, security risks & regulatory compliance will limit it", votes: 0 },
+    { id: "opt3", text: "⚖️ Only in entry-level & routine administrative tasks", votes: 0 },
   ]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("gp_poll_voted_q1");
-      if (saved) {
-        setHasVoted(true);
-        setSelectedOption(saved);
-      }
+      try {
+        const storedVotes = localStorage.getItem("gp_poll_votes_q1");
+        if (storedVotes) {
+          const parsed = JSON.parse(storedVotes);
+          if (Array.isArray(parsed) && parsed.length === 3) {
+            setOptions(parsed);
+          }
+        }
+        const saved = localStorage.getItem("gp_poll_voted_q1");
+        if (saved) {
+          setHasVoted(true);
+          setSelectedOption(saved);
+        }
+      } catch {}
     }
   }, []);
 
@@ -35,13 +44,17 @@ export const ViralPoll: React.FC = () => {
   const handleVote = (optionId: string) => {
     if (hasVoted) return;
 
-    setOptions((prev) =>
-      prev.map((opt) => (opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt))
+    const updated = options.map((opt) =>
+      opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt
     );
+    setOptions(updated);
     setSelectedOption(optionId);
     setHasVoted(true);
     if (typeof window !== "undefined") {
-      localStorage.setItem("gp_poll_voted_q1", optionId);
+      try {
+        localStorage.setItem("gp_poll_voted_q1", optionId);
+        localStorage.setItem("gp_poll_votes_q1", JSON.stringify(updated));
+      } catch {}
     }
   };
 
@@ -90,9 +103,11 @@ export const ViralPoll: React.FC = () => {
           </h3>
         </div>
 
-        <div className="neu-sm px-3 py-1 text-xs font-mono font-bold text-slate-400 shrink-0 self-start sm:self-center border border-white/5">
-          Verified Votes: <strong className="text-white">{totalVotes.toLocaleString()}</strong>
-        </div>
+        {totalVotes > 0 && (
+          <div className="neu-sm px-3 py-1 text-xs font-mono font-bold text-slate-400 shrink-0 self-start sm:self-center border border-white/5">
+            Community Votes: <strong className="text-white">{totalVotes.toLocaleString()}</strong>
+          </div>
+        )}
       </div>
 
       {/* Options List */}

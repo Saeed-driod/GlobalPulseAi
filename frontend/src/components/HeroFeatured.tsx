@@ -6,6 +6,7 @@ import { Article } from "../types/article";
 import { Eye, Clock, Video, Sparkles, ChevronRight } from "./Icons";
 import { getCategoryTheme } from "../lib/categoryTheme";
 import { getHdImageUrl, getPollinationsFallback } from "../lib/imageOptimizer";
+import { getCleanExcerpt } from "../lib/excerptHelper";
 
 interface HeroFeaturedProps {
   articles: Article[];
@@ -14,8 +15,24 @@ interface HeroFeaturedProps {
 export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
   if (articles.length === 0) return null;
 
-  const primary = articles[0];
-  const secondary = articles.slice(1, 3);
+  // Select qualified lead story: confidence "full", >= 3 key points, >= 120 words, skip "how to watch" / thin briefs
+  const leadIndex = articles.findIndex((a) => {
+    if (a.is_noindex) return false;
+    const bodyWords = (a.content || "").trim().split(/\s+/).filter(Boolean).length;
+    const keyPoints = (a.summary || "").split("\n").filter((l) => l.trim().length > 15).length;
+    const titleLower = (a.title || "").toLowerCase();
+    const isHowToWatch =
+      titleLower.includes("how to watch") ||
+      titleLower.includes("viewing guide") ||
+      titleLower.includes("where to watch") ||
+      titleLower.includes("where to stream");
+    const isThin = a.confidence && a.confidence.toLowerCase() === "thin";
+    return !isHowToWatch && !isThin && bodyWords >= 120 && keyPoints >= 3;
+  });
+
+  const validLeadIndex = leadIndex !== -1 ? leadIndex : 0;
+  const primary = articles[validLeadIndex];
+  const secondary = articles.filter((_, idx) => idx !== validLeadIndex).slice(0, 2);
 
   // Parse TL;DR bullets
   const summaryBullets = primary.summary
@@ -52,12 +69,12 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
           </div>
           <h2 className="text-[10px] sm:text-xs uppercase font-mono font-bold tracking-wider sm:tracking-widest text-cyan-400 truncate">
-            Lead Global Intelligence • Priority 1 Dispatch
+            Top Story • Wire Dispatch
           </h2>
         </div>
         <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 font-mono shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>SYNTHESIZED REAL-TIME BY TIER-1 AI ENGINE</span>
+          <span>VERIFIED WIRE REPORTING</span>
         </div>
       </div>
 
@@ -150,7 +167,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
               href={`/news/${primary.slug}`}
               className="neu-btn-primary px-5 py-2.5 text-xs uppercase tracking-wider flex items-center gap-2"
             >
-              <span>Read Full Dossier</span>
+              <span>Read Full Story</span>
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -189,14 +206,19 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
                     </h3>
                   </Link>
 
-                  <p className="mt-2.5 text-xs text-slate-400 line-clamp-2 leading-relaxed font-sans">
-                    {article.summary.replace(/•/g, "").replace(/\*\*/g, "").split("\n")[0]}
-                  </p>
+                  {(() => {
+                    const snippet = getCleanExcerpt(article);
+                    return snippet ? (
+                      <p className="mt-2.5 text-xs text-slate-400 line-clamp-2 leading-relaxed font-sans">
+                        {snippet}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
 
                 <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between text-xs">
                   <span className="text-[11px] text-slate-400 font-mono truncate max-w-[130px]">
-                    {article.source_name || "Tier-1 Desk"}
+                    {article.source_name || "News Wire"}
                   </span>
                   <Link
                     href={`/news/${article.slug}`}

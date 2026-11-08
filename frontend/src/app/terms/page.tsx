@@ -55,7 +55,7 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-xl font-bold font-serif text-[#2d3748]">3. Intellectual Property Rights</h2>
             <p>
-              The original software architecture, brand design, layout, neural video generation outputs, and curated content belong to GlobalPulse AI Media Network Inc. You may quote or cite our dispatches provided you include a clear backlink and attribution to <code>globalpulseai.com</code>.
+              The original software architecture, brand design, layout, automated video generation outputs, and curated content belong to GlobalPulse AI Media Network Inc. You may quote or cite our dispatches provided you include a clear backlink and attribution to <code>globalpulseai.com</code>.
             </p>
           </section>
 
