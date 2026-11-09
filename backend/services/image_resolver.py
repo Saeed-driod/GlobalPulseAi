@@ -70,16 +70,30 @@ def upgrade_image_url_to_hd(url: Optional[str]) -> Optional[str]:
         return re.sub(r"w=\d+", "w=1280", url)
     return url
 
-def generate_branded_og_url(title: str, category: str = "AI & Tech") -> str:
+def get_curated_unsplash_photo(category: str = "AI & Tech", title: str = "", seed: Optional[Any] = None) -> str:
     """
-    Generates our own branded OG card URL:
-    Renders headline text on dark GlobalPulse background via Next.js /api/og.
-    100% self-hosted, deterministic, zero hallucinated people or events.
+    Returns a topic-matched, high-definition, 100% royalty-free Unsplash photo.
     """
-    clean_title = title.replace("| GlobalPulse AI", "").strip()
-    encoded_title = urllib.parse.quote(clean_title)
-    encoded_cat = urllib.parse.quote(category or "News")
-    return f"/api/og?title={encoded_title}&category={encoded_cat}"
+    try:
+        from services.video_generator import CATEGORY_CURATED_PHOTOS, normalize_category_key
+    except ImportError:
+        try:
+            from .video_generator import CATEGORY_CURATED_PHOTOS, normalize_category_key
+        except Exception:
+            return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1280&q=80"
+
+    norm_cat = normalize_category_key(category)
+    pool = CATEGORY_CURATED_PHOTOS.get(norm_cat, CATEGORY_CURATED_PHOTOS.get("AI & Tech", []))
+    if not pool:
+        return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1280&q=80"
+
+    if seed is not None and isinstance(seed, int):
+        idx = abs(seed) % len(pool)
+    elif title:
+        idx = abs(hash(title)) % len(pool)
+    else:
+        idx = 0
+    return pool[idx]
 
 def resolve_article_image(
     entry: Any = None,
@@ -92,22 +106,23 @@ def resolve_article_image(
     """
     Copyright-Safe Image Resolution:
     1. Rejects any publisher image hotlinks (e.g. BBC ichef, Reuters, Guardian).
-    2. Rejects AI-generated synthetic photos of real events or people.
-    3. Returns our custom branded OG card (/api/og?title=...&category=...).
+    2. Rejects black placeholder /api/og text boxes for main thumbnails.
+    3. Returns licensed, topic-matched, high-definition Unsplash editorial photography.
     """
     # Reject publisher hotlinks
     if current_image_url and is_publisher_hotlink(current_image_url):
         current_image_url = None
 
-    # If current image is already a branded OG card or licensed unsplash illustration
-    if current_image_url and (current_image_url.startswith("/api/og") or "images.unsplash.com" in current_image_url):
-        return current_image_url
+    # If current image is already a valid licensed Unsplash photo, keep it
+    if current_image_url and "images.unsplash.com" in current_image_url:
+        return upgrade_image_url_to_hd(current_image_url)
 
-    # Generate our branded OG card
-    return generate_branded_og_url(title=title, category=category)
+    # Return curated, high-definition Unsplash photography
+    seed_val = seed if isinstance(seed, int) else None
+    return get_curated_unsplash_photo(category=category, title=title, seed=seed_val)
 
 def refresh_missing_images():
-    """Scans stored articles on startup and replaces publisher hotlinks or missing images with branded OG cards."""
+    """Scans stored articles on startup and replaces /api/og or publisher hotlinks with high-definition Unsplash photography."""
     try:
         from database import SessionLocal
         from models import Article
@@ -123,12 +138,16 @@ def refresh_missing_images():
             articles = db.query(Article).all()
             updated = 0
             for art in articles:
-                if is_publisher_hotlink(art.image_url) or not art.image_url:
-                    art.image_url = generate_branded_og_url(art.title or "News Brief", art.category or "News")
+                if not art.image_url or is_publisher_hotlink(art.image_url) or art.image_url.startswith("/api/og"):
+                    art.image_url = get_curated_unsplash_photo(
+                        category=art.category or "AI & Tech",
+                        title=art.title or "",
+                        seed=art.id
+                    )
                     updated += 1
             if updated > 0:
                 db.commit()
-                print(f"[Image Resolver] Upgraded {updated} article images to branded OG cards.")
+                print(f"[Image Resolver] Upgraded {updated} article images to high-definition Unsplash editorial photography.")
     except Exception as e:
         print(f"[Image Resolver Notice] Startup refresh notice: {e}")
 

@@ -30,8 +30,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
   }, [article.id, article.title, article.category]);
 
   const hdOriginalUrl = React.useMemo(() => {
-    return article.image_url ? getHdImageUrl(article.image_url) : fallbackUrl;
-  }, [article.image_url, fallbackUrl]);
+    return getHdImageUrl(article.image_url, article.title, article.category);
+  }, [article.image_url, article.title, article.category]);
 
   const [imgSrc, setImgSrc] = React.useState<string>(hdOriginalUrl);
 

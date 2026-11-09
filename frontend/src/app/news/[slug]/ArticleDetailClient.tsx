@@ -328,7 +328,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
               <div className="rounded-2xl overflow-hidden neu-flat p-2 mb-8 aspect-video relative">
                 <div className="w-full h-full rounded-xl overflow-hidden relative bg-slate-900">
                   <img
-                    src={getHdImageUrl(article.image_url)}
+                    src={getHdImageUrl(article.image_url, cleanHeadline, article.category)}
                     alt={cleanHeadline}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -456,7 +456,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                       {rel.image_url && (
                         <div className="aspect-[16/9] w-full rounded-lg overflow-hidden bg-slate-900 mb-2.5">
                           <img
-                            src={getHdImageUrl(rel.image_url)}
+                            src={getHdImageUrl(rel.image_url, rel.title, rel.category)}
                             alt={rel.title}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             loading="lazy"
