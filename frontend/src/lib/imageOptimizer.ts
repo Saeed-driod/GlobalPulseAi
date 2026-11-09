@@ -120,17 +120,18 @@ export function getBrandedOgUrl(title: string, category: string = "AI & Tech"): 
 }
 
 export function getHdImageUrl(url?: string | null, title?: string, category?: string): string {
-  // 1. If valid Unsplash photo, upgrade to 1280w HD
-  if (url && typeof url === "string" && url.includes("images.unsplash.com")) {
-    return url.replace(/w=\d+/g, "w=1280");
-  }
-
-  // 2. If valid external photo (not a publisher hotlink, not local /api/og)
-  if (url && typeof url === "string" && url.startsWith("http") && !isPublisherHotlink(url)) {
+  // 1. If valid external photo (genuine source picture from publisher or Unsplash)
+  if (url && typeof url === "string" && url.startsWith("http") && !url.startsWith("/api/og")) {
+    if (url.includes("images.unsplash.com")) {
+      return url.replace(/w=\d+/g, "w=1280");
+    }
+    if (url.includes("/standard/240/")) {
+      return url.replace("/standard/240/", "/standard/976/");
+    }
     return url;
   }
 
-  // 3. Fallback: Always return topic-matched, high-definition Unsplash photography
+  // 2. Fallback: Return topic-matched, high-definition photography
   return getCategoryCuratedPhoto(category, title);
 }
 
