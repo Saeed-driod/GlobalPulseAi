@@ -717,13 +717,6 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
                     # Truly needs video rendering!
                     need_render_pool.append(art)
 
-            # Auto-Pilot Facebook Posts (paced every 20 minutes)
-            try:
-                from services.facebook_poster import maybe_auto_post_next_article
-                maybe_auto_post_next_article(db, min_interval_seconds=1200)
-            except Exception as fb_sync_err:
-                pass
-
             if can_post and need_render_pool:
                 # Select the highest quality candidate (fresh articles without video get +1000 score!)
                 sorted_candidates = sorted(need_render_pool, key=get_article_quality_score, reverse=True)
@@ -819,6 +812,16 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "auto", do
 
                 send_worker_heartbeat(status="IDLE")
                 process_pending_articles(video_format=video_format, limit=1, do_upload=effective_upload)
+
+                # Facebook Auto-Pilot: Posts latest unposted news cards paced every 15 mins (Independent of YouTube quotas)
+                try:
+                    with SessionLocal() as fb_db:
+                        from services.facebook_poster import maybe_auto_post_next_article
+                        fb_res = maybe_auto_post_next_article(fb_db, min_interval_seconds=900)
+                        if fb_res and fb_res.get("success"):
+                            print(f"[Facebook Auto-Pilot SUCCESS] Published to Page: {fb_res.get('post_url')}")
+                except Exception as fb_tick_err:
+                    pass
 
                 # Note: Automated Daily Movie Promo paused to prevent duplicate videos.
                 # To generate a movie promo on-demand, run: python local_worker.py --movie-promo or select menu option [7]

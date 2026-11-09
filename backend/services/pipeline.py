@@ -208,6 +208,25 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 except Exception as idx_err:
                     print(f"[Search Indexer Notice] {idx_err}")
 
+                # Instant Facebook Page Auto-Post
+                try:
+                    from .facebook_poster import post_article_to_facebook, check_facebook_auth
+                    fb_auth = check_facebook_auth()
+                    if fb_auth.get("authenticated"):
+                        art_url = f"https://globalpulseai.vercel.app/news/{slug}"
+                        fb_res = post_article_to_facebook(
+                            title=article.title,
+                            summary=article.summary,
+                            article_url=art_url,
+                            category=article.category
+                        )
+                        if fb_res.get("success"):
+                            article.facebook_post_id = fb_res.get("post_id")
+                            db.commit()
+                            print(f"[Master Pipeline Facebook] Published #{article.id} to Facebook: {fb_res.get('post_url')}")
+                except Exception as fb_err:
+                    print(f"[Master Pipeline Facebook Notice] {fb_err}")
+
                 # Step 3 & 4: Render MP4 Video and Upload to YouTube
                 # Safe Guard: Render has a 512MB RAM limit. Heavy FFmpeg video rendering is offloaded to Local PC Worker
                 cloud_video_enabled = os.getenv("CLOUD_VIDEO_RENDER_ENABLED", "false").lower() in ("true", "1", "yes")

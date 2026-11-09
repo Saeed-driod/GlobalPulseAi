@@ -394,7 +394,7 @@ def maybe_auto_post_next_article(db, min_interval_seconds: int = 1200) -> Option
     article = (
         db.query(Article)
         .filter((Article.facebook_post_id == None) | (Article.facebook_post_id == ""))
-        .order_by(Article.views.desc(), Article.id.desc())
+        .order_by(Article.id.desc())
         .first()
     )
     if not article:
