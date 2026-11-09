@@ -183,7 +183,7 @@ export async function fetchArticles(params?: {
 export async function fetchArticleBySlug(slug: string): Promise<Article | null> {
   try {
     const res = await fetch(`${getApiBase()}/api/articles/${slug}`, {
-      next: { revalidate: 300 },
+      cache: "no-store",
     });
     if (res.ok) {
       return await res.json();

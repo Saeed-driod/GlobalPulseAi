@@ -19,7 +19,7 @@ async function queryNeon<T = any>(query: string, params: any[] = []): Promise<T[
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ query, params }),
-      next: { revalidate: 300 },
+      cache: "no-store",
     });
     if (!res.ok) {
       console.warn(`Neon SQL error ${res.status}`);
