@@ -240,18 +240,138 @@ def wrap_text(text: str, max_chars: int = 24) -> List[str]:
         lines.append(" ".join(current_line))
     return lines
 
+CATEGORY_ANALYTICS: Dict[str, Dict[str, Any]] = {
+    "Sports": {
+        "analysis": [
+            "Tactical execution and team chemistry remain central to understanding the broader significance of this result.",
+            "As the competitive calendar intensifies, coaching staffs and roster depth will face critical pressure across upcoming fixtures.",
+            "Analysts emphasize that maintaining consistency through these pivotal matchups will directly dictate championship seeding.",
+            "Front office executives are already evaluating statistical performance metrics to prepare for upcoming transfer and trading windows."
+        ],
+        "impact": [
+            "Both offensive balance and defensive discipline are under heightened scrutiny as scouts evaluate season-defining adjustments.",
+            "The psychological momentum gained from this performance could provide a decisive edge against top-tier division rivals.",
+            "Training personnel are focused on conditioning and workload management to preserve peak performance throughout the campaign.",
+            "With fan expectations reaching fever pitch, team leadership must navigate media scrutiny while keeping focus locked on upcoming targets."
+        ],
+        "outlook": [
+            "League standings remain tightly contested, ensuring every subsequent fixture carries elevated championship implications.",
+            "Supporters worldwide are eagerly monitoring team announcements and injury updates ahead of the next round."
+        ],
+        "prompt": "Which tactical decision or player performance stood out most to you in this contest?"
+    },
+    "Entertainment": {
+        "analysis": [
+            "Behind the scenes, creative direction and narrative pacing have drawn considerable praise across global production circles.",
+            "With international distribution expanding, early critical buzz suggests strong engagement across both digital and theatrical audiences.",
+            "This project highlights the growing global appetite for bold, director-driven cinematic storytelling with international resonance.",
+            "Cinematographers and creative directors are utilizing innovative visual workflows to enhance on-screen immersion."
+        ],
+        "impact": [
+            "Industry insiders anticipate that upcoming festival debuts and preview screenings will further accelerate anticipation.",
+            "Streaming platforms and traditional studios are competing aggressively to secure exclusive global release windows.",
+            "Box office projections and digital engagement indicators suggest this project could redefine commercial benchmarks for the season.",
+            "Global entertainment distributors are expanding promotional rollouts across key international markets to maximize initial turnout."
+        ],
+        "outlook": [
+            "As anticipation builds toward release, audiences and film critics alike are analyzing every teaser and casting announcement.",
+            "The broader cultural resonance of this work reflects shifting artistic paradigms across modern media landscapes."
+        ],
+        "prompt": "Are you looking forward to this release? Which creative direction or performance are you most excited to experience?"
+    },
+    "Science": {
+        "analysis": [
+            "Rigorous research methodologies and clinical observations continue to reinforce the transformative nature of these findings.",
+            "Health professionals and scientific observers highlight how targeted implementation could substantially elevate patient care standards.",
+            "Long-term peer evaluations are anticipated to provide deeper insights into the broader operational applications of this work.",
+            "Investigators emphasize that systematic data collection and multi-center validation will be critical to confirming preliminary outcomes."
+        ],
+        "impact": [
+            "Cross-disciplinary collaboration is accelerating lab validation, paving the way for scalable real-world trials.",
+            "Technological enhancements combined with empirical testing are unlocking new possibilities across modern scientific research.",
+            "Healthcare administrators and regulatory bodies are evaluating integration pathways to facilitate broader institutional adoption.",
+            "These insights have the potential to modernize foundational training paradigms and establish new clinical benchmarks globally."
+        ],
+        "outlook": [
+            "Future iterations of this study will explore extended patient demographics and long-term diagnostic efficacy.",
+            "The global scientific community continues to track follow-up publications and secondary research cohorts with intense interest."
+        ],
+        "prompt": "How significantly do you expect these scientific breakthroughs to impact everyday practices and future therapies?"
+    },
+    "Markets": {
+        "analysis": [
+            "Macroeconomic sentiment and investor positioning are already adjusting to reflect these evolving financial crosswinds.",
+            "Institutional desks are closely tracking volatility metrics, capital allocation flows, and upcoming regulatory policy signals.",
+            "Global supply chains and corporate balance sheets will likely feel ripple effects as market participants reposition for Q4.",
+            "Central bank commentary and fiscal guidance continue to serve as crucial navigational anchors for global asset managers."
+        ],
+        "impact": [
+            "Treasury yields, currency valuations, and commodity prices are shifting dynamically in response to these updates.",
+            "Risk managers are recalibrating asset allocations to hedge against near-term exposure while preserving liquidity.",
+            "Equity analysts are updating earnings projections and valuation models to account for dynamic shifts in cost structures.",
+            "Emerging market indices and international trade volumes remain sensitive to incoming macroeconomic disclosures."
+        ],
+        "outlook": [
+            "Sustained vigilance and portfolio diversification will remain imperative as market participants balance growth against volatility risks.",
+            "Market sentiment over the coming quarters will hinge on corporate earnings reports and key interest rate milestones."
+        ],
+        "prompt": "Do you see these market trends creating long-term upside or increasing near-term downside volatility?"
+    },
+    "World Politics": {
+        "analysis": [
+            "Diplomatic delegations and policy advisors are closely coordinating to evaluate the multilateral ramifications on the ground.",
+            "International strategic observers stress that multilateral compliance and sustained transparent dialogue will prove crucial.",
+            "The emerging consensus underscores the urgency of proactive policy realignment amid evolving regional geopolitical dynamics.",
+            "Foreign ministries are conducting high-level briefings to evaluate compliance timelines and treaty obligations."
+        ],
+        "impact": [
+            "Key geopolitical partners and regional alliances are reassessing defense commitments and bilateral agreements.",
+            "Transparent diplomatic negotiations will be pivotal in safeguarding regional stability over the coming months.",
+            "Civic institutions and international watchdogs are calling for structured dispute resolution mechanisms.",
+            "Regional stability hinges on the willingness of key stakeholders to maintain open communication channels."
+        ],
+        "outlook": [
+            "As international summits convene, diplomatic consensus will serve as the benchmark for enduring bilateral cooperation.",
+            "Global observers will monitor diplomatic progress closely to measure long-term stability and institutional compliance."
+        ],
+        "prompt": "How do you interpret the diplomatic posture of the leaders involved in these high-stakes negotiations?"
+    },
+    "AI & Tech": {
+        "analysis": [
+            "Next-generation computational architectures and machine learning optimization are accelerating real-world deployment benchmarks.",
+            "Industry engineers note that scalable infrastructure and data governance will determine which platforms capture lasting adoption.",
+            "This technology breakthrough sets a brand new performance standard as global development ecosystems race to integrate the capability.",
+            "Developer communities are rapidly prototyping modular integrations to stress-test throughput and edge latency."
+        ],
+        "impact": [
+            "Enterprise developers and frontier laboratories are already deploying early pilot frameworks to measure production gains.",
+            "Security, computational efficiency, and ethical reliability remain primary priorities as adoption expands.",
+            "Venture investment and corporate R&D budgets are shifting rapidly toward specialized hardware and intelligent automation.",
+            "Technical leads anticipate that standardized APIs and interoperable protocols will drive widespread enterprise adoption."
+        ],
+        "outlook": [
+            "Future product roadmaps indicate even deeper integration with autonomous systems and next-generation cognitive pipelines.",
+            "Continuous architectural innovation will remain vital as computational workloads and data volumes expand exponentially."
+        ],
+        "prompt": "How quickly do you expect this technological advancement to reshape industry workflows and consumer applications?"
+    }
+}
+
+CTA_SIGN_OFF = "Drop your perspective in the comments below, share this update with a colleague, and follow GlobalPulse AI for comprehensive daily global coverage and verified intelligence."
+
 def clean_script_for_voiceover(
     youtube_script: str,
     fallback_title: str = "",
     fallback_summary: str = "",
     fallback_content: str = "",
     category: str = "",
-    min_words: int = 170
+    min_words: int = 185
 ) -> str:
     """
     Cleans raw script by removing director cues, timing brackets, fractions, and markdown artifacts.
     Guarantees pure, natural spoken broadcaster dialogue with ZERO visual instructions read aloud.
-    Enforces minimum 1 minute 5 seconds (65s) duration by ensuring >= 175 spoken words (~68-82s audio).
+    Enforces minimum 1 minute 5 seconds (65s) duration by ensuring >= 185 spoken words (~70-85s audio)
+    for full monetization and TikTok Creator Rewards qualification (> 60 seconds).
     """
     text = youtube_script or ""
     # 1. Remove bracketed and parenthetical notes e.g. [00:00 - 00:05] or [HOOK:] or [VISUAL: ...]
@@ -299,25 +419,28 @@ def clean_script_for_voiceover(
 
     # If the clean script is too brief (< 40 chars), enrich with headline & summary
     if len(cleaned) < 40:
-        cleaned = f"{fallback_title}. {fallback_summary}. Follow GlobalPulse AI for breaking developments."
+        cleaned = f"{fallback_title}. {fallback_summary}."
 
-    # Enforce minimum 1 minute 5 seconds (65s) duration:
-    # At standard 140-150 words/minute TTS, 175 words produces 70-82 seconds of audio.
+    # Enforce minimum duration (> 60 seconds / ~65s - 85s):
+    # At standard 135-145 words/minute TTS, 185 words produces 70-85 seconds of audio.
     words = cleaned.split()
     if len(words) < min_words:
         enrichment_parts = []
+        
+        def current_total():
+            return len(words) + sum(len(p.split()) for p in enrichment_parts)
 
         # Step A: Enrich from summary bullet points if available
-        if fallback_summary:
+        if fallback_summary and current_total() < min_words - 25:
             for s_line in fallback_summary.split("\n"):
                 s_clean = re.sub(r"[•▸*`#>]", "", s_line).strip()
                 if len(s_clean) > 20 and s_clean.lower() not in cleaned.lower():
                     enrichment_parts.append(s_clean.rstrip(".") + ".")
-                    if (len(words) + sum(len(p.split()) for p in enrichment_parts)) >= min_words:
+                    if current_total() >= min_words - 25:
                         break
 
         # Step B: Enrich from article content if still under minimum words
-        if fallback_content and (len(words) + sum(len(p.split()) for p in enrichment_parts)) < min_words:
+        if fallback_content and current_total() < min_words - 25:
             for para in fallback_content.split("\n\n"):
                 p_clean = re.sub(r"[#*`>|]", "", para).strip()
                 if len(p_clean) > 40 and not p_clean.startswith("###") and not p_clean.startswith("Q:") and not p_clean.startswith("A:"):
@@ -325,25 +448,42 @@ def clean_script_for_voiceover(
                     for s in sentences:
                         if s.lower() not in cleaned.lower() and not any(bad in s.lower() for bad in ["table", "http", "unsplash"]):
                             enrichment_parts.append(s.rstrip(".") + ".")
-                            if (len(words) + sum(len(p.split()) for p in enrichment_parts)) >= min_words:
+                            if current_total() >= min_words - 25:
                                 break
-                if (len(words) + sum(len(p.split()) for p in enrichment_parts)) >= min_words:
+                if current_total() >= min_words - 25:
                     break
 
-        # Step C: Append strategic conclusion & audience engagement CTA if still under minimum words
-        if (len(words) + sum(len(p.split()) for p in enrichment_parts)) < min_words:
-            if category == "Global Sports":
-                enrichment_parts.append(
-                    "This high-stakes outcome directly impacts championship qualification pathways and tournament standings. "
-                    "What was the most decisive play that dictated the result? Share your predictions in the comments below, "
-                    "and follow GlobalPulse AI for comprehensive daily sports coverage."
-                )
-            else:
-                enrichment_parts.append(
-                    "Industry analysts project that this milestone will drive substantial operational momentum and realign competitive benchmarks worldwide. "
-                    "How do you foresee these developments impacting future market dynamics? Let us know your perspective in the comments below, "
-                    "and subscribe to GlobalPulse AI for verified daily intelligence."
-                )
+        # Step C: Enrich with category-specific contextual analysis, impacts, and outlook
+        norm_cat = normalize_category_key(category)
+        cat_data = CATEGORY_ANALYTICS.get(norm_cat, CATEGORY_ANALYTICS["AI & Tech"])
+
+        # C1. Core Analysis Pool
+        for sentence in cat_data.get("analysis", []):
+            if current_total() >= min_words - 25:
+                break
+            if sentence.lower() not in cleaned.lower():
+                enrichment_parts.append(sentence)
+
+        # C2. Strategic Impact Pool
+        for sentence in cat_data.get("impact", []):
+            if current_total() >= min_words - 25:
+                break
+            if sentence.lower() not in cleaned.lower():
+                enrichment_parts.append(sentence)
+
+        # C3. Future Outlook Pool
+        for sentence in cat_data.get("outlook", []):
+            if current_total() >= min_words - 25:
+                break
+            if sentence.lower() not in cleaned.lower():
+                enrichment_parts.append(sentence)
+
+        # Step D: Interactive Engagement Prompt & Broadcaster CTA Sign-off
+        prompt_q = cat_data.get("prompt", "What are your key takeaways from these developments?")
+        if prompt_q.lower() not in cleaned.lower():
+            enrichment_parts.append(prompt_q)
+        if CTA_SIGN_OFF.lower() not in cleaned.lower():
+            enrichment_parts.append(CTA_SIGN_OFF)
 
         if enrichment_parts:
             cleaned = cleaned.rstrip(".") + ". " + " ".join(enrichment_parts)
@@ -1519,12 +1659,12 @@ def compose_video(
             raise RuntimeError(f"FFmpeg encoding failed for article {article_id}: {run_res.stderr[-400:]}")
 
 
-    # Step E: Validation Gate
+    # Step E: Validation Gate (Ensures minimum 60.5s for TikTok/Shorts qualification)
     try:
         val_res = validate_generated_video_file(
             output_video_path,
             is_long=is_long,
-            min_duration=15.0 if is_long else 5.0
+            min_duration=15.0 if is_long else 60.5
         )
     except Exception as val_err:
         print(f"[Video Generator Validation Gate FAILED] Generated video {output_video_path.name} failed validation:")
