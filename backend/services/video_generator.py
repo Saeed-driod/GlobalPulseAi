@@ -1328,6 +1328,7 @@ def compose_video(
                     "-t", f"{slide_dur:.2f}",
                     "-c:v", "libx264",
                     "-preset", "ultrafast",
+                    "-crf", "26",
                     "-pix_fmt", "yuv420p",
                     str(clip_p)
                 ]
@@ -1435,6 +1436,7 @@ def compose_video(
                 "-map", "[aout]",
                 "-c:v", "libx264",
                 "-preset", "ultrafast",
+                "-crf", "26",
                 "-r", fps_val,
                 "-pix_fmt", "yuv420p",
                 "-c:a", "aac",
@@ -1454,6 +1456,7 @@ def compose_video(
                 "-vf", video_filter,
                 "-c:v", "libx264",
                 "-preset", "ultrafast",
+                "-crf", "26",
                 "-r", fps_val,
                 "-pix_fmt", "yuv420p",
                 "-c:a", "aac",

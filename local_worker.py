@@ -250,84 +250,85 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
             export_disk_path = str(BACKEND_DIR / export_disk_path.lstrip("/"))
         export_to_tiktok_package(article, export_disk_path)
 
-        # Step 2.5: Auto-Post Article Link & Auto-Upload Native Facebook Reel
-        try:
-            from services.facebook_poster import (
-                post_article_to_facebook,
-                post_video_to_facebook,
-                check_facebook_auth,
-                generate_facebook_hashtags
-            )
-            fb_auth = check_facebook_auth()
-            if fb_auth.get("authenticated"):
-                art_url = f"https://globalpulseai.vercel.app/news/{article.slug}"
+        # Step 2.5: Auto-Post Article Link & Auto-Upload Native Facebook Reel (when upload enabled)
+        if do_upload:
+            try:
+                from services.facebook_poster import (
+                    post_article_to_facebook,
+                    post_video_to_facebook,
+                    check_facebook_auth,
+                    generate_facebook_hashtags
+                )
+                fb_auth = check_facebook_auth()
+                if fb_auth.get("authenticated"):
+                    art_url = f"https://globalpulseai.vercel.app/news/{article.slug}"
 
-                # A: Post Link Card if not yet posted
-                if not article.facebook_post_id:
-                    fb_res = post_article_to_facebook(
-                        title=article.title,
-                        summary=article.summary,
-                        article_url=art_url,
-                        category=article.category
-                    )
-                    if fb_res.get("success"):
-                        article.facebook_post_id = fb_res.get("post_id")
-                        db.commit()
-                        print(f"[Facebook Auto-Post] Published Article #{article.id} to Facebook: {fb_res.get('post_url')}")
-
-                # B: Upload Native Facebook Reel
-                if export_disk_path and Path(export_disk_path).exists():
-                    if getattr(article, "facebook_video_id", None):
-                        print(f"[Facebook Reels Gate] Article #{article.id} Reel already uploaded (Video ID: {article.facebook_video_id}). Skipping.")
-                    else:
-                        # Check if another article with matching title already has a Reel
-                        existing_fb = db.query(Article).filter(
-                            Article.title == article.title,
-                            Article.facebook_video_id != None,
-                            Article.facebook_video_id != ""
-                        ).first()
-                        if existing_fb:
-                            print(f"[Facebook Reels Gate] Reel for this title already posted on Article #{existing_fb.id}. Linking.")
-                            article.facebook_video_id = existing_fb.facebook_video_id
+                    # A: Post Link Card if not yet posted
+                    if not article.facebook_post_id:
+                        fb_res = post_article_to_facebook(
+                            title=article.title,
+                            summary=article.summary,
+                            article_url=art_url,
+                            category=article.category
+                        )
+                        if fb_res.get("success"):
+                            article.facebook_post_id = fb_res.get("post_id")
                             db.commit()
-                        else:
-                            print(f"[Facebook Reels] Uploading video for #{article.id} to Facebook Page as Reel...")
-                            hashtags = generate_facebook_hashtags(article.title, article.category)
-                            clean_summ = (article.summary or "").replace("*", "").strip()[:240]
-                            reel_desc = (
-                                f"⚡ {article.title}\n\n"
-                                f"📢 Attention @followers | Video Briefing\n\n"
-                                f"{clean_summ}...\n\n"
-                                f"👉 Read complete verified dossier & stats on GlobalPulse AI:\n"
-                                f"🔗 {art_url}\n\n"
-                                f"━━━━━━━━━━━━━━━━━━━━━\n"
-                                f"🔍 TOPICS:\n{hashtags}"
-                            )
-                            reel_res = post_video_to_facebook(
-                                video_path=export_disk_path,
-                                title=article.title,
-                                description=reel_desc
-                            )
-                            if reel_res.get("success"):
-                                article.facebook_video_id = reel_res.get("video_id")
-                                db.commit()
-                                print(f"[Facebook Reels SUCCESS] Video published to Facebook Reels: https://www.facebook.com/reel/{reel_res.get('video_id')}/")
-        except Exception as fb_err:
-            print(f"[Facebook Auto-Post Notice] {fb_err}")
+                            print(f"[Facebook Auto-Post] Published Article #{article.id} to Facebook: {fb_res.get('post_url')}")
 
-        # Step 2.8: TikTok Auto-Upload (Active once authenticated)
-        try:
-            from services.tiktok_uploader import upload_video_to_tiktok, load_token_data
-            if load_token_data() and export_disk_path and Path(export_disk_path).exists():
-                print(f"[TikTok Auto-Post] Auto-uploading video for Article #{article.id} to TikTok...")
-                tt_title = f"{article.title[:90]} #GlobalPulseAI #News"
-                tt_res = upload_video_to_tiktok(video_path=export_disk_path, title=tt_title)
-                if tt_res.get("success"):
-                    print(f"✔ [TikTok SUCCESS] Video published to TikTok! (Publish ID: {tt_res.get('publish_id')})")
-                else:
-                    print(f"[TikTok Auto-Post Notice] {tt_res.get('error')}")
-        except Exception as tt_err:
-            print(f"[TikTok Auto-Post Notice] {tt_err}")
+                    # B: Upload Native Facebook Reel
+                    if export_disk_path and Path(export_disk_path).exists():
+                        if getattr(article, "facebook_video_id", None):
+                            print(f"[Facebook Reels Gate] Article #{article.id} Reel already uploaded (Video ID: {article.facebook_video_id}). Skipping.")
+                        else:
+                            # Check if another article with matching title already has a Reel
+                            existing_fb = db.query(Article).filter(
+                                Article.title == article.title,
+                                Article.facebook_video_id != None,
+                                Article.facebook_video_id != ""
+                            ).first()
+                            if existing_fb:
+                                print(f"[Facebook Reels Gate] Reel for this title already posted on Article #{existing_fb.id}. Linking.")
+                                article.facebook_video_id = existing_fb.facebook_video_id
+                                db.commit()
+                            else:
+                                print(f"[Facebook Reels] Uploading video for #{article.id} to Facebook Page as Reel...")
+                                hashtags = generate_facebook_hashtags(article.title, article.category)
+                                clean_summ = (article.summary or "").replace("*", "").strip()[:240]
+                                reel_desc = (
+                                    f"⚡ {article.title}\n\n"
+                                    f"📢 Attention @followers | Video Briefing\n\n"
+                                    f"{clean_summ}...\n\n"
+                                    f"👉 Read complete verified reporting & facts on GlobalPulse AI:\n"
+                                    f"🔗 {art_url}\n\n"
+                                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                                    f"🔍 TOPICS:\n{hashtags}"
+                                )
+                                reel_res = post_video_to_facebook(
+                                    video_path=export_disk_path,
+                                    title=article.title,
+                                    description=reel_desc
+                                )
+                                if reel_res.get("success"):
+                                    article.facebook_video_id = reel_res.get("video_id")
+                                    db.commit()
+                                    print(f"[Facebook Reels SUCCESS] Video published to Facebook Reels: https://www.facebook.com/reel/{reel_res.get('video_id')}/")
+            except Exception as fb_err:
+                print(f"[Facebook Auto-Post Notice] {fb_err}")
+
+            # Step 2.8: TikTok Auto-Upload (Active once authenticated)
+            try:
+                from services.tiktok_uploader import upload_video_to_tiktok, load_token_data
+                if load_token_data() and export_disk_path and Path(export_disk_path).exists():
+                    print(f"[TikTok Auto-Post] Auto-uploading video for Article #{article.id} to TikTok...")
+                    tt_title = f"{article.title[:90]} #GlobalPulseAI #News"
+                    tt_res = upload_video_to_tiktok(video_path=export_disk_path, title=tt_title)
+                    if tt_res.get("success"):
+                        print(f"✔ [TikTok SUCCESS] Video published to TikTok! (Publish ID: {tt_res.get('publish_id')})")
+                    else:
+                        print(f"[TikTok Auto-Post Notice] {tt_res.get('error')}")
+            except Exception as tt_err:
+                print(f"[TikTok Auto-Post Notice] {tt_err}")
 
         # Step 3: YouTube Auto-Upload
         if do_upload:
@@ -481,10 +482,11 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                         update_article_progress(db, article, 80, "PAUSED", f"Video ready locally. Upload pending: {str(yt_err)[:100]}", error=str(yt_err))
                         send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
                         return False
-                else:
-                    print(f"[Worker Warning] Could not find video file on disk: {upload_disk_path}")
-                    update_article_progress(db, article, 80, "FAILED", f"Video file missing on disk: {upload_disk_path}", error="File missing")
-                    send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
+            else:
+                print(f"[Worker Warning] Could not find video file on disk: {upload_disk_path}")
+                update_article_progress(db, article, 80, "FAILED", f"Video file missing on disk: {upload_disk_path}", error="File missing")
+                send_worker_heartbeat(status="IDLE", active_id=None, active_title=None)
+                return False
         else:
             update_article_progress(db, article, 100, "COMPLETED", "Video generated locally (upload skipped).", eta="Done")
             send_worker_heartbeat(status="IDLE", active_id=None, active_title=None, increment_completed=True)
