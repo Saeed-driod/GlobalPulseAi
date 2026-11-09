@@ -99,13 +99,43 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
 
-        {/* 
-          MONETAG ADS TEMPORARILY PAUSED FOR GOOGLE ADSENSE APPROVAL REVIEW
-          Will be re-enabled immediately once Google AdSense review completes:
-          - Zone 305177 (MultiTag): https://quge5.com/88/tag.min.js
-          - Zone 12187520 (In-Page Push & Vignette): https://nap5k.com/tag.min.js
-          - Zone 12187525 (Vignette Banner): https://n6wxm.com/vignette.min.js
-        */}
+        {/* Monetag MultiTag (All-In-One High CPM Ads - Zone 305177) */}
+        <Script
+          src="https://quge5.com/88/tag.min.js"
+          data-zone="305177"
+          data-cfasync="false"
+          strategy="afterInteractive"
+        />
+
+        {/* Monetag In-Page Push & Vignette (Zone 12187520) */}
+        <Script
+          src="https://nap5k.com/tag.min.js"
+          data-zone="12187520"
+          data-cfasync="false"
+          strategy="afterInteractive"
+        />
+        <Script
+          id="monetag-zone-12187520"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(s){s.dataset.zone='12187520',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
+          }}
+        />
+
+        {/* Monetag Vignette Banner (Zone 12187525) */}
+        <Script
+          src="https://n6wxm.com/vignette.min.js"
+          data-zone="12187525"
+          data-cfasync="false"
+          strategy="afterInteractive"
+        />
+        <Script
+          id="monetag-zone-12187525"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(s){s.dataset.zone='12187525',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
+          }}
+        />
 
         {/* OneSignal Web Push Notifications (Free Global Audience Retention) */}
         <Script
