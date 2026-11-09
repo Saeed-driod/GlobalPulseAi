@@ -70,10 +70,30 @@ export async function GET(request: NextRequest) {
     const fetchSql = `SELECT * FROM articles ${whereClause} ORDER BY id DESC LIMIT ${limit} OFFSET ${skip};`;
     const items = await queryNeon(fetchSql);
 
+    if (items.length > 0) {
+      return NextResponse.json({
+        items,
+        total,
+        page: Math.floor(skip / limit) + 1,
+        limit,
+      });
+    }
+
+    // Seamless fallback to Render backend API
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://globlepluseai.onrender.com";
+      const bRes = await fetch(`${backendUrl}/api/articles?${searchParams.toString()}`, { cache: "no-store" });
+      if (bRes.ok) {
+        return NextResponse.json(await bRes.json());
+      }
+    } catch (bErr) {
+      console.warn("[API Articles] Backend fallback fetch failed:", bErr);
+    }
+
     return NextResponse.json({
-      items,
-      total,
-      page: Math.floor(skip / limit) + 1,
+      items: [],
+      total: 0,
+      page: 1,
       limit,
     });
   } catch (err: any) {

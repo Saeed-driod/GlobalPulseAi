@@ -5,9 +5,9 @@ import { Footer } from "../../components/Footer";
 import { ArrowLeft } from "../../components/Icons";
 
 export const metadata = {
-  title: "Terms of Service | GlobalPulse AI",
+  title: "Terms of Service",
   description:
-    "Terms of Service, user agreement, and content usage terms for GlobalPulse AI Media Network.",
+    "Terms of Service, user agreement, and content usage terms for GlobalPulse AI.",
 };
 
 export default function TermsPage() {

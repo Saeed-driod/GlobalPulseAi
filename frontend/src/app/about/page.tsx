@@ -5,7 +5,7 @@ import { Footer } from "../../components/Footer";
 import { ShieldCheck, Sparkles, ArrowLeft, CheckCircle2 } from "../../components/Icons";
 
 export const metadata = {
-  title: "About Us & Editorial Standards | GlobalPulse AI",
+  title: "About Us & Editorial Standards",
   description:
     "Learn about GlobalPulse AI, our editorial standards, fact-checking process, and independent global news coverage.",
 };

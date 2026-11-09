@@ -139,6 +139,25 @@ export async function fetchArticles(params?: {
       console.error("Neon fallback query failed:", neonErr);
     }
 
+    // Fallback to Render backend API
+    try {
+      const searchParams = new URLSearchParams();
+      if (params?.status) searchParams.set("status", params.status);
+      if (params?.category && params.category !== "All") searchParams.set("category", params.category);
+      if (params?.search) searchParams.set("search", params.search);
+      if (params?.skip !== undefined) searchParams.set("skip", params.skip.toString());
+      if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
+
+      const bRes = await fetch(`${getBackendUrl()}/api/articles?${searchParams.toString()}`, {
+        cache: "no-store",
+      });
+      if (bRes.ok) {
+        return await bRes.json();
+      }
+    } catch (bErr) {
+      console.warn("Backend API fallback fetch failed:", bErr);
+    }
+
     let filtered = [...FALLBACK_ARTICLES];
     if (params?.status) {
       filtered = filtered.filter((a) => a.status === params.status);
@@ -186,6 +205,18 @@ export async function fetchArticleBySlug(slug: string): Promise<Article | null> 
     }
   } catch (neonErr) {
     console.error("Neon slug lookup failed:", neonErr);
+  }
+
+  // Fallback to Render backend API
+  try {
+    const backendRes = await fetch(`${getBackendUrl()}/api/articles/${slug}`, {
+      cache: "no-store",
+    });
+    if (backendRes.ok) {
+      return await backendRes.json();
+    }
+  } catch (bErr) {
+    console.warn("Backend API article lookup fallback failed:", bErr);
   }
 
   // Fallback match

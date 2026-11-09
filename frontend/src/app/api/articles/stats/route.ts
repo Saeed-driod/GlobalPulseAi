@@ -57,6 +57,15 @@ export async function GET() {
       return NextResponse.json(rows[0]);
     }
 
+    // Seamless fallback to Render backend API
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://globlepluseai.onrender.com";
+      const bRes = await fetch(`${backendUrl}/api/articles/stats`, { cache: "no-store" });
+      if (bRes.ok) {
+        return NextResponse.json(await bRes.json());
+      }
+    } catch {}
+
     return NextResponse.json({
       total_articles: 0,
       drafts_count: 0,

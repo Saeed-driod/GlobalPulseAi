@@ -5,6 +5,9 @@ import { fetchArticleBySlug } from "../../../lib/api";
 import { getHdImageUrl } from "../../../lib/imageOptimizer";
 import { ArticleDetailClient } from "./ArticleDetailClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface PageProps {
   params: Promise<{ slug: string }> | { slug: string };
 }

@@ -5,7 +5,7 @@ import { Footer } from "../../components/Footer";
 import { ShieldCheck, ArrowLeft } from "../../components/Icons";
 
 export const metadata = {
-  title: "Privacy & Cookie Policy | GlobalPulse AI",
+  title: "Privacy & Cookie Policy",
   description:
     "Comprehensive Privacy Policy, Cookie Policy, Google AdSense compliance disclosures, and GDPR/CCPA data protection information for GlobalPulse AI.",
 };
