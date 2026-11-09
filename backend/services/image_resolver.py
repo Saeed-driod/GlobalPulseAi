@@ -26,6 +26,33 @@ def clean_image_url(url: Optional[str]) -> str:
         u = u.replace("/standard/240/", "/standard/976/")
     return u
 
+def is_generic_placeholder(url: Optional[str]) -> bool:
+    """Checks if an image URL is missing, placeholder, or invalid."""
+    if not url:
+        return True
+    u = str(url).strip().lower()
+    return u in ("", "none", "null", "undefined") or "/default-thumbnail" in u or "/placeholder" in u or u.startswith("/api/og")
+
+def is_low_res_thumbnail(url: Optional[str]) -> bool:
+    """Checks if image URL is a low-res thumbnail."""
+    if not url:
+        return True
+    u = str(url).lower()
+    return any(ind in u for ind in ["/standard/240/", "width=140", "width=150", "/tmb/", "_thumb", "-thumb"])
+
+def upgrade_image_url_to_hd(url: Optional[str]) -> Optional[str]:
+    """Upgrades thumbnail URL to HD where possible."""
+    if not url:
+        return url
+    u = clean_image_url(str(url))
+    if "images.unsplash.com" in u:
+        u = re.sub(r"w=\d+", "w=1280", u)
+    return u
+
+def is_publisher_hotlink(url: Optional[str]) -> bool:
+    """Legacy compatibility check (returns False to allow authentic news source images)."""
+    return False
+
 def extract_source_image_from_entry_or_url(entry: Any = None, source_url: Optional[str] = None) -> Optional[str]:
     """
     Extracts the authentic source image directly from the RSS feed entry or the publisher's webpage.
