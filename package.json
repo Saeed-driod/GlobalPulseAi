@@ -2,7 +2,7 @@
   "name": "globalpulse-ai",
   "version": "1.0.0",
   "private": true,
-  "description": "GlobalPulse AI - Tier-1 Global Newsroom & Video Intelligence",
+  "description": "GlobalPulse AI - Autonomous Daily News Briefs and Multi-Platform Video Publisher",
   "scripts": {
     "build": "npm --prefix frontend install && npm --prefix frontend run build",
     "start": "npm --prefix frontend start"

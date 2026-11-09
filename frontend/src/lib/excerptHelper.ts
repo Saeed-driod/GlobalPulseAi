@@ -51,7 +51,7 @@ export function getCleanExcerpt(article: {
         lower.startsWith("verified dispatches from") ||
         lower.startsWith("high-stakes sports dispatch from") ||
         lower.startsWith("breaking intelligence confirmed by") ||
-        lower.startsWith("according to verified telemetry") ||
+        lower.startsWith("according to verified sources") ||
         lower.includes("accelerating operational transition") ||
         lower.includes("decisive tactical adjustments") ||
         repeatsHeadline(line, article.title)

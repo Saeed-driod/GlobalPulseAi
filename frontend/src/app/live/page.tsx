@@ -67,7 +67,7 @@ const CHANNELS: Channel[] = [
     category: "Space & Science",
     youtubeId: "ROboUHfPUrU",
     badge: "ORBITAL CAM",
-    description: "Real-time High-Definition telemetry and live video broadcasts from the International Space Station and NASA deep space tracking networks.",
+    description: "Real-time High-Definition video broadcasts from the International Space Station and NASA deep space tracking networks.",
   },
   {
     id: "official-studio",
@@ -103,7 +103,7 @@ export default function LiveStreamPage() {
       id: "1",
       author: "Marcus Vance",
       location: "New York, USA",
-      text: "Tracking the tech rally from Manhattan. The AI telemetry ticker is super sharp.",
+      text: "Tracking the tech rally from Manhattan. The live market ticker is super sharp.",
       time: "Just now",
     },
     {

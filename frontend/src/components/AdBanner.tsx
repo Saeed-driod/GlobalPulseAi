@@ -2,9 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { Youtube, ExternalLink, Sparkles } from "./Icons";
-import { AdsterraBanner } from "./AdsterraBanner";
-
-export { AdsterraBanner };
 
 export type AdSlot = "header" | "in-article" | "sidebar" | "sticky-footer";
 
