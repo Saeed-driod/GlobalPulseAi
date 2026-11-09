@@ -340,6 +340,11 @@ def post_video_to_facebook(
     if not video_file.exists():
         return {"success": False, "message": f"Video file not found at {video_path}"}
 
+    file_size_mb = video_file.stat().st_size / (1024 * 1024)
+    if file_size_mb > 45:
+        print(f"[Facebook Video Upload Notice] Video size ({file_size_mb:.1f} MB) exceeds single-chunk limit (45 MB). Skipping direct Facebook upload to avoid freezing worker.")
+        return {"success": False, "message": f"Video exceeds 45MB single-chunk limit ({file_size_mb:.1f}MB)."}
+
     endpoint = f"https://graph-video.facebook.com/{GRAPH_API_VERSION}/{page_id}/videos"
 
     # Stream video upload using requests
@@ -352,7 +357,7 @@ def post_video_to_facebook(
                 "description": description,
                 "access_token": token
             }
-            resp = requests.post(endpoint, files=files, data=data, timeout=300)
+            resp = requests.post(endpoint, files=files, data=data, timeout=45)
             res_data = resp.json()
             vid_id = res_data.get("id")
             if vid_id:

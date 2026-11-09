@@ -242,7 +242,13 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
         else:
             print(f"[Worker INFO] Video already exists on disk ({'Long' if existing_is_long else 'Short'}): {video_disk_path}")
             video_path = article.video_path
-            update_article_progress(db, article, 80, "RENDERING_FFMPEG", "Existing video verified on disk. Ready for YouTube upload.", eta="~10s remaining")
+            article.video_status = "COMPLETED"
+            article.video_progress = 100
+            article.video_stage_text = "Existing video verified on disk and ready."
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
 
         # Step 2: Auto-Export package for TikTok
         export_disk_path = video_path or ""
@@ -645,9 +651,12 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
             else:
                 target_fmt = "short"
 
-            # Quality scoring function prioritizing High-Rank, high-impact articles
+            # Quality scoring function: MASSIVE priority for fresh articles that need a video generated!
             def get_article_quality_score(art):
                 score = 0
+                # TOP PRIORITY: Fresh articles without video get first dibs!
+                if not art.video_path:
+                    score += 1000
                 views = getattr(art, "views", 0) or 0
                 score += min(150, views * 10)  # High view count boost
                 if art.image_url and str(art.image_url).startswith("http"):
@@ -678,12 +687,35 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
             if uploaded_ids:
                 pending_query = pending_query.filter(~Article.id.in_(uploaded_ids))
 
+            # Fetch fresh articles first (newest IDs first so breaking news is rendered immediately)
             pending_pool = (
                 pending_query
-                .order_by(Article.views.desc(), Article.id.desc())
-                .limit(20)
+                .order_by(Article.id.desc())
+                .limit(40)
                 .all()
             )
+
+            # Auto-clean any articles that already have their video file on disk
+            need_render_pool = []
+            for art in pending_pool:
+                vpath = art.video_path or ""
+                if vpath.startswith("/static/"):
+                    vpath = str(BACKEND_DIR / vpath.lstrip("/"))
+                if vpath and os.path.exists(vpath) and os.path.getsize(vpath) >= 100_000:
+                    # Video already rendered! Mark COMPLETED so it doesn't block the queue
+                    if art.video_status != "COMPLETED":
+                        art.video_status = "COMPLETED"
+                        art.video_progress = 100
+                        art.video_stage_text = "Video already exists on disk."
+                        try:
+                            db.commit()
+                        except Exception:
+                            db.rollback()
+                    # If YouTube slot is open and this article has not been uploaded, it can be uploaded
+                    need_render_pool.append(art)
+                else:
+                    # Truly needs video rendering!
+                    need_render_pool.append(art)
 
             # Auto-Pilot Facebook Posts (paced every 20 minutes)
             try:
@@ -692,12 +724,12 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
             except Exception as fb_sync_err:
                 pass
 
-            if can_post and pending_pool:
-                # Select ONLY the highest rank / highest quality article ready for upload
-                sorted_candidates = sorted(pending_pool, key=get_article_quality_score, reverse=True)
+            if can_post and need_render_pool:
+                # Select the highest quality candidate (fresh articles without video get +1000 score!)
+                sorted_candidates = sorted(need_render_pool, key=get_article_quality_score, reverse=True)
                 candidate = sorted_candidates[0]
-                print(f"\n[Worker High-Rank Scheduler] Selected Top High-Rank Article #{candidate.id} for {target_fmt.upper()} Video & Upload: '{candidate.title[:50]}'")
-                print(f"  Views: {candidate.views or 0} | Daily Quota Status: Shorts {shorts_today}/{MAX_DAILY_SHORTS} | Longs {longs_today}/{MAX_DAILY_LONGS}")
+                print(f"\n[Worker High-Rank Scheduler] Selected Top Article #{candidate.id} for {target_fmt.upper()} Video & Upload: '{candidate.title[:50]}'")
+                print(f"  Views: {candidate.views or 0} | Video Exists: {bool(candidate.video_path)} | Daily Quota Status: Shorts {shorts_today}/{MAX_DAILY_SHORTS} | Longs {longs_today}/{MAX_DAILY_LONGS}")
                 target_tasks.append((candidate.id, target_fmt, False))
             elif not can_post:
                 # STRICT PACING: When upload cooldown is active, DO NOT churn out endless background videos!
