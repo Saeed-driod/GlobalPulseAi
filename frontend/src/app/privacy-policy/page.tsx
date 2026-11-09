@@ -87,13 +87,13 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-xl font-bold font-serif text-[#2d3748]">3. Information We Collect Automatically</h2>
             <p>
-              When you browse our portal, our servers automatically log standard web telemetry data, which may include:
+              When you browse our portal, our servers automatically log standard web usage and server log data, which may include:
             </p>
             <ul className="list-disc list-inside space-y-1.5 text-xs pl-2">
               <li>Internet Protocol (IP) address (anonymized in EU regions)</li>
               <li>Browser type and version</li>
               <li>Referring website URL and pages visited on GlobalPulse AI</li>
-              <li>Time and date of your visit, session duration, and telemetry interactions</li>
+              <li>Time and date of your visit, session duration, and page interactions</li>
             </ul>
           </section>
 

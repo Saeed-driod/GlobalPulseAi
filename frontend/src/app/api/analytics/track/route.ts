@@ -87,17 +87,42 @@ export async function POST(request: NextRequest) {
     const city = request.headers.get("x-vercel-ip-city") || null;
     const referrerSource = detectReferrerSource(referrer);
 
-    // Insert real visit into analytics_visits
-    await queryNeon(
-      `INSERT INTO analytics_visits (path, article_slug, referrer, referrer_source, country_code, country_name, city, device, browser, ip_hash, created_at)
-       VALUES (${esc(path)}, ${esc(articleSlug)}, ${esc(referrer)}, ${esc(referrerSource)}, ${esc(countryCode)}, ${esc(countryName)}, ${esc(city)}, ${esc(device)}, ${esc(browser)}, ${esc(ipHash)}, NOW());`
-    );
-
-    // If an article was read, increment its real view counter
-    if (articleSlug) {
+    if (NEON_CONNECTION_STRING) {
+      // Insert real visit into analytics_visits
       await queryNeon(
-        `UPDATE articles SET views = views + 1 WHERE slug = ${esc(articleSlug)};`
+        `INSERT INTO analytics_visits (path, article_slug, referrer, referrer_source, country_code, country_name, city, device, browser, ip_hash, created_at)
+         VALUES (${esc(path)}, ${esc(articleSlug)}, ${esc(referrer)}, ${esc(referrerSource)}, ${esc(countryCode)}, ${esc(countryName)}, ${esc(city)}, ${esc(device)}, ${esc(browser)}, ${esc(ipHash)}, NOW());`
       );
+
+      // If an article was read, increment its real view counter
+      if (articleSlug) {
+        await queryNeon(
+          `UPDATE articles SET views = views + 1 WHERE slug = ${esc(articleSlug)};`
+        );
+      }
+    } else {
+      // Forward to Render backend API
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://globlepluseai.onrender.com";
+        await fetch(`${backendUrl}/api/analytics/track`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-forwarded-for": ip,
+            "x-vercel-ip-country": countryCode,
+            "x-vercel-ip-city": city || "",
+          },
+          body: JSON.stringify({
+            path,
+            article_slug: articleSlug,
+            referrer,
+            device,
+            browser,
+          }),
+        });
+      } catch (bErr) {
+        console.warn("[Analytics Track Forward] Backend forward failed:", bErr);
+      }
     }
 
     return NextResponse.json({ success: true });

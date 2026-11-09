@@ -23,7 +23,7 @@ export const AiNewsAnalyst: React.FC = () => {
   const [copied, setCopied] = useState<boolean>(false);
 
   const sampleArticles = {
-    tech: "OpenAI and Anthropic have announced a new standardized safety evaluation protocol for frontier AI models. The framework provides automated red-teaming benchmarks, cryptographic weights auditing, and a shared threat telemetry exchange between leading US research labs and government defense bodies.",
+    tech: "OpenAI and Anthropic have announced a new standardized safety evaluation protocol for frontier AI models. The framework provides automated red-teaming benchmarks, cryptographic weights auditing, and a shared threat monitoring exchange between leading US research labs and government defense bodies.",
     crypto: "Bitcoin surged past $69,000 as spot ETF net inflows hit a 3-month high of $870 million in 24 hours. Major asset managers including BlackRock and Fidelity reported institutional accumulation from sovereign wealth funds, leading to a massive short squeeze across major derivatives exchanges.",
   };
 

@@ -605,7 +605,7 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex-1">
-        {/* LIVE VIDEO PROCESSING & TELEMETRY CENTER */}
+        {/* LIVE VIDEO PROCESSING & SHORTS HUB */}
         <section className="neu-flat p-6 sm:p-8 mb-8 rounded-3xl relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-[#b8bec7]/40">
             <div className="flex items-center gap-3.5">
@@ -822,7 +822,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* 24/7 BACKGROUND AUTOMATION TELEMETRY BANNER */}
+        {/* 24/7 BACKGROUND AUTOMATION STATUS BANNER */}
         <div className="neu-flat p-5 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 neu-circle flex items-center justify-center text-[#1a8cff] shrink-0">
@@ -860,7 +860,7 @@ export default function AdminPage() {
         </div>
 
         {/* =====================================================================
-            3. LIVE AUDIENCE & VIEWS TELEMETRY METRIC BOXES (.neu-flat)
+            3. LIVE AUDIENCE & VIEWS METRIC BOXES (.neu-flat)
            ===================================================================== */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
           <div className="neu-flat p-6 flex flex-col justify-between">
@@ -1406,7 +1406,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Real-time Audience & Views Analytics Telemetry Modal */}
+      {/* Real-time Audience & Views Analytics Modal */}
       <AnalyticsModal
         isOpen={showAnalyticsModal}
         onClose={() => setShowAnalyticsModal(false)}

@@ -131,7 +131,7 @@ export const BreakingTicker: React.FC<BreakingTickerProps> = ({ articles }) => {
           </Link>
         </div>
 
-        {/* Right: Compact Live Financial Telemetry (Fear/Greed + Live Assets) */}
+        {/* Right: Compact Live Financial Metrics (Fear/Greed + Live Assets) */}
         <div className="hidden md:flex items-center gap-2 shrink-0 pl-3 border-l border-white/10 font-mono text-[10px]">
           {/* Sentiment Badge */}
           <div className="neu-sm px-2 py-0.5 flex items-center gap-1.5 text-[10px] border border-white/5">

@@ -35,7 +35,7 @@ const CHANNELS: Channel[] = [
     category: "Global Breaking News",
     youtubeId: "umLWFz4izTM",
     badge: "24/7 GLOBAL WIRE",
-    description: "Official 24/7 continuous international news stream delivering verified breaking telemetry across world politics and global capitals.",
+    description: "Official 24/7 continuous international news stream delivering verified breaking dispatches across world politics and global capitals.",
   },
   {
     id: "abc-news",

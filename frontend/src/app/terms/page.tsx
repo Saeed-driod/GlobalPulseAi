@@ -45,7 +45,7 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-xl font-bold font-serif text-[#2d3748]">2. Editorial &amp; Financial Disclaimers</h2>
             <p>
-              All dispatches, market summaries, articles, and video scripts published on GlobalPulse AI are intended solely for general informational, educational, and journalistic purposes. 
+              All dispatches, market summaries, articles, and video scripts published on GlobalPulse AI are intended solely for general informational, educational, and journalistic purposes.
             </p>
             <p className="text-xs text-[#2d3748] font-mono neu-pressed p-4 rounded-2xl">
               <strong>IMPORTANT:</strong> Nothing published on GlobalPulse AI constitutes financial, investment, legal, or tax advice. Market quotes and geopolitical summaries represent algorithmic syntheses of public news feeds. Always consult a licensed financial advisor before executing capital allocations.

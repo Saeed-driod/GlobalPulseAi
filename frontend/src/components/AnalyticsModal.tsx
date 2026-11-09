@@ -30,6 +30,15 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const mobilePct =
+    typeof analyticsData?.mobile_percent === "number"
+      ? Math.round(analyticsData.mobile_percent)
+      : 0;
+  const desktopPct =
+    typeof analyticsData?.desktop_percent === "number"
+      ? Math.round(analyticsData.desktop_percent)
+      : Math.max(0, 100 - mobilePct);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-5xl max-h-[92vh] flex flex-col neu-flat overflow-hidden text-[#2d3748] font-sans">
@@ -42,15 +51,15 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-black text-[#2d3748] font-serif tracking-tight">
-                  Live Audience &amp; Views Telemetry Analysis
+                  Live Audience &amp; Traffic Analysis
                 </h2>
                 <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full neu-pressed text-[10px] font-mono text-[#1a8cff] font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1a8cff] animate-ping" />
-                  LIVE RADAR
+                  LIVE INSIGHTS
                 </span>
               </div>
               <p className="text-xs text-[#718096] font-mono mt-0.5">
-                Real-time traffic origins, geographic distribution, inbound social referrers &amp; reader telemetry.
+                Real-time traffic origins, geographic distribution, inbound social referrers &amp; reader analytics.
               </p>
             </div>
           </div>
@@ -60,7 +69,7 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
               onClick={onRefresh}
               disabled={isLoading}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl neu-sm text-xs font-mono font-bold text-[#2d3748] hover:text-[#1a8cff] transition active:scale-95"
-              title="Refresh telemetry metrics from live database"
+              title="Refresh audience analytics from live database"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-[#1a8cff] ${isLoading ? "animate-spin" : ""}`} />
               <span>{isLoading ? "Syncing..." : "Refresh"}</span>
@@ -86,7 +95,7 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
                 <Eye className="w-4 h-4 text-[#1a8cff]" />
               </div>
               <div className="text-2xl sm:text-3xl font-black text-[#2d3748] font-mono mt-2">
-                {analyticsData?.total_views.toLocaleString() || "0"}
+                {analyticsData?.total_views ? analyticsData.total_views.toLocaleString() : "0"}
               </div>
               <div className="text-[10px] text-emerald-600 mt-1 font-mono flex items-center gap-1 font-semibold">
                 <span>✓ Verified across portal</span>
@@ -99,7 +108,7 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
                 <Clock className="w-4 h-4 text-[#1a8cff]" />
               </div>
               <div className="text-2xl sm:text-3xl font-black text-[#1a8cff] font-mono mt-2">
-                {analyticsData?.views_today.toLocaleString() || "0"}
+                {analyticsData?.views_today ? analyticsData.views_today.toLocaleString() : "0"}
               </div>
               <div className="text-[10px] text-[#718096] mt-1 font-mono">
                 <span>Active 24h reading cycle</span>
@@ -112,7 +121,7 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
                 <Zap className="w-4 h-4 text-amber-500" />
               </div>
               <div className="text-2xl sm:text-3xl font-black text-[#2d3748] font-mono mt-2">
-                {analyticsData?.unique_visitors_today.toLocaleString() || "0"}
+                {analyticsData?.unique_visitors_today ? analyticsData.unique_visitors_today.toLocaleString() : "0"}
               </div>
               <div className="text-[10px] text-[#718096] mt-1 font-mono">
                 <span>Deduplicated IPs</span>
@@ -147,31 +156,37 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
                 </div>
 
                 <div className="space-y-4">
-                  {analyticsData?.sources.map((s) => (
-                    <div key={s.source} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="font-bold text-[#2d3748] flex items-center gap-1.5">
-                          {s.source === "TikTok" && <span>📱</span>}
-                          {s.source === "YouTube" && <span>🔴</span>}
-                          {s.source === "Google Search" && <span>🔍</span>}
-                          {s.source === "Twitter / X" && <span>🐦</span>}
-                          {s.source === "Meta / Instagram" && <span>📸</span>}
-                          {s.source.includes("Direct") && <span>⚡</span>}
-                          {s.source}
-                        </span>
-                        <div className="flex items-center gap-2 text-[#718096]">
-                          <span className="text-[#2d3748] font-bold">{s.count} views</span>
-                          <span className="text-[11px] text-[#1a8cff] font-mono font-bold">({s.percent}%)</span>
+                  {analyticsData?.sources && analyticsData.sources.length > 0 ? (
+                    analyticsData.sources.map((s) => (
+                      <div key={s.source} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span className="font-bold text-[#2d3748] flex items-center gap-1.5">
+                            {s.source === "TikTok" && <span>📱</span>}
+                            {s.source === "YouTube" && <span>🔴</span>}
+                            {s.source === "Google Search" && <span>🔍</span>}
+                            {s.source === "Twitter / X" && <span>🐦</span>}
+                            {s.source === "Meta / Instagram" && <span>📸</span>}
+                            {s.source.includes("Direct") && <span>⚡</span>}
+                            {s.source}
+                          </span>
+                          <div className="flex items-center gap-2 text-[#718096]">
+                            <span className="text-[#2d3748] font-bold">{s.count} views</span>
+                            <span className="text-[11px] text-[#1a8cff] font-mono font-bold">({s.percent}%)</span>
+                          </div>
+                        </div>
+                        <div className="w-full h-2.5 rounded-full neu-pressed overflow-hidden p-0.5">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-[#1a8cff] to-[#0055ff] transition-all duration-500"
+                            style={{ width: `${Math.max(s.percent, 4)}%` }}
+                          />
                         </div>
                       </div>
-                      <div className="w-full h-2.5 rounded-full neu-pressed overflow-hidden p-0.5">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-[#1a8cff] to-[#0055ff] transition-all duration-500"
-                          style={{ width: `${Math.max(s.percent, 4)}%` }}
-                        />
-                      </div>
+                    ))
+                  ) : (
+                    <div className="py-8 text-center text-xs font-mono text-[#718096]">
+                      Awaiting inbound referral traffic.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -179,9 +194,9 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
               <div className="mt-6 pt-4 border-t border-[#d1d9e6] flex items-center justify-between text-xs font-mono">
                 <span className="text-[#718096]">Device Distribution:</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-[#1a8cff] font-bold">📱 Mobile: {analyticsData?.mobile_percent || 76}%</span>
+                  <span className="text-[#1a8cff] font-bold">📱 Mobile: {mobilePct}%</span>
                   <span className="text-[#718096]">•</span>
-                  <span className="text-[#2d3748] font-bold">💻 Desktop: {analyticsData?.desktop_percent || 24}%</span>
+                  <span className="text-[#2d3748] font-bold">💻 Desktop: {desktopPct}%</span>
                 </div>
               </div>
             </div>
@@ -197,29 +212,35 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
               </div>
 
               <div className="space-y-4">
-                {analyticsData?.countries.map((c) => (
-                  <div key={c.country_code} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="font-bold text-[#2d3748] flex items-center gap-2">
-                        <span className="text-base">{c.flag}</span>
-                        <span>{c.country_name}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded neu-pressed text-[#718096] uppercase font-mono font-semibold">
-                          {c.country_code}
+                {analyticsData?.countries && analyticsData.countries.length > 0 ? (
+                  analyticsData.countries.map((c) => (
+                    <div key={c.country_code} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="font-bold text-[#2d3748] flex items-center gap-2">
+                          <span className="text-base">{c.flag}</span>
+                          <span>{c.country_name}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded neu-pressed text-[#718096] uppercase font-mono font-semibold">
+                            {c.country_code}
+                          </span>
                         </span>
-                      </span>
-                      <div className="flex items-center gap-2 text-[#718096]">
-                        <span className="text-[#2d3748] font-bold">{c.count} views</span>
-                        <span className="text-[11px] text-[#1a8cff] font-mono font-bold">({c.percent}%)</span>
+                        <div className="flex items-center gap-2 text-[#718096]">
+                          <span className="text-[#2d3748] font-bold">{c.count} views</span>
+                          <span className="text-[11px] text-[#1a8cff] font-mono font-bold">({c.percent}%)</span>
+                        </div>
+                      </div>
+                      <div className="w-full h-2.5 rounded-full neu-pressed overflow-hidden p-0.5">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#1a8cff] via-indigo-500 to-purple-600 transition-all duration-500"
+                          style={{ width: `${Math.max(c.percent, 4)}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="w-full h-2.5 rounded-full neu-pressed overflow-hidden p-0.5">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#1a8cff] via-indigo-500 to-purple-600 transition-all duration-500"
-                        style={{ width: `${Math.max(c.percent, 4)}%` }}
-                      />
-                    </div>
+                  ))
+                ) : (
+                  <div className="py-8 text-center text-xs font-mono text-[#718096]">
+                    Awaiting global audience traffic.
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -235,43 +256,49 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
             </div>
 
             <div className="divide-y divide-[#d1d9e6]">
-              {analyticsData?.top_articles.map((art, idx) => (
-                <div key={art.id} className="py-3.5 flex items-center justify-between gap-4 group">
-                  <div className="flex items-center gap-3.5 truncate">
-                    <span className="w-7 h-7 rounded-lg neu-pressed flex items-center justify-center text-xs font-mono font-black text-[#1a8cff] shrink-0">
-                      #{idx + 1}
-                    </span>
-                    <div className="truncate">
-                      <div className="text-xs font-bold text-[#2d3748] group-hover:text-[#1a8cff] transition truncate">
-                        {art.title}
-                      </div>
-                      <div className="text-[10px] text-[#718096] font-mono flex items-center gap-2 mt-0.5">
-                        <span className="text-[#1a8cff] font-semibold">{art.category}</span>
-                        <span>•</span>
-                        <span>ID #{art.id}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 shrink-0">
-                    <div className="text-right">
-                      <span className="text-xs font-black text-[#1a8cff] font-mono">
-                        {art.views.toLocaleString()}
+              {analyticsData?.top_articles && analyticsData.top_articles.length > 0 ? (
+                analyticsData.top_articles.map((art, idx) => (
+                  <div key={art.id} className="py-3.5 flex items-center justify-between gap-4 group">
+                    <div className="flex items-center gap-3.5 truncate">
+                      <span className="w-7 h-7 rounded-lg neu-pressed flex items-center justify-center text-xs font-mono font-black text-[#1a8cff] shrink-0">
+                        #{idx + 1}
                       </span>
-                      <span className="text-[10px] text-[#718096] font-mono block">reads</span>
+                      <div className="truncate">
+                        <div className="text-xs font-bold text-[#2d3748] group-hover:text-[#1a8cff] transition truncate">
+                          {art.title}
+                        </div>
+                        <div className="text-[10px] text-[#718096] font-mono flex items-center gap-2 mt-0.5">
+                          <span className="text-[#1a8cff] font-semibold">{art.category}</span>
+                          <span>•</span>
+                          <span>ID #{art.id}</span>
+                        </div>
+                      </div>
                     </div>
 
-                    <Link
-                      href={`/news/${art.slug}`}
-                      target="_blank"
-                      className="p-2 rounded-xl neu-sm text-[#718096] hover:text-[#1a8cff] transition active:scale-95"
-                      title="Open live article"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </Link>
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="text-right">
+                        <span className="text-xs font-black text-[#1a8cff] font-mono">
+                          {art.views.toLocaleString()}
+                        </span>
+                        <span className="text-[10px] text-[#718096] font-mono block">reads</span>
+                      </div>
+
+                      <Link
+                        href={`/news/${art.slug}`}
+                        target="_blank"
+                        className="p-2 rounded-xl neu-sm text-[#718096] hover:text-[#1a8cff] transition active:scale-95"
+                        title="Open live article"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-xs font-mono text-[#718096]">
+                  Awaiting article engagement data.
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -322,7 +349,7 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
             onClick={onClose}
             className="px-5 py-2.5 rounded-xl neu-btn-primary font-bold transition text-xs"
           >
-            Close Telemetry
+            Close Analytics
           </button>
         </div>
       </div>
