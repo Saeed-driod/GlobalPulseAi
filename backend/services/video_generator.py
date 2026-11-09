@@ -78,30 +78,53 @@ def run_async_in_isolated_thread(async_func, *args, timeout: float = 45.0) -> bo
 
 # Curated Category Color Accents (RGB)
 CATEGORY_ACCENTS: Dict[str, Tuple[int, int, int]] = {
-    "AI & Tech": (6, 182, 212),         # Neon Cyan
-    "Global Markets": (16, 185, 129),    # Neon Emerald
-    "Geopolitics": (245, 158, 11),       # Amber Gold
-    "Future Science": (168, 85, 247),    # Neon Purple
-    "Global Sports": (239, 68, 68),      # Stadium Crimson Red
+    "AI & Tech": (6, 182, 212),          # Neon Cyan
+    "Markets": (16, 185, 129),           # Neon Emerald
+    "Global Markets": (16, 185, 129),     # Neon Emerald
+    "World Politics": (245, 158, 11),     # Amber Gold
+    "Geopolitics": (245, 158, 11),        # Amber Gold
+    "Science": (168, 85, 247),            # Neon Purple / Violet
+    "Future Science": (168, 85, 247),     # Neon Purple
+    "Sports": (239, 68, 68),              # Stadium Crimson Red
+    "Global Sports": (239, 68, 68),       # Stadium Crimson Red
+    "Entertainment": (236, 72, 153),      # Vivid Pink / Magenta
 }
+
+def normalize_category_key(cat: str) -> str:
+    """Normalizes any category alias to standard photo pool keys."""
+    if not cat:
+        return "AI & Tech"
+    c = cat.strip().lower()
+    if "sport" in c:
+        return "Sports"
+    if "market" in c or "finance" in c or "economy" in c:
+        return "Markets"
+    if "polit" in c or "world" in c or "geo" in c:
+        return "World Politics"
+    if "scien" in c or "space" in c or "health" in c or "medic" in c:
+        return "Science"
+    if "entertain" in c or "movie" in c or "film" in c or "music" in c or "hollywood" in c:
+        return "Entertainment"
+    return "AI & Tech"
 
 # Curated High-Definition Topic-Specific Photos (15+ diverse scenes per category)
 CATEGORY_CURATED_PHOTOS: Dict[str, List[str]] = {
-    "Global Sports": [
-        "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1280&q=80",  # Floodlit Stadium arena
-        "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1280&q=80",  # Football match action
-        "https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=1280&q=80",  # High intensity duel
+    "Sports": [
         "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1280&q=80",  # Arena court competition
+        "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1280&q=80",  # Football stadium pitch
+        "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1280&q=80",  # Football match action
         "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1280&q=80",  # Championship track victory
         "https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1280&q=80",  # Stadium fans celebration
         "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1280&q=80",  # Iconic ground lights
-        "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1280&q=80",  # Football stadium pitch
         "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1280&q=80",  # Basketball arena action
         "https://images.unsplash.com/photo-1587280501635-68a0e82cd5ff?auto=format&fit=crop&w=1280&q=80",  # Formula 1 race track
         "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1280&q=80",  # Tennis championship court
-        "https://images.unsplash.com/photo-1569517282132-25d22f4573e6?auto=format&fit=crop&w=1280&q=80",  # Boxing arena spotlights
         "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1280&q=80",  # Athletic athlete training
         "https://images.unsplash.com/photo-1471295253337-3ceaaedca402?auto=format&fit=crop&w=1280&q=80",  # Stadium night panorama
+        "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1280&q=80",  # Soccer ball on pitch
+        "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1280&q=80",  # Basketball court
+        "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1280&q=80",  # Runner athlete
+        "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=1280&q=80",  # Cricket pitch
     ],
     "AI & Tech": [
         "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1280&q=80",  # Neural computing nodes
@@ -119,7 +142,7 @@ CATEGORY_CURATED_PHOTOS: Dict[str, List[str]] = {
         "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1280&q=80",  # Smart cloud interface
         "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1280&q=80",  # Software engineer workstation
     ],
-    "Global Markets": [
+    "Markets": [
         "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1280&q=80",  # Financial analytics display
         "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=1280&q=80",  # Market exchange floor
         "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1280&q=80",  # Financial center skyline
@@ -133,34 +156,58 @@ CATEGORY_CURATED_PHOTOS: Dict[str, List[str]] = {
         "https://images.unsplash.com/photo-1579532537598-459ecdaf39cc?auto=format&fit=crop&w=1280&q=80",  # Financial charting report
         "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=1280&q=80",  # Global commercial trade
     ],
-    "Geopolitics": [
-        "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1280&q=80",  # International summit hall
+    "World Politics": [
         "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1280&q=80",  # Capitol government assembly
         "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=1280&q=80",  # Diplomatic flags corridor
-        "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=1280&q=80",  # Geopolitical strategic world map
-        "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1280&q=80",  # Press briefing conference podium
-        "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?auto=format&fit=crop&w=1280&q=80",  # Global metropolis architecture
-        "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1280&q=80",  # Strategic intelligence operations
+        "https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=1280&q=80",  # International summit negotiation
+        "https://images.unsplash.com/photo-1526470608268-f674ce90ebd4?auto=format&fit=crop&w=1280&q=80",  # Diplomatic world gathering
         "https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?auto=format&fit=crop&w=1280&q=80",  # Diplomatic negotiation chamber
         "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1280&q=80",  # International multilateral assembly
         "https://images.unsplash.com/photo-1532375810709-75b1da00537c?auto=format&fit=crop&w=1280&q=80",  # United Nations assembly hall
         "https://images.unsplash.com/photo-1569025743873-ea3a9ade89f9?auto=format&fit=crop&w=1280&q=80",  # Government press room
+        "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1280&q=80",  # Press briefing conference podium
+        "https://images.unsplash.com/photo-1523995462485-3d171b5c8fa9?auto=format&fit=crop&w=1280&q=80",  # International newspaper & dispatches
+        "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?auto=format&fit=crop&w=1280&q=80",  # Global metropolis architecture
+        "https://images.unsplash.com/photo-1444723121867-7a241cacace9?auto=format&fit=crop&w=1280&q=80",  # Global city skyline
     ],
-    "Future Science": [
-        "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=1280&q=80",  # Deep space telescope view
+    "Science": [
+        "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1280&q=80",  # Clinical nursing & healthcare
+        "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1280&q=80",  # Stethoscope & clinical research
+        "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1280&q=80",  # Medical care & patient bed
+        "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1280&q=80",  # Healthcare surgery & equipment
         "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1280&q=80",  # Advanced cleanroom laboratory
-        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1280&q=80",  # Quantum orbital telemetry
+        "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1280&q=80",  # Medical healthcare consultation
+        "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?auto=format&fit=crop&w=1280&q=80",  # Doctor & clinical diagnosis
+        "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1280&q=80",  # Clinical nurse telemetry notes
+        "https://images.unsplash.com/photo-1581595220892-b0739db3ba8c?auto=format&fit=crop&w=1280&q=80",  # Medical diagnostic record
+        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1280&q=80",  # Hospital clinic room
+        "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=1280&q=80",  # Deep space telescope view
         "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1280&q=80",  # Deep cosmic astrophysics
-        "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1280&q=80",  # Nanoscale quantum physics
-        "https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&w=1280&q=80",  # Autonomous robotic exploration
-        "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1280&q=80",  # Earth orbital telemetry
-        "https://images.unsplash.com/photo-1447433819943-74a20887a81e?auto=format&fit=crop&w=1280&q=80",  # Cosmic nebula cluster
-        "https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?auto=format&fit=crop&w=1280&q=80",  # Galaxy deep cosmic space
+        "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1280&q=80",  # Nanoscale physics
+        "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1280&q=80",  # Earth orbital view
         "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1280&q=80",  # Genetics bio-molecular research
-        "https://images.unsplash.com/photo-1507668077129-56e32842fceb?auto=format&fit=crop&w=1280&q=80",  # Quantum laser physics
-        "https://images.unsplash.com/photo-1517976487502-5f6902888879?auto=format&fit=crop&w=1280&q=80",  # Space rocket launch
+    ],
+    "Entertainment": [
+        "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1280&q=80",  # Cinema theater hall
+        "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1280&q=80",  # Movie theater audience
+        "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?auto=format&fit=crop&w=1280&q=80",  # Professional film camera
+        "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1280&q=80",  # Film production clapboard
+        "https://images.unsplash.com/photo-1514306191717-452ec28c7814?auto=format&fit=crop&w=1280&q=80",  # Concert spotlights & stage
+        "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1280&q=80",  # Festival crowd & entertainment
+        "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1280&q=80",  # DJ music lights
+        "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1280&q=80",  # Recording studio microphone
+        "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1280&q=80",  # Live concert crowd
+        "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?auto=format&fit=crop&w=1280&q=80",  # Hollywood movie premiere
+        "https://images.unsplash.com/photo-1524712245354-2c4e5e7121c0?auto=format&fit=crop&w=1280&q=80",  # Film projector cinema
+        "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=1280&q=80",  # Stage performance lights
     ]
 }
+
+# Compatibility aliases so any legacy category lookup works seamlessly
+CATEGORY_CURATED_PHOTOS["Global Sports"] = CATEGORY_CURATED_PHOTOS["Sports"]
+CATEGORY_CURATED_PHOTOS["Global Markets"] = CATEGORY_CURATED_PHOTOS["Markets"]
+CATEGORY_CURATED_PHOTOS["Geopolitics"] = CATEGORY_CURATED_PHOTOS["World Politics"]
+CATEGORY_CURATED_PHOTOS["Future Science"] = CATEGORY_CURATED_PHOTOS["Science"]
 
 def get_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
     """Safe font loader for Windows and Linux environments."""
@@ -762,7 +809,8 @@ def fetch_scene_images(
     primary_img_path = output_dir / f"scene_1_{article_id}.jpg"
     primary_downloaded = False
 
-    raw_pool = CATEGORY_CURATED_PHOTOS.get(category, CATEGORY_CURATED_PHOTOS.get("AI & Tech", []))
+    norm_cat = normalize_category_key(category)
+    raw_pool = CATEGORY_CURATED_PHOTOS.get(norm_cat, CATEGORY_CURATED_PHOTOS.get("AI & Tech", []))
     # Deterministically shuffle curated pool based on article_id so every article gets a 100% unique sequence!
     rng = random.Random(article_id * 7919 + 53)
     shuffled_pool = list(raw_pool)
@@ -771,7 +819,7 @@ def fetch_scene_images(
     # Step 1: Download Primary Image if valid and not a generic placeholder
     is_generic = False
     if main_image_url:
-        generic_markers = ["photo-1618005182384", "photo-1611974789855", "photo-1578575437130", "photo-1507413245164", "photo-1508098682722"]
+        generic_markers = ["photo-1618005182384", "photo-1611974789855", "photo-1578575437130", "photo-1507413245164", "photo-1508098682722", "/api/og"]
         is_generic = any(m in main_image_url for m in generic_markers)
 
     if main_image_url and main_image_url.startswith("http") and not is_generic:
@@ -797,11 +845,11 @@ def fetch_scene_images(
 
     # Step 3: Ultimate Fallback: High-contrast styled category backdrop
     if not primary_downloaded or not primary_img_path.exists():
-        accent = CATEGORY_ACCENTS.get(category, (6, 182, 212))
+        accent = CATEGORY_ACCENTS.get(norm_cat, (6, 182, 212))
         synth = Image.new("RGB", (target_w, target_h), (11, 15, 25))
         s_draw = ImageDraw.Draw(synth)
         s_draw.rectangle([(20, 20), (target_w - 20, target_h - 20)], outline=accent, width=3)
-        s_draw.text((60, 60), f"GLOBALPULSE AI // {category.upper()}", fill=accent, font=get_font(26, bold=True))
+        s_draw.text((60, 60), f"GLOBALPULSE AI // {norm_cat.upper()}", fill=accent, font=get_font(26, bold=True))
         synth.save(primary_img_path, "JPEG", quality=85)
         del synth
 
@@ -813,20 +861,17 @@ def fetch_scene_images(
         base_pil = Image.new("RGB", (target_w, target_h), (15, 23, 42))
 
     # Compose subsequent scenes (idx = 2..count)
-    # If the article has a REAL story image, alternate between real-story multi-focal camera angles and unique category photos
+    # Guarantee that EVERY slide gets a distinct, unique HD photo from the category pool!
     for idx in range(2, count + 1):
         scene_file = output_dir / f"scene_{idx}_{article_id}.jpg"
         scene_downloaded = False
 
-        # If primary image is a REAL news photo (not generic), use focal variants on even scenes to keep focus on the breaking subject!
-        use_focal_variant = (primary_downloaded and not is_generic and (idx % 2 == 0 or idx == count))
+        # Assign a unique curated image from shuffled pool for this slide
+        pool_idx = (idx - 1) % len(shuffled_pool)
+        curated_url = shuffled_pool[pool_idx]
+        scene_downloaded = download_web_image(curated_url, scene_file, timeout=3.0)
 
-        if not use_focal_variant:
-            # Download unique photo from shuffled pool
-            pool_idx = (idx - 1) % len(shuffled_pool)
-            curated_url = shuffled_pool[pool_idx]
-            scene_downloaded = download_web_image(curated_url, scene_file, timeout=2.5)
-
+        # If download fails, create a distinct focal variant from the base image so it still looks fresh
         if not scene_downloaded or not scene_file.exists():
             variant = create_focal_variant(base_pil, idx, target_w, target_h)
             variant.save(scene_file, "JPEG", quality=85)
@@ -1161,7 +1206,7 @@ def generate_widescreen_long_slides(
 
         # 4. Clean Bottom Bar
         draw.line([(40, 672), (width - 40, 672)], fill=(51, 65, 85, 180), width=1)
-        bottom_text = f"● LIVE INTELLIGENCE • @GloblePulseAi • GLOBALPULSE AI • WWW.{clean_domain.upper()}"
+        bottom_text = f"● LIVE DISPATCH • @GloblePulseAi • GLOBALPULSE AI • WWW.{clean_domain.upper()}"
         bot_box = draw.textbbox((0, 0), bottom_text, font=font_bottom)
         bot_w = bot_box[2] - bot_box[0]
         draw.text(((width - bot_w) // 2, 686), bottom_text, fill=(203, 213, 225), font=font_bottom)

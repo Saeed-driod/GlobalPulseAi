@@ -44,8 +44,8 @@ export async function GET(request: Request) {
       const pubDate = article.published_at
         ? new Date(article.published_at).toUTCString()
         : article.created_at
-        ? new Date(article.created_at).toUTCString()
-        : buildDate;
+          ? new Date(article.created_at).toUTCString()
+          : buildDate;
 
       const cleanSummary = (article.summary || "")
         .replace(/^[•▸*-\s]+/gm, " ")
