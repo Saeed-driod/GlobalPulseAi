@@ -85,7 +85,7 @@ export async function fetchArticles(params?: {
     if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 
     const res = await fetch(`${getApiBase()}/api/articles?${searchParams.toString()}`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
 
     if (!res.ok) {

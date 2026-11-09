@@ -13,6 +13,7 @@ import { getCategoryTheme } from "../../../lib/categoryTheme";
 import { ArrowLeft, Clock, Eye, Sparkles } from "../../../components/Icons";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface CategoryMeta {
   name: string;
