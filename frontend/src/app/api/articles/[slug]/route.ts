@@ -53,7 +53,7 @@ export async function GET(
     if (!rows || rows.length === 0) {
       // Seamless fallback to Render backend API
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://globlepluseai.onrender.com";
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://150.136.214.192";
         const bRes = await fetch(`${backendUrl}/api/articles/${cleanSlug}`, { cache: "no-store" });
         if (bRes.ok) {
           const article = await bRes.json();

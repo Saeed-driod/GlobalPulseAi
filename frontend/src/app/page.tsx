@@ -38,7 +38,7 @@ async function getInitialArticles(): Promise<Article[]> {
 
   // Seamless fallback to Render backend API
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://globlepluseai.onrender.com";
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://150.136.214.192";
     const res = await fetch(`${backendUrl}/api/articles?limit=30`, {
       cache: "no-store",
     });

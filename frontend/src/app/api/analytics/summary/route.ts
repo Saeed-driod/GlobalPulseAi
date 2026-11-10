@@ -181,7 +181,7 @@ export async function GET() {
 
     // 2. Seamless fallback to Render backend API
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://globlepluseai.onrender.com";
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://150.136.214.192";
       const bRes = await fetch(`${backendUrl}/api/analytics/summary`, { cache: "no-store" });
       if (bRes.ok) {
         const bData = await bRes.json();

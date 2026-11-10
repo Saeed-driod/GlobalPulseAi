@@ -27,7 +27,7 @@ export function getBackendUrl(): string {
   if (envUrl && envUrl.trim() && !envUrl.includes("localhost")) {
     return envUrl.trim().replace(/\/+$/, "");
   }
-  return "https://globlepluseai.onrender.com";
+  return "http://150.136.214.192";
 }
 
 export const API_BASE = getApiBase();
