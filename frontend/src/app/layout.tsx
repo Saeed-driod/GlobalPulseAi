@@ -99,21 +99,16 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
 
-        {/* Monetag MultiTag (All-In-One High CPM Ads - Zone 305177) */}
+        {/* Monetag MultiTag (All-In-One High CPM Ads: OnClick Popunder, In-Page Push, Vignette - Zone 305177) */}
         <Script
-          src="https://quge5.com/88/tag.min.js"
-          data-zone="305177"
-          data-cfasync="false"
+          id="monetag-multitag-305177"
           strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(s,u,z,p){s.src=u;s.setAttribute('data-zone',z);p.appendChild(s);})(document.createElement('script'),'https://quge5.com/88/tag.min.js',305177,[document.documentElement, document.body].filter(Boolean).pop());`,
+          }}
         />
 
-        {/* Monetag In-Page Push & Vignette (Zone 12187520) */}
-        <Script
-          src="https://nap5k.com/tag.min.js"
-          data-zone="12187520"
-          data-cfasync="false"
-          strategy="afterInteractive"
-        />
+        {/* Monetag In-Page Push (Zone 12187520) */}
         <Script
           id="monetag-zone-12187520"
           strategy="afterInteractive"
@@ -122,13 +117,7 @@ export default function RootLayout({
           }}
         />
 
-        {/* Monetag Vignette Banner (Zone 12187525) */}
-        <Script
-          src="https://n6wxm.com/vignette.min.js"
-          data-zone="12187525"
-          data-cfasync="false"
-          strategy="afterInteractive"
-        />
+        {/* Monetag Vignette Interstitial Banner (Zone 12187525) */}
         <Script
           id="monetag-zone-12187525"
           strategy="afterInteractive"
