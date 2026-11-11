@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import re
+import html
 import hashlib
 import traceback
 from pathlib import Path
