@@ -43,6 +43,30 @@ def slugify(text: str) -> str:
     return re.sub(r'[\s-]+', '-', text).strip('-')
 
 
+def are_titles_duplicate(title1: str, title2: str) -> bool:
+    """Checks semantic equivalence between two headlines to prevent duplicate publishing."""
+    if not title1 or not title2:
+        return False
+    t1 = title1.strip().lower()
+    t2 = title2.strip().lower()
+    if t1 == t2:
+        return True
+
+    w1 = set(w for w in re.sub(r'[^a-zA-Z0-9\s]', '', t1).split() if len(w) > 3)
+    w2 = set(w for w in re.sub(r'[^a-zA-Z0-9\s]', '', t2).split() if len(w) > 3)
+    if not w1 or not w2:
+        return False
+
+    common = w1.intersection(w2)
+    min_len = min(len(w1), len(w2))
+    overlap = len(common) / min_len if min_len > 0 else 0
+    if len(common) >= 3 and overlap >= 0.45:
+        return True
+    if len(common) >= 4:
+        return True
+    return False
+
+
 def is_story_duplicate(db: Session, raw_title: str, source_url: Optional[str] = None) -> bool:
     """Checks if a story is a duplicate by URL, exact title, or semantic word overlap."""
     if source_url:
@@ -50,21 +74,9 @@ def is_story_duplicate(db: Session, raw_title: str, source_url: Optional[str] = 
         if db.query(Article).filter(Article.source_url.ilike(f"{clean_url}%")).first():
             return True
 
-    clean_raw = re.sub(r'[^a-zA-Z0-9\s]', '', raw_title.lower()).split()
-    words = set(w for w in clean_raw if len(w) > 3)
-    if not words:
-        return False
-
-    recent_articles = db.query(Article).order_by(Article.id.desc()).limit(150).all()
+    recent_articles = db.query(Article).order_by(Article.id.desc()).limit(200).all()
     for art in recent_articles:
-        if art.title.lower().strip() == raw_title.lower().strip():
-            return True
-        art_words = set(w for w in re.sub(r'[^a-zA-Z0-9\s]', '', art.title.lower()).split() if len(w) > 3)
-        if not art_words:
-            continue
-        common = words.intersection(art_words)
-        overlap = len(common) / max(len(words), len(art_words))
-        if overlap >= 0.65:
+        if are_titles_duplicate(raw_title, art.title):
             return True
     return False
 
@@ -104,11 +116,18 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 "articles": []
             }
 
-        # Find fresh stories not yet published (Strict deduplication gate)
+        # Find fresh stories not yet published (Strict deduplication gate across DB and in-batch)
         candidate_items = []
         for item in raw_items:
-            if not is_story_duplicate(db, item.get("raw_title", ""), item.get("source_url")):
-                candidate_items.append(item)
+            r_title = item.get("raw_title", "")
+            r_url = item.get("source_url")
+            # 1. Check against DB
+            if is_story_duplicate(db, r_title, r_url):
+                continue
+            # 2. Check against items already accepted into this candidate batch!
+            if any(are_titles_duplicate(r_title, c.get("raw_title", "")) for c in candidate_items):
+                continue
+            candidate_items.append(item)
 
         # If all stories from this fetch cycle already exist in DB, STOP. NEVER re-publish duplicate stories!
         if not candidate_items:
@@ -208,22 +227,10 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 except Exception as idx_err:
                     print(f"[Search Indexer Notice] {idx_err}")
 
-                # Instant Facebook Page Auto-Post
+                # Paced Facebook Page Auto-Post (strictly paced every 20-30 mins to avoid spam)
                 try:
-                    from .facebook_poster import post_article_to_facebook, check_facebook_auth
-                    fb_auth = check_facebook_auth()
-                    if fb_auth.get("authenticated"):
-                        art_url = f"https://globalpulseai.vercel.app/news/{slug}"
-                        fb_res = post_article_to_facebook(
-                            title=article.title,
-                            summary=article.summary,
-                            article_url=art_url,
-                            category=article.category
-                        )
-                        if fb_res.get("success"):
-                            article.facebook_post_id = fb_res.get("post_id")
-                            db.commit()
-                            print(f"[Master Pipeline Facebook] Published #{article.id} to Facebook: {fb_res.get('post_url')}")
+                    from .facebook_poster import maybe_auto_post_next_article
+                    maybe_auto_post_next_article(db, min_interval_seconds=1200)
                 except Exception as fb_err:
                     print(f"[Master Pipeline Facebook Notice] {fb_err}")
 

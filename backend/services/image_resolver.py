@@ -88,18 +88,37 @@ def extract_source_image_from_entry_or_url(entry: Any = None, source_url: Option
                     if u and isinstance(u, str) and (u.startswith("http") or u.startswith("//")):
                         return clean_image_url(u)
 
+        # Check HTML inside summary / description / content for <img> tags
+        for attr in ("summary", "description", "content"):
+            val = getattr(entry, attr, None)
+            if isinstance(val, list) and val:
+                val = val[0].get("value", "") if isinstance(val[0], dict) else str(val[0])
+            if val and isinstance(val, str) and "<img" in val:
+                img_m = re.findall(r'<img[^>]+src=[\x22\x27]([^\x22\x27]+)[\x22\x27]', val, re.I)
+                for u in img_m:
+                    if (u.startswith("http") or u.startswith("//")) and not any(bad in u.lower() for bad in ["pixel", "spacer", "tracker", "1x1", "icon", "feed"]):
+                        return clean_image_url(u)
+
     # 2. Extract og:image directly from publisher's source article webpage
     if source_url and isinstance(source_url, str) and source_url.startswith("http"):
         try:
             headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9"
             }
             req = urllib.request.Request(source_url, headers=headers)
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=6) as resp:
                 text = resp.read().decode("utf-8", errors="ignore")
                 matches = re.findall(r'<meta[^>]+property=[\x22\x27]og:image[\x22\x27][^>]+content=[\x22\x27]([^\x22\x27]+)', text, re.I)
                 if not matches:
                     matches = re.findall(r'<meta[^>]+content=[\x22\x27]([^\x22\x27]+)[\x22\x27][^>]+property=[\x22\x27]og:image', text, re.I)
+                if not matches:
+                    matches = re.findall(r'<meta[^>]+name=[\x22\x27]twitter:image[\x22\x27][^>]+content=[\x22\x27]([^\x22\x27]+)', text, re.I)
+                if not matches:
+                    matches = re.findall(r'<meta[^>]+content=[\x22\x27]([^\x22\x27]+)[\x22\x27][^>]+name=[\x22\x27]twitter:image', text, re.I)
+                if not matches:
+                    matches = re.findall(r'[\x22\x27]image[\x22\x27]\s*:\s*[\x22\x27](https?://[^\x22\x27]+\.(?:jpg|jpeg|png|webp))[\x22\x27]', text, re.I)
                 if matches:
                     return clean_image_url(matches[0])
         except Exception:
@@ -146,21 +165,17 @@ def resolve_article_image(
     2. Extracts authentic news photo from entry media tags or source article URL.
     3. Falls back to curated category visuals only if no source photo exists.
     """
+    # Extract real source picture from RSS entry or publisher webpage
+    source_img = extract_source_image_from_entry_or_url(entry=entry, source_url=source_url)
+    if source_img and source_img.startswith("http") and "images.unsplash.com" not in source_img:
+        return source_img
+
+    # If current image is a valid HTTP URL and not an Unsplash fallback or placeholder
     if current_image_url and current_image_url.startswith("http") and not current_image_url.startswith("/api/og"):
-        # If it's a generic Unsplash fallback, try to upgrade it with the real source image
         if "images.unsplash.com" not in current_image_url:
             return clean_image_url(current_image_url)
 
-    # Extract real source picture
-    source_img = extract_source_image_from_entry_or_url(entry=entry, source_url=source_url)
-    if source_img and source_img.startswith("http"):
-        return source_img
-
-    # If current image is an Unsplash image already, keep it
-    if current_image_url and "images.unsplash.com" in current_image_url:
-        return current_image_url
-
-    # Final Fallback
+    # Final Fallback to diverse topic photo
     seed_val = seed if isinstance(seed, int) else None
     return get_curated_unsplash_photo(category=category, title=title, seed=seed_val)
 

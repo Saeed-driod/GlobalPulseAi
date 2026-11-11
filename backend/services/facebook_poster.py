@@ -372,12 +372,27 @@ def post_video_to_facebook(
         print(f"[Facebook Video Upload Error] {e}")
         return {"success": False, "error": str(e)}
 
+def are_titles_similar(t1: str, t2: str) -> bool:
+    """Detects if two headlines cover the exact same news event."""
+    if not t1 or not t2:
+        return False
+    import re
+    w1 = set(w for w in re.sub(r'[^a-zA-Z0-9\s]', '', t1.lower()).split() if len(w) > 3)
+    w2 = set(w for w in re.sub(r'[^a-zA-Z0-9\s]', '', t2.lower()).split() if len(w) > 3)
+    if not w1 or not w2:
+        return False
+    common = w1.intersection(w2)
+    min_len = min(len(w1), len(w2))
+    overlap = len(common) / min_len if min_len > 0 else 0
+    return (len(common) >= 3 and overlap >= 0.45) or (len(common) >= 4)
+
 _last_fb_auto_post_timestamp = 0
 
-def maybe_auto_post_next_article(db, min_interval_seconds: int = 1200) -> Optional[Dict[str, Any]]:
+def maybe_auto_post_next_article(db, min_interval_seconds: int = 1500) -> Optional[Dict[str, Any]]:
     """
     Auto-pilot helper: periodically posts the latest high-rank unposted article
-    to the Facebook Page, strictly adhering to pacing (default: 20 mins) to prevent spam flags.
+    to the Facebook Page, strictly adhering to pacing (default: 25 mins) to prevent spam flags.
+    Enforces semantic deduplication against previously posted articles.
     """
     global _last_fb_auto_post_timestamp
     import time
@@ -391,39 +406,70 @@ def maybe_auto_post_next_article(db, min_interval_seconds: int = 1200) -> Option
     if not auth.get("authenticated"):
         return None
 
-    article = (
+    # Fetch recently posted articles for semantic deduplication
+    already_posted = (
+        db.query(Article)
+        .filter(Article.facebook_post_id != None, Article.facebook_post_id != "", Article.facebook_post_id != "DUPLICATE_SKIPPED")
+        .order_by(Article.id.desc())
+        .limit(60)
+        .all()
+    )
+
+    # Find the latest eligible unposted article
+    unposted_candidates = (
         db.query(Article)
         .filter((Article.facebook_post_id == None) | (Article.facebook_post_id == ""))
         .order_by(Article.id.desc())
-        .first()
+        .limit(10)
+        .all()
     )
-    if not article:
+    if not unposted_candidates:
         return None
 
-    # Deduplication check: Has a story with the same title already been posted to Facebook?
-    already_posted_same_title = db.query(Article).filter(
-        Article.title == article.title,
-        Article.facebook_post_id != None,
-        Article.facebook_post_id != "",
-        Article.id != article.id
-    ).first()
-    if already_posted_same_title:
-        article.facebook_post_id = already_posted_same_title.facebook_post_id
-        db.commit()
+    target_article = None
+    for cand in unposted_candidates:
+        # Check against all recently posted articles
+        is_dup = False
+        for p in already_posted:
+            if are_titles_similar(cand.title, p.title):
+                is_dup = True
+                break
+        if is_dup:
+            cand.facebook_post_id = "DUPLICATE_SKIPPED"
+            db.commit()
+            print(f"[Facebook Auto-Pilot] Skipping #{cand.id} '{cand.title[:45]}' (Duplicate of recent Facebook post).")
+            continue
+
+        target_article = cand
+        break
+
+    if not target_article:
         return None
 
-    art_url = f"https://globalpulseai.vercel.app/news/{article.slug}"
+    # Ensure authentic image: if image is missing or Unsplash fallback, try to resolve real photo first
+    if not target_article.image_url or "images.unsplash.com" in target_article.image_url or target_article.image_url.startswith("/api/og"):
+        try:
+            from services.image_resolver import extract_source_image_from_entry_or_url
+            real_img = extract_source_image_from_entry_or_url(source_url=target_article.source_url)
+            if real_img and real_img.startswith("http") and "images.unsplash.com" not in real_img:
+                target_article.image_url = real_img
+                db.commit()
+                print(f"[Facebook Auto-Pilot] Restored authentic publisher photo for #{target_article.id}: {real_img[:60]}...")
+        except Exception as img_err:
+            pass
+
+    art_url = f"https://globalpulseai.vercel.app/news/{target_article.slug}"
     res = post_article_to_facebook(
-        title=article.title,
-        summary=article.summary,
+        title=target_article.title,
+        summary=target_article.summary,
         article_url=art_url,
-        category=article.category
+        category=target_article.category
     )
     if res.get("success"):
-        article.facebook_post_id = res.get("post_id")
+        target_article.facebook_post_id = res.get("post_id")
         db.commit()
         _last_fb_auto_post_timestamp = now
-        print(f"[Facebook Auto-Pilot] Published article #{article.id} to Facebook: {res.get('post_url')}")
+        print(f"[Facebook Auto-Pilot] Published article #{target_article.id} to Facebook: {res.get('post_url')}")
         return res
     return None
 

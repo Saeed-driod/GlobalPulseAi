@@ -452,7 +452,7 @@ def parse_and_format_article_json(data: Dict[str, Any], raw_title: str, source_n
         title=headline,
         source_url=source_url,
         category=category,
-        current_image_url=None
+        current_image_url=raw_image_url
     )
 
     return {
@@ -621,7 +621,7 @@ You must rewrite the JSON using ONLY facts, numbers, and scores directly stated 
         title=clean_title,
         source_url=source_url,
         category=category,
-        current_image_url=None
+        current_image_url=raw_image_url
     )
 
     fallback_dict = {
