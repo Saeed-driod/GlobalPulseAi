@@ -18,12 +18,12 @@ if not exist "d:\Global English Audience\videos" (
 )
 
 echo Syncing videos from Oracle Cloud server (150.136.214.192)...
-scp -i "%USERPROFILE%\.ssh\oracle_globalpulse.key" -o StrictHostKeyChecking=no ubuntu@150.136.214.192:/home/ubuntu/globalpulse-ai/videos/* "d:\Global English Audience\videos\"
+scp -i "%USERPROFILE%\.ssh\oracle_globalpulse.key" -o StrictHostKeyChecking=no ubuntu@150.136.214.192:/home/ubuntu/globalpulse-ai/videos/* "d:\Global English Audience\videos"
 
 echo.
 echo ===================================================================
 echo   SUCCESS: All videos and captions are synced to your local PC!
-echo   Folder: d:\Global English Audience\videos\
+echo   Folder: d:\Global English Audience\videos
 echo ===================================================================
 explorer "d:\Global English Audience\videos"
 pause
