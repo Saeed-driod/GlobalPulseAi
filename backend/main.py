@@ -190,6 +190,13 @@ static_dir = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+# Mount videos directory for cloud video previews and TikTok downloads
+_videos_dir = Path(__file__).resolve().parent.parent / "videos"
+if not _videos_dir.exists():
+    _videos_dir = Path(__file__).resolve().parent / "videos"
+_videos_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/videos-files", StaticFiles(directory=str(_videos_dir)), name="videos-files")
+
 def slugify(text: str) -> str:
 
     text = text.lower()
@@ -1122,6 +1129,140 @@ def auth_youtube_status(db: Session = Depends(get_db)):
             }
 
     return status_res
+
+
+@app.get("/tiktok", response_class=HTMLResponse)
+@app.get("/videos", response_class=HTMLResponse)
+def tiktok_video_hub():
+    """
+    TikTok Creator Hub:
+    Lists all rendered vertical 9:16 and 16:9 videos on the cloud server.
+    Provides instant browser video preview, 1-click download, and 1-click caption copy.
+    """
+    v_dir = Path(__file__).resolve().parent.parent / "videos"
+    if not v_dir.exists():
+        v_dir = Path(__file__).resolve().parent / "videos"
+    
+    mp4_files = sorted(v_dir.glob("*.mp4"), key=lambda f: f.stat().st_mtime, reverse=True)
+    
+    cards_html = ""
+    for f in mp4_files:
+        size_mb = f.stat().st_size / (1024 * 1024)
+        mtime = datetime.fromtimestamp(f.stat().st_mtime, timezone.utc).strftime("%b %d, %H:%M UTC")
+        cap_file = f.parent / f"{f.stem}_caption.txt"
+        if not cap_file.exists():
+            base_cand = f.stem.replace("TikTok_", "")
+            cap_file = f.parent / f"{base_cand}_caption.txt"
+        
+        caption_text = ""
+        if cap_file.exists():
+            try:
+                with open(cap_file, "r", encoding="utf-8", errors="ignore") as cf:
+                    caption_text = cf.read().strip()
+            except Exception:
+                pass
+        
+        display_name = f.name.replace(".mp4", "").replace("_", " ")
+        safe_caption = html.escape(caption_text)
+        
+        cards_html += f"""
+        <div class="card">
+            <div class="video-preview">
+                <video controls preload="metadata" playsinline>
+                    <source src="/videos-files/{f.name}" type="video/mp4">
+                    Your browser does not support video playback.
+                </video>
+            </div>
+            <div class="card-body">
+                <div class="card-title">{html.escape(display_name)}</div>
+                <div class="card-meta">📅 {mtime} &bull; 💾 {size_mb:.1f} MB</div>
+                
+                <a href="/videos-files/{f.name}" download="{f.name}" class="btn-download">
+                    ⬇️ Download Video for TikTok
+                </a>
+                
+                {f'''
+                <div class="caption-box">
+                    <div class="caption-header">
+                        <span>TikTok Caption & Tags:</span>
+                        <button class="btn-copy" onclick="copyCaption(this, `{safe_caption}`)">📋 Copy Caption</button>
+                    </div>
+                    <div class="caption-content">{safe_caption}</div>
+                </div>
+                ''' if caption_text else ''}
+            </div>
+        </div>
+        """
+
+    if not cards_html:
+        cards_html = '<div style="color:#94a3b8; text-align:center; padding: 40px;">No videos rendered yet. The autonomous worker is processing the queue!</div>'
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalPulse AI - TikTok Creator Hub</title>
+    <style>
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #090D16; color: #f8fafc; min-height: 100vh; padding: 24px 16px; }}
+        .container {{ max-width: 1100px; margin: 0 auto; }}
+        .header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #1e293b; flex-wrap: wrap; gap: 16px; }}
+        .logo {{ font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #06b6d4, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
+        .actions {{ display: flex; gap: 12px; }}
+        .btn-tiktok {{ background: #fe2c55; color: white; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }}
+        .btn-tiktok:hover {{ background: #e02449; }}
+        .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }}
+        .card {{ background: #131b2e; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }}
+        .video-preview {{ background: #000; display: flex; justify-content: center; align-items: center; min-height: 380px; max-height: 480px; }}
+        video {{ width: 100%; height: 100%; max-height: 480px; object-fit: contain; }}
+        .card-body {{ padding: 16px; display: flex; flex-direction: column; flex-grow: 1; }}
+        .card-title {{ font-size: 15px; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; line-height: 1.4; }}
+        .card-meta {{ font-size: 12px; color: #64748b; margin-bottom: 14px; }}
+        .btn-download {{ background: #0284c7; color: white; text-align: center; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; margin-bottom: 12px; transition: background 0.2s; }}
+        .btn-download:hover {{ background: #0369a1; }}
+        .caption-box {{ background: #0b1120; border: 1px solid #1e293b; border-radius: 8px; padding: 10px; margin-top: auto; }}
+        .caption-header {{ display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 6px; }}
+        .btn-copy {{ background: #334155; color: #f1f5f9; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }}
+        .btn-copy:hover {{ background: #475569; }}
+        .caption-content {{ font-size: 12px; color: #cbd5e1; line-height: 1.4; max-height: 90px; overflow-y: auto; white-space: pre-wrap; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="logo">⚡ GlobalPulse AI &bull; TikTok Hub</div>
+                <p style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Download rendered videos & copy captions directly to your phone or PC!</p>
+            </div>
+            <div class="actions">
+                <a href="https://www.tiktok.com/creator-center/upload" target="_blank" class="btn-tiktok">
+                    🚀 Open TikTok Studio
+                </a>
+            </div>
+        </div>
+        <div class="grid">
+            {cards_html}
+        </div>
+    </div>
+    <script>
+        function copyCaption(btn, text) {{
+            navigator.clipboard.writeText(text).then(() => {{
+                const orig = btn.innerText;
+                btn.innerText = "✔ Copied!";
+                btn.style.background = "#10b981";
+                setTimeout(() => {{
+                    btn.innerText = orig;
+                    btn.style.background = "#334155";
+                }}, 2500);
+            }}).catch(() => {{
+                alert("Failed to copy. Please select and copy manually.");
+            }});
+        }}
+    </script>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content, status_code=200)
 
 
 class TokenSyncPayload(BaseModel):
