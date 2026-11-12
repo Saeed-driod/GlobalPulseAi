@@ -10,6 +10,7 @@ import { Header, CATEGORIES } from "./Header";
 import { HeroFeatured } from "./HeroFeatured";
 import { ArticleCard } from "./ArticleCard";
 import { AdBanner } from "./AdBanner";
+import { AdSlot } from "./AdSlot";
 import { Footer } from "./Footer";
 import { Sparkles, RefreshCw, ShieldCheck } from "./Icons";
 import { getCategoryTheme } from "../lib/categoryTheme";
@@ -69,6 +70,9 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
       />
 
       <BreakingTicker articles={articles} />
+
+      {/* Top Leaderboard Banner (Adsterra 728x90 Desktop / 320x50 Mobile) */}
+      <AdSlot type="leaderboard" />
 
       {/* 2. Main Newsroom Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 pt-2 sm:pt-3 pb-16">
@@ -165,8 +169,13 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
+            {articles.map((article, index) => (
+              <React.Fragment key={article.id}>
+                <ArticleCard article={article} />
+                {(index + 1) % 4 === 0 && (
+                  <AdSlot type="in-feed" />
+                )}
+              </React.Fragment>
             ))}
           </div>
         )}

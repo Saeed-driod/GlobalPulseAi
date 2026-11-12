@@ -69,7 +69,7 @@ def record_error(stage: str, error: Exception, article_id: Optional[int] = None)
 
 try:
     from .database import engine, Base, get_db, SessionLocal
-    from .models import Article, ArticleStatus, ArticleCategory, WorkerHeartbeat, AnalyticsVisit
+    from .models import Article, ArticleStatus, ArticleCategory, WorkerHeartbeat, AnalyticsVisit, AdSetting
     from .schemas import (
         ArticleResponse,
         ArticleListResponse,
@@ -84,7 +84,9 @@ try:
         AnalyticsSourceStat,
         AnalyticsCountryStat,
         AnalyticsTopArticle,
-        AnalyticsLiveVisit
+        AnalyticsLiveVisit,
+        AdSettingSchema,
+        AdSettingUpdate
     )
     from .services.scraper import fetch_breaking_rss_news
     from .services.ai_service import process_raw_news
@@ -96,7 +98,7 @@ try:
     from .services.image_resolver import refresh_missing_images
 except (ImportError, ValueError):
     from database import engine, Base, get_db, SessionLocal
-    from models import Article, ArticleStatus, ArticleCategory, WorkerHeartbeat, AnalyticsVisit
+    from models import Article, ArticleStatus, ArticleCategory, WorkerHeartbeat, AnalyticsVisit, AdSetting
     from schemas import (
         ArticleResponse,
         ArticleListResponse,
@@ -111,7 +113,9 @@ except (ImportError, ValueError):
         AnalyticsSourceStat,
         AnalyticsCountryStat,
         AnalyticsTopArticle,
-        AnalyticsLiveVisit
+        AnalyticsLiveVisit,
+        AdSettingSchema,
+        AdSettingUpdate
     )
     from services.scraper import fetch_breaking_rss_news
     from services.ai_service import process_raw_news
@@ -293,6 +297,52 @@ def get_article_by_slug(slug: str, db: Session = Depends(get_db)):
 def verify_admin_key(is_valid: bool = Depends(verify_admin_secret)):
     """Verifies that the provided admin passkey or secret is authorized."""
     return {"success": True, "message": "Admin authorization confirmed."}
+
+
+@app.get("/api/settings/ads", response_model=AdSettingSchema)
+def get_ad_settings(db: Session = Depends(get_db)):
+    """Retrieve active ad monetization configuration for public rendering."""
+    setting = db.query(AdSetting).first()
+    if not setting:
+        setting = AdSetting(
+            master_enabled=True,
+            monetag_global_script="",
+            direct_link_url="",
+            adsterra_header_banner="",
+            adsterra_infeed_banner="",
+            adsterra_sidebar_banner="",
+        )
+        db.add(setting)
+        try:
+            db.commit()
+            db.refresh(setting)
+        except Exception:
+            db.rollback()
+    return setting
+
+
+@app.post("/api/settings/ads", response_model=AdSettingSchema, dependencies=[Depends(verify_admin_secret)])
+def update_ad_settings(payload: AdSettingUpdate, db: Session = Depends(get_db)):
+    """Update ad monetization settings (Requires Admin Secret Key)."""
+    setting = db.query(AdSetting).first()
+    if not setting:
+        setting = AdSetting()
+        db.add(setting)
+    
+    update_data = payload.model_dump(exclude_unset=True) if hasattr(payload, "model_dump") else payload.dict(exclude_unset=True)
+    for field, val in update_data.items():
+        if val is not None:
+            setattr(setting, field, val)
+    
+    setting.updated_at = datetime.now(timezone.utc)
+    try:
+        db.commit()
+        db.refresh(setting)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to save ad settings: {str(e)}")
+    return setting
+
 
 @app.post("/api/articles/fetch-now", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])
 @app.post("/api/fetch-now", response_model=ActionResponse, dependencies=[Depends(verify_admin_secret)])

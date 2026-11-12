@@ -650,5 +650,58 @@ export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary | null> 
   return null;
 }
 
+export interface AdSettings {
+  master_enabled: boolean;
+  monetag_global_script?: string;
+  direct_link_url?: string;
+  adsterra_header_banner?: string;
+  adsterra_infeed_banner?: string;
+  adsterra_sidebar_banner?: string;
+  updated_at?: string;
+}
+
+export async function fetchAdSettings(): Promise<AdSettings> {
+  try {
+    const res = await fetch(`${getBackendUrl()}/api/settings/ads`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn("Failed to fetch ad settings from backend, using default fallback:", err);
+  }
+  return {
+    master_enabled: true,
+    monetag_global_script: "",
+    direct_link_url: "",
+    adsterra_header_banner: "",
+    adsterra_infeed_banner: "",
+    adsterra_sidebar_banner: "",
+  };
+}
+
+export async function updateAdSettings(payload: Partial<AdSettings>): Promise<{ success: boolean; data?: AdSettings; message?: string }> {
+  try {
+    const res = await fetch(`${getBackendUrl()}/api/settings/ads`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Secret": getAdminSecret(),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, data };
+    }
+    const err = await res.json().catch(() => ({}));
+    return { success: false, message: err.detail || "Failed to save ad settings." };
+  } catch (err: any) {
+    return { success: false, message: err?.message || "Network error while saving ad settings." };
+  }
+}
+
+
 
 

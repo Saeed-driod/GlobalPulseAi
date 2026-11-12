@@ -7,6 +7,8 @@ import { fetchArticleBySlug, fetchArticles } from "../../../lib/api";
 import { Header } from "../../../components/Header";
 import { BreakingTicker } from "../../../components/BreakingTicker";
 import { AdBanner } from "../../../components/AdBanner";
+import { AdSlot } from "../../../components/AdSlot";
+import { useDirectLink } from "../../../lib/useDirectLink";
 import { NewsletterBox } from "../../../components/NewsletterBox";
 import { Footer } from "../../../components/Footer";
 import { AudioArticlePlayer } from "../../../components/AudioArticlePlayer";
@@ -34,6 +36,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
   const [copied, setCopied] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(!initialArticle);
   const [scrollProgress, setScrollProgress] = useState<number>(0);
+  const { handleActionClick } = useDirectLink();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -264,10 +267,8 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
       <BreakingTicker articles={allArticles} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-20">
-        {/* Top Leaderboard Ad */}
-        <div className="neu-flat p-2 sm:p-4 mb-6">
-          <AdBanner slot="header" />
-        </div>
+        {/* Top Leaderboard Ad (Adsterra 728x90) */}
+        <AdSlot type="leaderboard" className="mb-6" />
 
         {/* Back Link */}
         <div className="mb-6">
@@ -413,9 +414,10 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
               {article.source_url && (
                 <a
                   href={article.source_url}
+                  onClick={(e) => handleActionClick(e, article.source_url!)}
                   target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 hover:underline font-semibold"
+                  rel="nofollow noopener sponsored"
+                  className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 hover:underline font-semibold cursor-pointer"
                 >
                   Read the original <ExternalLink className="w-3.5 h-3.5" />
                 </a>
@@ -480,9 +482,9 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
               </div>
             )}
 
-            {/* In-Article Ad Banner */}
-            <div className="neu-flat p-4 my-8">
-              <AdBanner slot="in-article" />
+            {/* In-Article Ad Banner (Adsterra In-Feed Native) */}
+            <div className="my-8">
+              <AdSlot type="in-feed" fallbackTitle="Accelerate Your Career with GlobalHire AI" />
             </div>
 
             {/* Newsletter Box */}
@@ -491,9 +493,8 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
 
           {/* Right Sidebar */}
           <aside className="lg:col-span-4 space-y-6">
-            <div className="neu-flat p-4">
-              <AdBanner slot="sidebar" />
-            </div>
+            {/* Sticky Sidebar Banner (Adsterra 300x250) */}
+            <AdSlot type="sidebar" />
 
             {/* Trending News */}
             <div className="p-5 rounded-2xl neu-flat border border-white/5">

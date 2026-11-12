@@ -114,3 +114,17 @@ class YouTubeDailyUpload(Base):
     uploaded_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
 
 
+class AdSetting(Base):
+    __tablename__ = "ad_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    master_enabled = Column(Boolean, default=True, nullable=False)
+    monetag_global_script = Column(Text, default="", nullable=True)
+    direct_link_url = Column(Text, default="", nullable=True)
+    adsterra_header_banner = Column(Text, default="", nullable=True)
+    adsterra_infeed_banner = Column(Text, default="", nullable=True)
+    adsterra_sidebar_banner = Column(Text, default="", nullable=True)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+

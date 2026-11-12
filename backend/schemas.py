@@ -159,3 +159,27 @@ class AnalyticsSummaryResponse(BaseModel):
     recent_visits: List[AnalyticsLiveVisit]
 
 
+class AdSettingSchema(BaseModel):
+    id: Optional[int] = 1
+    master_enabled: bool = True
+    monetag_global_script: Optional[str] = ""
+    direct_link_url: Optional[str] = ""
+    adsterra_header_banner: Optional[str] = ""
+    adsterra_infeed_banner: Optional[str] = ""
+    adsterra_sidebar_banner: Optional[str] = ""
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AdSettingUpdate(BaseModel):
+    master_enabled: Optional[bool] = None
+    monetag_global_script: Optional[str] = None
+    direct_link_url: Optional[str] = None
+    adsterra_header_banner: Optional[str] = None
+    adsterra_infeed_banner: Optional[str] = None
+    adsterra_sidebar_banner: Optional[str] = None
+
+
+

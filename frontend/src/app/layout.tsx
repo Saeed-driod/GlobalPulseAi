@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { AnalyticsTracker } from "../components/AnalyticsTracker";
 import { PushNotificationPrompt } from "../components/PushNotificationPrompt";
+import { MonetagGlobalScript } from "../components/MonetagGlobalScript";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -194,6 +195,7 @@ export default function RootLayout({
         <div className="relative z-10 flex flex-col flex-1 min-h-screen">
           <AnalyticsTracker />
           <PushNotificationPrompt />
+          <MonetagGlobalScript />
           {children}
         </div>
       </body>

@@ -26,6 +26,7 @@ import {
   getBackendUrl,
 } from "../../lib/api";
 import { AnalyticsModal } from "../../components/AnalyticsModal";
+import { AdManagerModal } from "../../components/AdManagerModal";
 
 import {
   Sparkles,
@@ -81,6 +82,7 @@ export default function AdminPage() {
 
   // Audience Analytics State
   const [showAnalyticsModal, setShowAnalyticsModal] = useState<boolean>(false);
+  const [showAdManagerModal, setShowAdManagerModal] = useState<boolean>(false);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsSummary | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState<boolean>(false);
   const [customLiveStreamId, setCustomLiveStreamId] = useState<string>("");
@@ -590,6 +592,14 @@ export default function AdminPage() {
             >
               <BarChart3 className="w-4 h-4 text-emerald-600" />
               <span>📊 Views & Audience</span>
+            </button>
+
+            {/* Ad Monetization Manager Button */}
+            <button
+              onClick={() => setShowAdManagerModal(true)}
+              className="neu-sm px-4 py-2 text-cyan-600 hover:text-cyan-700 font-bold text-xs flex items-center gap-2 cursor-pointer active:scale-95"
+            >
+              <span>💰 Ad Manager</span>
             </button>
 
             {/* Lock Session */}
@@ -1413,6 +1423,13 @@ export default function AdminPage() {
         analyticsData={analyticsData}
         isLoading={loadingAnalytics}
         onRefresh={loadAnalytics}
+      />
+
+      {/* Dynamic Ad Monetization Manager Modal */}
+      <AdManagerModal
+        isOpen={showAdManagerModal}
+        onClose={() => setShowAdManagerModal(false)}
+        onSuccessToast={(msg) => setToastMessage(msg)}
       />
     </div>
   );
