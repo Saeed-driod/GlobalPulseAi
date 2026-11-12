@@ -6,7 +6,8 @@ const BACKEND_URL = "http://150.136.214.192";
 
 async function proxyRequest(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
-  const targetPath = `/api/${path.join("/")}`;
+  const cleanPath = path[0] === "api" ? path.slice(1).join("/") : path.join("/");
+  const targetPath = `/api/${cleanPath}`;
   const search = request.nextUrl.search;
   const targetUrl = `${BACKEND_URL}${targetPath}${search}`;
 
@@ -57,3 +58,4 @@ export const GET = proxyRequest;
 export const POST = proxyRequest;
 export const PUT = proxyRequest;
 export const DELETE = proxyRequest;
+
