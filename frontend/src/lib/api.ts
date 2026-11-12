@@ -23,6 +23,10 @@ export function getApiBase(): string {
 }
 
 export function getBackendUrl(): string {
+  // Client-side browser: Use relative proxy path to completely prevent HTTPS Mixed Content & CORS blocks!
+  if (typeof window !== "undefined") {
+    return "/backend-api";
+  }
   const envUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
   if (envUrl && envUrl.trim() && !envUrl.includes("localhost") && !envUrl.includes("onrender.com")) {
     return envUrl.trim().replace(/\/+$/, "");
