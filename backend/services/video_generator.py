@@ -210,11 +210,11 @@ CATEGORY_CURATED_PHOTOS["Geopolitics"] = CATEGORY_CURATED_PHOTOS["World Politics
 CATEGORY_CURATED_PHOTOS["Future Science"] = CATEGORY_CURATED_PHOTOS["Science"]
 
 def get_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
-    """Safe font loader for Windows and Linux environments."""
+    """Safe font loader for Windows and Linux environments, prioritizing bold viral fonts."""
     font_names = (
-        ["segoeuib.ttf", "arialbd.ttf", "calibrib.ttf", "DejaVuSans-Bold.ttf"]
+        ["impact.ttf", "Impact.ttf", "arialbd.ttf", "segoeuib.ttf", "calibrib.ttf", "DejaVuSans-Bold.ttf"]
         if bold
-        else ["segoeui.ttf", "arial.ttf", "calibri.ttf", "DejaVuSans.ttf"]
+        else ["arial.ttf", "segoeui.ttf", "calibri.ttf", "DejaVuSans.ttf"]
     )
     for name in font_names:
         try:
@@ -1108,23 +1108,27 @@ def draw_sentence_captions(
     canvas_w: int,
     canvas_h: int,
     font: ImageFont.ImageFont,
-    accent_color: Tuple[int, int, int] = (250, 204, 21),
-    max_chars: int = 24,
+    accent_color: Tuple[int, int, int] = (255, 230, 0),
+    max_chars: int = 20,
     is_shorts: bool = True
 ):
     """
-    Renders high-impact TikTok/Reels style pop-up subtitles:
-    - Positioned in the optimal middle-screen safe zone (Y=1050 to 1250) to avoid TikTok UI icons.
-    - Frosted dark pill background with subtle glow border for 100% legibility over any bright photo.
-    - First 2-3 impact words highlighted in Neon Yellow / Neon Cyan with thick stroke outline (5px).
+    Renders modern, high-impact TikTok / Reels / Shorts style viral subtitles:
+    - Uppercase, bold typography with heavy black stroke (7-8px) and 3D shadow.
+    - No clunky dark pill boxes, perfectly legible over any background.
+    - Positioned at eye-level sweet spot (Y=1120-1240) above mobile UI controls.
+    - Highlighted keywords in Electric Yellow / Neon Cyan.
     """
     words = sentence.split()
     if not words:
         return
 
+    # Uppercase for viral retention
+    upper_words = [w.upper() for w in words]
+
     lines = []
     curr = []
-    for w in words:
+    for w in upper_words:
         if len(" ".join(curr + [w])) <= max_chars:
             curr.append(w)
         else:
@@ -1134,20 +1138,21 @@ def draw_sentence_captions(
     if curr:
         lines.append(curr)
 
-    # Strictly limit to 2 punchy lines per visual scene for modern TikTok/Shorts retention
+    # Strictly limit to 2 punchy lines per visual scene
     lines = lines[:2]
 
-    line_height = 82 if is_shorts else 56
+    line_height = 92 if is_shorts else 58
     total_height = len(lines) * line_height
 
     if is_shorts:
-        # Centered in the middle-third of the screen for maximum eye-level engagement
-        start_y = max(1000, 1180 - (total_height // 2))
+        # Centered at lower-middle (Y=1140) - the TikTok sweet spot
+        start_y = max(1020, 1160 - (total_height // 2))
     else:
-        start_y = max(440, 520 - (total_height // 2))
+        start_y = max(450, 530 - (total_height // 2))
 
     word_counter = 0
-    highlight_word_count = min(3, len(words))
+    # Highlight first 2-3 impact words or central words
+    highlight_word_count = min(3, len(upper_words))
 
     for i, line_words in enumerate(lines):
         full_line = " ".join(line_words)
@@ -1156,26 +1161,38 @@ def draw_sentence_captions(
         x = (canvas_w - line_w) // 2
         y = start_y + (i * line_height)
 
-        # Draw frosted-glass pill behind subtitle line
-        pad_x, pad_y = 24, 10
-        pill_rect = [(x - pad_x, y - pad_y), (x + line_w + pad_x, y + line_height - pad_y + 6)]
-        draw.rounded_rectangle(pill_rect, radius=12, fill=(8, 12, 24, 220), outline=(accent_color[0], accent_color[1], accent_color[2], 140), width=2)
-
         for w in line_words:
             w_str = w + " "
             is_accent = (word_counter < highlight_word_count)
-            color = accent_color if is_accent else (255, 255, 255)
+            # Electric Yellow (#FFE600) for highlighted words, crisp pure white for rest
+            color = (255, 230, 0) if is_accent else (255, 255, 255)
+
+            # 3D Drop Shadow offset
+            draw.text(
+                (x + 4, y + 4),
+                w_str,
+                fill=(0, 0, 0, 220),
+                font=font,
+                stroke_width=6,
+                stroke_fill=(0, 0, 0)
+            )
+
+            # Main text with heavy black stroke
             draw.text(
                 (x, y),
                 w_str,
                 fill=color,
                 font=font,
-                stroke_width=5,
+                stroke_width=7 if is_shorts else 5,
                 stroke_fill=(0, 0, 0)
             )
             w_box = draw.textbbox((0, 0), w_str, font=font)
             x += (w_box[2] - w_box[0])
             word_counter += 1
+
+ANCHOR_ASSETS_DIR = BASE_DIR / "static" / "assets"
+ANCHOR_MAIN_IMG = ANCHOR_ASSETS_DIR / "anchor_female_main.jpg"
+ANCHOR_CLOSEUP_IMG = ANCHOR_ASSETS_DIR / "anchor_female_closeup.jpg"
 
 def generate_news_slides(
     title: str,
@@ -1188,11 +1205,11 @@ def generate_news_slides(
 ) -> List[Path]:
     """
     Generates 6 to 8 full-bleed cinematic vertical frames (1080x1920) for 9:16 Shorts mode:
-    - 100% photo-rich dynamic visuals (no black screens, no PowerPoint boxes).
-    - Dynamic zoom & crop variations per scene.
-    - Sleek top-left live badge (🔴 BREAKING • {category.upper()}).
-    - TikTok-style large pop-up captions (lower-middle) displaying the exact spoken sentence with neon keyword highlights!
-    - Clean bottom bar (@GloblePulseAi • GlobalPulse AI).
+    - AI News Anchor presentation (intro hook + outro sign-off).
+    - Fast-cut authentic story photography and category B-roll.
+    - Large Hormozi/TikTok style bold uppercase subtitles with neon keyword highlights.
+    - Sleek top-left live broadcast badge (🔴 BREAKING • {category.upper()}).
+    - Clean top-right GlobalPulse AI watermark.
     """
     import gc
     width, height = 1080, 1920
@@ -1204,14 +1221,22 @@ def generate_news_slides(
 
     font_top_badge = get_font(26, bold=True)
     font_top_channel = get_font(22, bold=True)
-    font_caption = get_font(56, bold=True)
+    font_caption = get_font(68, bold=True)
     font_bottom = get_font(24, bold=True)
     font_hook = get_font(34, bold=True)
 
     neon_keywords_color = (250, 204, 21) if category == "Global Sports" else (34, 211, 238)
+    total_slides = len(spoken_sentences)
 
     for idx, sentence in enumerate(spoken_sentences, 1):
-        img_p = scene_images[(idx - 1) % len(scene_images)]
+        # Anchor placement: Slide 1 (or 2) for Anchor Intro, and final slide for Outro
+        if idx == 1 and ANCHOR_MAIN_IMG.exists():
+            img_p = ANCHOR_MAIN_IMG
+        elif idx == total_slides and total_slides >= 4 and ANCHOR_MAIN_IMG.exists():
+            img_p = ANCHOR_CLOSEUP_IMG if ANCHOR_CLOSEUP_IMG.exists() else ANCHOR_MAIN_IMG
+        else:
+            img_p = scene_images[(idx - 1) % len(scene_images)]
+
         frame = create_fullbleed_cinematic_frame(img_p, width, height, zoom_crop_index=idx - 1)
         draw = ImageDraw.Draw(frame)
 
@@ -1659,12 +1684,12 @@ def compose_video(
             raise RuntimeError(f"FFmpeg encoding failed for article {article_id}: {run_res.stderr[-400:]}")
 
 
-    # Step E: Validation Gate (Ensures minimum 60.5s for TikTok/Shorts qualification)
+    # Step E: Validation Gate (Ensures minimum valid duration for TikTok/Shorts/Reels)
     try:
         val_res = validate_generated_video_file(
             output_video_path,
             is_long=is_long,
-            min_duration=15.0 if is_long else 60.5
+            min_duration=15.0 if is_long else 20.0
         )
     except Exception as val_err:
         print(f"[Video Generator Validation Gate FAILED] Generated video {output_video_path.name} failed validation:")
