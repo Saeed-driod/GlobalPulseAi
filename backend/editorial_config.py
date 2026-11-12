@@ -3,11 +3,12 @@ GlobalPulse AI - Unified Editorial & Publication Configuration
 All tunable editorial rules, limits, categories, and safety gates in one place.
 """
 
+import os
 from typing import List, Dict
 
 # Maximum number of articles to publish per day (UTC)
-# Enforces quality over quantity
-DAILY_PUBLISHING_CAP: int = 10
+# Configurable via environment variable, defaults to 60 per day
+DAILY_PUBLISHING_CAP: int = int(os.getenv("DAILY_PUBLISHING_CAP", "60"))
 
 # Fixed editorial categories for strict content classification
 FIXED_CATEGORIES: List[str] = [
