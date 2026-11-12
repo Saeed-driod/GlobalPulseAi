@@ -24,7 +24,7 @@ export function getApiBase(): string {
 
 export function getBackendUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && envUrl.trim() && !envUrl.includes("localhost")) {
+  if (envUrl && envUrl.trim() && !envUrl.includes("localhost") && !envUrl.includes("onrender.com")) {
     return envUrl.trim().replace(/\/+$/, "");
   }
   return "http://150.136.214.192";

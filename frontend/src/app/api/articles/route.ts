@@ -38,6 +38,18 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const backendUrl = "http://150.136.214.192";
+
+    // 1. Primary: Fetch directly from high-speed Oracle VM Cloud Backend
+    try {
+      const bRes = await fetch(`${backendUrl}/api/articles?${searchParams.toString()}`, { cache: "no-store" });
+      if (bRes.ok) {
+        return NextResponse.json(await bRes.json());
+      }
+    } catch (bErr) {
+      console.warn("[API Articles] Oracle backend fetch failed:", bErr);
+    }
+
     const category = searchParams.get("category");
     const status = searchParams.get("status") || "PUBLISHED";
     const search = searchParams.get("search");

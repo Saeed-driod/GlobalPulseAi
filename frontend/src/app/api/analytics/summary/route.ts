@@ -61,7 +61,19 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // 1. Try Neon database query directly if connection string is configured
+    const backendUrl = "http://150.136.214.192";
+    // 1. Primary: Fetch from Oracle VM Cloud Backend
+    try {
+      const bRes = await fetch(`${backendUrl}/api/analytics/summary`, { cache: "no-store" });
+      if (bRes.ok) {
+        const bData = await bRes.json();
+        return NextResponse.json(bData);
+      }
+    } catch (bErr) {
+      console.warn("[API Analytics Summary] Oracle backend fetch failed:", bErr);
+    }
+
+    // 2. Try Neon database query directly if connection string is configured
     if (NEON_CONNECTION_STRING) {
       const statsRows = await queryNeon<any>(`
         SELECT 

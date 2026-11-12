@@ -37,6 +37,17 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const backendUrl = "http://150.136.214.192";
+    // 1. Primary: Fetch from Oracle VM Cloud Backend
+    try {
+      const bRes = await fetch(`${backendUrl}/api/articles/stats`, { cache: "no-store" });
+      if (bRes.ok) {
+        return NextResponse.json(await bRes.json());
+      }
+    } catch (bErr) {
+      console.warn("[API Stats] Oracle backend fetch error:", bErr);
+    }
+
     const rows = await queryNeon<{
       total_articles: number;
       drafts_count: number;

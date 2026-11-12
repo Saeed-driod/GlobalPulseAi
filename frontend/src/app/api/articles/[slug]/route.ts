@@ -46,6 +46,18 @@ export async function GET(
     }
 
     const cleanSlug = slug.replace(/'/g, "''");
+    const backendUrl = "http://150.136.214.192";
+
+    // 1. Primary: Fetch from Oracle VM Cloud Backend
+    try {
+      const bRes = await fetch(`${backendUrl}/api/articles/${cleanSlug}`, { cache: "no-store" });
+      if (bRes.ok) {
+        return NextResponse.json(await bRes.json());
+      }
+    } catch (bErr) {
+      console.warn("[API Article Slug] Oracle backend fetch error:", bErr);
+    }
+
     const rows = await queryNeon(
       `SELECT * FROM articles WHERE slug = '${cleanSlug}' LIMIT 1;`
     );
