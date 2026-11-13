@@ -291,3 +291,4 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
     </div>
   );
 }
+

@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ShieldCheck, Sparkles } from "./Icons";
+import { ShieldCheck, Sparkles, Briefcase } from "./Icons";
 
 export const Footer: React.FC = () => {
   return (
@@ -77,6 +77,18 @@ export const Footer: React.FC = () => {
                   <span>🎬</span>
                   Cinema &amp; Streaming Radar
                 </Link>
+              </li>
+              <li>
+                <a
+                  href="https://globalhireai.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-400 hover:text-emerald-300 font-bold transition-colors flex items-center gap-1.5"
+                  title="GlobalHire AI — 400+ Worldwide Remote Jobs"
+                >
+                  <Briefcase className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>💼 GlobalHire AI (400+ Remote Jobs)</span>
+                </a>
               </li>
               <li className="pt-2">
                 <a

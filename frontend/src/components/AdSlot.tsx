@@ -271,3 +271,4 @@ export function AdSlot({ type, className = "", fallbackTitle }: AdSlotProps) {
     </aside>
   );
 }
+

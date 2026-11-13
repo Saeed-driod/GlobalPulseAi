@@ -45,6 +45,7 @@ import {
   Unlock,
   ShieldCheck,
   Trophy,
+  Briefcase,
 } from "../../components/Icons";
 
 export default function AdminPage() {
@@ -601,6 +602,18 @@ export default function AdminPage() {
             >
               <span>💰 Ad Manager</span>
             </button>
+
+            {/* Quick Access to GlobalHire Job Portal */}
+            <a
+              href="https://globalhireai.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="neu-sm px-3.5 py-2 text-emerald-600 hover:text-emerald-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+              title="Open GlobalHire AI Job Portal"
+            >
+              <Briefcase className="w-3.5 h-3.5 text-emerald-600" />
+              <span>💼 Job Portal</span>
+            </a>
 
             {/* Lock Session */}
             <button

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, Newspaper, BarChart3, Globe, Zap, Search, Trophy, Video, Youtube } from "./Icons";
+import { Sparkles, Newspaper, BarChart3, Globe, Zap, Search, Trophy, Video, Youtube, Briefcase } from "./Icons";
 import { getCategoryTheme } from "../lib/categoryTheme";
 
 interface HeaderProps {
@@ -78,6 +78,25 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
+            {/* GlobalHire AI Remote Jobs Button */}
+            <a
+              href="https://globalhireai.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 neu-sm px-3 py-1 text-xs font-black text-emerald-300 hover:text-emerald-100 border border-emerald-500/50 bg-gradient-to-r from-emerald-950/80 to-teal-950/80 shadow-[0_0_15px_rgba(16,185,129,0.35)] hover:shadow-[0_0_20px_rgba(16,185,129,0.55)] hover:border-emerald-400 transition-all shrink-0 group cursor-pointer"
+              title="Browse $80k-$190k Worldwide Remote Jobs on GlobalHire AI"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <Briefcase className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span className="font-mono text-[11px] font-extrabold tracking-wide">REMOTE JOBS</span>
+              <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold uppercase tracking-tight">
+                $100k+
+              </span>
+            </a>
+
             {/* Cinema & Streaming Radar Button */}
             <Link
               href="/movies"
@@ -126,6 +145,17 @@ export const Header: React.FC<HeaderProps> = ({
                 <Search className="w-3.5 h-3.5" />
               </button>
             )}
+
+            <a
+              href="https://globalhireai.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 neu-sm px-2 py-1 text-[11px] font-extrabold text-emerald-300 border border-emerald-500/50 bg-emerald-950/60 shadow-[0_0_10px_rgba(16,185,129,0.3)] shrink-0"
+              title="Worldwide Remote Jobs"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-mono text-[10px]">JOBS</span>
+            </a>
 
             <Link
               href="/movies"

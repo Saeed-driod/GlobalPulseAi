@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Video,
   ExternalLink,
+  Briefcase,
 } from "../../../components/Icons";
 import { getCategoryTheme } from "../../../lib/categoryTheme";
 import { getHdImageUrl, getPollinationsFallback } from "../../../lib/imageOptimizer";
@@ -485,6 +486,48 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
             {/* In-Article Ad Banner (Adsterra In-Feed Native) */}
             <div className="my-8">
               <AdSlot type="in-feed" fallbackTitle="Accelerate Your Career with GlobalHire AI" />
+            </div>
+
+            {/* Exclusive High-Impact GlobalHire Remote Career Spotlight */}
+            <div className="my-8 p-6 rounded-2xl border border-emerald-500/40 bg-gradient-to-br from-emerald-950/80 via-slate-900/90 to-teal-950/70 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex items-start justify-between gap-4 relative z-10">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-mono text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      GLOBAL CAREER RADAR
+                    </span>
+                    <span className="text-xs font-mono text-emerald-400 font-bold">$80,000 – $190,000 / Year</span>
+                    <span className="text-[11px] font-mono text-slate-400">Powered by GlobalHire AI</span>
+                  </div>
+                  <h4 className="text-base sm:text-xl font-bold text-white tracking-tight leading-snug">
+                    Want to Work Remotely for US &amp; Global Tech Companies?
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl font-sans">
+                    400+ verified remote positions in AI engineering, cloud development, design, and executive leadership are hiring now worldwide. Fast-track direct application with guaranteed employer delivery.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 relative z-10">
+                <div className="flex flex-wrap items-center gap-2.5 text-[11px] font-mono text-slate-300">
+                  <span className="text-emerald-400 font-bold">✓ 100% Remote</span>
+                  <span>•</span>
+                  <span className="text-emerald-400 font-bold">✓ USD Salary</span>
+                  <span>•</span>
+                  <span className="text-emerald-400 font-bold">✓ Zero Middlemen</span>
+                </div>
+                <a
+                  href="https://globalhireai.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs font-mono tracking-wider transition-all shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <span>BROWSE 400+ REMOTE ROLES</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
             </div>
 
             {/* Newsletter Box */}
