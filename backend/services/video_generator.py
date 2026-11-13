@@ -1029,78 +1029,100 @@ def create_fullbleed_cinematic_frame(
     photo_path: Path,
     target_w: int,
     target_h: int,
-    zoom_crop_index: int = 0
+    zoom_crop_index: int = 0,
+    accent_color: Tuple[int, int, int] = (6, 182, 212)
 ) -> Image.Image:
     """
-    Creates a full-bleed, high-impact cinematic visual frame:
-    - Scales and crops the HD photo to completely fill the canvas (1080x1920 or 1280x720).
-    - Applies dynamic focal zoom & pan variations across scenes so each slide feels fresh.
-    - Applies a dual gradient vignette: subtle top darkening for badges, and deep dark vignette in lower 50% for high-contrast subtitles.
+    Creates a broadcast-quality visual frame:
+    - 9:16 Shorts (1080x1920):
+      * Layer 1: Ambient blurred background filled with matching story tones (GaussianBlur 35) + dark vignette.
+      * Layer 2: Full uncropped authentic photo placed in the hero viewport with rounded corners (radius 20) and subtle accent border. ZERO head/face cutoffs!
+    - 16:9 Widescreen (1920x1080):
+      * Full-width crisp framing with subtle vignette.
     """
     try:
         img = Image.open(photo_path).convert("RGB")
     except Exception:
         img = Image.new("RGB", (target_w, target_h), (15, 23, 42))
 
-    # Varied focal zooms & pan alignments across scenes
-    zoom_factors = [1.02, 1.12, 1.18, 1.25, 1.15, 1.10, 1.06, 1.22]
-    align_modes = ["center", "top", "left", "center", "right", "bottom", "center", "top"]
+    is_vertical = (target_h > target_w)
 
-    zf = zoom_factors[zoom_crop_index % len(zoom_factors)]
-    am = align_modes[zoom_crop_index % len(align_modes)]
+    if is_vertical:
+        # 1. Background: Ambient Blurred Canvas
+        bg_scale = max(target_w / img.width, target_h / img.height)
+        bg_w, bg_h = int(img.width * bg_scale), int(img.height * bg_scale)
+        bg_img = img.resize((bg_w, bg_h), Image.Resampling.BILINEAR)
+        bx = (bg_w - target_w) // 2
+        by = (bg_h - target_h) // 2
+        bg_cropped = bg_img.crop((bx, by, bx + target_w, by + target_h))
+        blurred_bg = bg_cropped.filter(ImageFilter.GaussianBlur(radius=35))
 
-    scale = max(target_w / img.width, target_h / img.height) * zf
-    new_w, new_h = max(target_w, int(img.width * scale)), max(target_h, int(img.height * scale))
-    resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+        dim_overlay = Image.new("RGBA", (target_w, target_h), (8, 12, 20, 150))
+        frame = Image.new("RGBA", (target_w, target_h))
+        frame.paste(blurred_bg, (0, 0))
+        frame.paste(dim_overlay, (0, 0), dim_overlay)
 
-    if am == "top":
+        # 2. Hero Foreground Photo: 100% Uncropped & Centered in viewing area
+        max_hero_w = 980
+        max_hero_h = 760
+        hero_scale = min(max_hero_w / img.width, max_hero_h / img.height)
+        hero_w = max(100, int(img.width * hero_scale))
+        hero_h = max(100, int(img.height * hero_scale))
+        hero_img = img.resize((hero_w, hero_h), Image.Resampling.LANCZOS)
+
+        mask = Image.new("L", (hero_w, hero_h), 0)
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.rounded_rectangle([(0, 0), (hero_w, hero_h)], radius=20, fill=255)
+
+        hero_x = (target_w - hero_w) // 2
+        hero_y = 250 + (max_hero_h - hero_h) // 2
+
+        # Soft drop shadow behind hero photo
+        shadow_box = Image.new("RGBA", (hero_w + 30, hero_h + 30), (0, 0, 0, 0))
+        s_draw = ImageDraw.Draw(shadow_box)
+        s_draw.rounded_rectangle([(10, 10), (hero_w + 20, hero_h + 20)], radius=24, fill=(0, 0, 0, 160))
+        shadow_box = shadow_box.filter(ImageFilter.GaussianBlur(radius=10))
+        frame.paste(shadow_box, (hero_x - 10, hero_y - 5), shadow_box)
+
+        # Paste uncropped hero photo
+        hero_rgba = hero_img.convert("RGBA")
+        frame.paste(hero_rgba, (hero_x, hero_y), mask)
+
+        # Draw subtle border around hero photo
+        frame_draw = ImageDraw.Draw(frame)
+        frame_draw.rounded_rectangle([(hero_x, hero_y), (hero_x + hero_w, hero_y + hero_h)], radius=20, outline=(51, 65, 85, 200), width=3)
+        frame_draw.rounded_rectangle([(hero_x + 3, hero_y + 3), (hero_x + hero_w - 3, hero_y + hero_h - 3)], radius=18, outline=(*accent_color, 80), width=1)
+
+        # Bottom Subtitle Area Darkening Vignette
+        vignette = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+        v_draw = ImageDraw.Draw(vignette)
+        sub_start_y = 1040
+        for y in range(sub_start_y, target_h):
+            prog = (y - sub_start_y) / float(target_h - sub_start_y)
+            alpha = int(220 * (prog ** 1.2))
+            v_draw.line([(0, y), (target_w, y)], fill=(5, 8, 16, min(230, alpha)))
+        frame.paste(vignette, (0, 0), vignette)
+
+        return frame.convert("RGB")
+    else:
+        # 16:9 Widescreen
+        scale = max(target_w / img.width, target_h / img.height)
+        new_w, new_h = max(target_w, int(img.width * scale)), max(target_h, int(img.height * scale))
+        resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
         x1 = (new_w - target_w) // 2
-        y1 = 0
-    elif am == "left":
-        x1 = 0
         y1 = (new_h - target_h) // 2
-    elif am == "right":
-        x1 = new_w - target_w
-        y1 = (new_h - target_h) // 2
-    elif am == "bottom":
-        x1 = (new_w - target_w) // 2
-        y1 = new_h - target_h
-    else:  # center
-        x1 = (new_w - target_w) // 2
-        y1 = (new_h - target_h) // 2
+        frame = resized.crop((x1, y1, x1 + target_w, y1 + target_h))
 
-    x1 = max(0, min(x1, new_w - target_w))
-    y1 = max(0, min(y1, new_h - target_h))
+        vignette = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+        v_draw = ImageDraw.Draw(vignette)
+        bot_start = int(target_h * 0.55)
+        for y in range(bot_start, target_h):
+            prog = (y - bot_start) / float(target_h - bot_start)
+            alpha = int(210 * (prog ** 1.3))
+            v_draw.line([(0, y), (target_w, y)], fill=(3, 7, 18, min(210, alpha)))
+        frame.paste(vignette, (0, 0), vignette)
+        return frame.convert("RGB")
 
-    frame = resized.crop((x1, y1, x1 + target_w, y1 + target_h))
-
-    # Apply subtle unsharp mask so zoomed/re-framed video frames remain razor-sharp
-    try:
-        frame = frame.filter(ImageFilter.UnsharpMask(radius=1.0, percent=115, threshold=3))
-    except Exception:
-        pass
-
-    # Dual gradient vignette (top header fade + bottom caption fade)
-    vignette = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
-    v_draw = ImageDraw.Draw(vignette)
-
-    # Top fade for live status badge
-    top_limit = int(target_h * 0.18)
-    for y in range(top_limit):
-        alpha = int(190 * (1.0 - (y / top_limit)))
-        v_draw.line([(0, y), (target_w, y)], fill=(3, 7, 18, alpha))
-
-    # Bottom fade for high-impact subtitles (smooth quadratic curve)
-    bottom_start = int(target_h * 0.48)
-    fade_len = target_h - bottom_start
-    for y in range(bottom_start, target_h):
-        prog = (y - bottom_start) / float(fade_len)
-        alpha = int(245 * (prog ** 1.3))
-        v_draw.line([(0, y), (target_w, y)], fill=(3, 7, 18, min(245, alpha)))
-
-    frame.paste(vignette, (0, 0), vignette)
-    del vignette
-    return frame
 
 def draw_sentence_captions(
     draw: ImageDraw.ImageDraw,
@@ -1190,10 +1212,6 @@ def draw_sentence_captions(
             x += (w_box[2] - w_box[0])
             word_counter += 1
 
-ANCHOR_ASSETS_DIR = BASE_DIR / "static" / "assets"
-ANCHOR_MAIN_IMG = ANCHOR_ASSETS_DIR / "anchor_female_main.jpg"
-ANCHOR_CLOSEUP_IMG = ANCHOR_ASSETS_DIR / "anchor_female_closeup.jpg"
-
 def generate_news_slides(
     title: str,
     category: str,
@@ -1204,8 +1222,13 @@ def generate_news_slides(
     spoken_sentences: Optional[List[str]] = None
 ) -> List[Path]:
     """
-    Generates 6 to 8 full-bleed cinematic vertical frames (1080x1920) for 9:16 Shorts mode:
-    - AI News Anchor presentation (intro hook + outro sign-off).
+    Generates 6 to 8 broadcast-quality vertical frames (1080x1920) for 9:16 Shorts mode:
+    - 100% authentic, uncropped story photography and topic B-roll (no motionless fake anchors).
+    - Ambient blurred studio canvas background with rounded hero card (zero face or edge clipping).
+    - Large Hormozi/TikTok style bold uppercase subtitles with neon keyword highlights.
+    - Sleek top-left live broadcast badge (🔴 BREAKING • {category.upper()}).
+    - Clean top-right GlobalPulse AI watermark.
+    """
     - Fast-cut authentic story photography and category B-roll.
     - Large Hormozi/TikTok style bold uppercase subtitles with neon keyword highlights.
     - Sleek top-left live broadcast badge (🔴 BREAKING • {category.upper()}).
@@ -1229,15 +1252,9 @@ def generate_news_slides(
     total_slides = len(spoken_sentences)
 
     for idx, sentence in enumerate(spoken_sentences, 1):
-        # Anchor placement: Slide 1 (or 2) for Anchor Intro, and final slide for Outro
-        if idx == 1 and ANCHOR_MAIN_IMG.exists():
-            img_p = ANCHOR_MAIN_IMG
-        elif idx == total_slides and total_slides >= 4 and ANCHOR_MAIN_IMG.exists():
-            img_p = ANCHOR_CLOSEUP_IMG if ANCHOR_CLOSEUP_IMG.exists() else ANCHOR_MAIN_IMG
-        else:
-            img_p = scene_images[(idx - 1) % len(scene_images)]
-
-        frame = create_fullbleed_cinematic_frame(img_p, width, height, zoom_crop_index=idx - 1)
+        # 100% Authentic Topic & Story Photography (No motionless fake anchors)
+        img_p = scene_images[(idx - 1) % len(scene_images)]
+        frame = create_fullbleed_cinematic_frame(img_p, width, height, zoom_crop_index=idx - 1, accent_color=accent)
         draw = ImageDraw.Draw(frame)
 
         # 1. Sleek Top-Left Live Badge
@@ -1524,10 +1541,8 @@ def compose_video(
 
             for idx, s in enumerate(slides):
                 clip_p = STATIC_VIDEOS_DIR / f"temp_kb_clip_{article_id}_{idx}.mp4"
-                if idx % 2 == 0:
-                    vf = f"zoompan=z='min(zoom+0.0012,1.14)':d={frames_count}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={scale_w}x{scale_h}:fps={fps_int}"
-                else:
-                    vf = f"zoompan=z='if(lte(on,1),1.14,max(1.0,zoom-0.0012))':d={frames_count}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={scale_w}x{scale_h}:fps={fps_int}"
+                # Stable, broadcast-quality framing: zero text distortion or edge clipping
+                vf = f"fps={fps_int},format=yuv420p"
 
                 cmd_clip = [
                     ffmpeg_exe, "-y",
@@ -1538,7 +1553,7 @@ def compose_video(
                     "-t", f"{slide_dur:.2f}",
                     "-c:v", "libx264",
                     "-preset", "ultrafast",
-                    "-crf", "26",
+                    "-crf", "22",
                     "-pix_fmt", "yuv420p",
                     str(clip_p)
                 ]
