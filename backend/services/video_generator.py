@@ -1226,12 +1226,7 @@ def generate_news_slides(
     - 100% authentic, uncropped story photography and topic B-roll (no motionless fake anchors).
     - Ambient blurred studio canvas background with rounded hero card (zero face or edge clipping).
     - Large Hormozi/TikTok style bold uppercase subtitles with neon keyword highlights.
-    - Sleek top-left live broadcast badge (🔴 BREAKING • {category.upper()}).
-    - Clean top-right GlobalPulse AI watermark.
-    """
-    - Fast-cut authentic story photography and category B-roll.
-    - Large Hormozi/TikTok style bold uppercase subtitles with neon keyword highlights.
-    - Sleek top-left live broadcast badge (🔴 BREAKING • {category.upper()}).
+    - Sleek top-left live broadcast badge (BREAKING / category).
     - Clean top-right GlobalPulse AI watermark.
     """
     import gc
