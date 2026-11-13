@@ -20,6 +20,7 @@ import {
   getSchedulerStatus,
   SchedulerStatusResponse,
   setAdminSecret,
+  getAdminSecret,
   clearAdminSecret,
   verifyAdminSecret,
   getApiBase,
@@ -162,7 +163,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const savedSecret = typeof window !== "undefined" ? localStorage.getItem("gp_admin_secret") : null;
+      const savedSecret = getAdminSecret();
       if (savedSecret) {
         const res = await verifyAdminSecret(savedSecret);
         if (res.success) {
