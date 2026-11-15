@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import {
   ADS_CONFIG,
-  TOP_LEADERBOARD_728x90_KEY,
-  IN_FEED_NATIVE_KEY,
-  IN_FEED_NATIVE_CONTAINER_ID,
   ARTICLE_MODAL_300x250_KEY,
+  ARTICLE_MODAL_300x250_SCRIPT_URL,
+  TOP_LEADERBOARD_728x90_KEY,
 } from "../config/adsConfig";
 
 export type AdUnitType = "leaderboard" | "in-feed" | "native" | "sidebar" | "rectangle" | "modal";
@@ -16,172 +15,110 @@ export interface AdUnitProps {
   type: AdUnitType;
   className?: string;
   zoneKey?: string;
-  containerId?: string;
+  scriptUrl?: string;
+  width?: number;
+  height?: number;
 }
 
 /**
- * AdUnit - SPA-optimized React Adsterra & Multi-Network Ad Component
+ * AdUnit - Sandboxed srcDoc iframe Component for Adsterra & Multi-Network Banners
  * 
- * - Cleans DOM on mount/update to prevent duplicate scripts in React StrictMode / route changes.
- * - Injects executable scripts via document.createElement('script') with async execution.
- * - Stays 100% collapsed/invisible if key is empty or if an ad blocker prevents iframe rendering.
- * - Automatically excluded on /admin and /dashboard routes.
+ * - Eliminates window.atOptions variable overwrite collisions by giving each ad slot its own
+ *   isolated window execution context inside a sandboxed srcDoc iframe.
+ * - Completely immune to React StrictMode double-rendering and client-side SPA routing.
+ * - Automatically collapses to 0px if ads are disabled or keys are unconfigured.
+ * - Excluded on /admin and /dashboard.
  */
 export const AdUnit: React.FC<AdUnitProps> = ({
   type,
   className = "",
   zoneKey: customZoneKey,
-  containerId: customContainerId,
+  scriptUrl: customScriptUrl,
+  width: customWidth,
+  height: customHeight,
 }) => {
   const pathname = usePathname();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isActive, setIsActive] = useState<boolean>(false);
 
-  // 1. Strict route exclusion: Never show ads on administrative routes
+  // Strict route exclusion: Never show ads on administrative routes
   const isExcludedRoute = pathname ? pathname.startsWith("/admin") || pathname.startsWith("/dashboard") : false;
 
-  // 2. Resolve target ad keys from centralized config or props
+  // Resolve dimensions, keys, and script sources based on ad slot type
   let effectiveKey = customZoneKey || "";
-  let effectiveContainerId = customContainerId || "";
-  let width = 728;
-  let height = 90;
-  let zoneName = "Leaderboard Banner";
+  let effectiveScriptUrl = customScriptUrl || "";
+  let width = customWidth || 300;
+  let height = customHeight || 250;
+  let zoneLabel = "Adsterra 300x250";
 
   if (type === "leaderboard") {
     effectiveKey = effectiveKey || TOP_LEADERBOARD_728x90_KEY;
-    width = 728;
-    height = 90;
-    zoneName = "Top Leaderboard 728x90";
-  } else if (type === "in-feed" || type === "native") {
-    effectiveKey = effectiveKey || IN_FEED_NATIVE_KEY;
-    effectiveContainerId = effectiveContainerId || IN_FEED_NATIVE_CONTAINER_ID;
-    zoneName = "In-Feed Native Banner";
-  } else if (type === "sidebar" || type === "rectangle" || type === "modal") {
-    effectiveKey = effectiveKey || ARTICLE_MODAL_300x250_KEY;
-    width = 300;
-    height = 250;
-    zoneName = "Article / Sidebar 300x250";
+    width = customWidth || 728;
+    height = customHeight || 90;
+    zoneLabel = "Top Leaderboard 728x90";
+    if (!effectiveScriptUrl && effectiveKey) {
+      effectiveScriptUrl = `https://www.highperformanceformat.com/${effectiveKey}/invoke.js`;
+    }
+  } else {
+    // In-Feed (every 6th news card), Article Reading View, Sticky Sidebar, and AI Modal
+    effectiveKey = effectiveKey || ARTICLE_MODAL_300x250_KEY || "f7126291d68f9df3872005cf005de9aa";
+    effectiveScriptUrl = effectiveScriptUrl || ARTICLE_MODAL_300x250_SCRIPT_URL || "https://bauval.org/22/f7126291d68f9df3872005cf005de9aa";
+    width = customWidth || 300;
+    height = customHeight || 250;
+    zoneLabel = type === "in-feed" ? "In-Feed Adsterra 300x250" : "Article Modal Adsterra 300x250";
   }
 
   const hasKey = Boolean(effectiveKey && effectiveKey.trim() && !effectiveKey.includes("PASTE_"));
-  const isNative = type === "in-feed" || type === "native";
 
-  useEffect(() => {
-    // If route is excluded, master switch disabled, or no valid key configured, abort cleanly
-    if (isExcludedRoute || !ADS_CONFIG.ENABLE_ADS || !hasKey) {
-      setIsActive(false);
-      return;
+  // Build isolated sandboxed srcDoc document for conflict-free script execution
+  const srcDocHtml = useMemo(() => {
+    if (!hasKey || !effectiveScriptUrl) return "";
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base target="_blank">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    // React StrictMode & SPA Navigation guard: Wipe container before fresh injection
-    container.innerHTML = "";
-    setIsActive(false);
-
-    let isMounted = true;
-
-    try {
-      if (isNative) {
-        // Native Banner Injection: Requires container div matching the zone ID
-        const resolvedContainerId = effectiveContainerId || `container-${effectiveKey}`;
-        const targetDiv = document.createElement("div");
-        targetDiv.id = resolvedContainerId;
-        container.appendChild(targetDiv);
-
-        const nativeScript = document.createElement("script");
-        nativeScript.type = "text/javascript";
-        nativeScript.async = true;
-        nativeScript.setAttribute("data-cfasync", "false");
-        nativeScript.src = `//www.highperformanceformat.com/${effectiveKey}/invoke.js`;
-
-        nativeScript.onload = () => {
-          if (!isMounted) return;
-          console.log(`[AdUnit] Script loaded for ${zoneName}`);
-          // Wait briefly for the native widget elements to populate
-          setTimeout(() => {
-            if (!isMounted) return;
-            if (targetDiv.childNodes.length > 0 || container.querySelector("iframe")) {
-              setIsActive(true);
-            }
-          }, 400);
-        };
-
-        nativeScript.onerror = () => {
-          if (!isMounted) return;
-          console.warn(`[AdUnit] Script load failed or ad blocked for ${zoneName}`);
-          setIsActive(false);
-        };
-
-        container.appendChild(nativeScript);
-      } else {
-        // Display Banner Injection (728x90, 300x250): Uses window.atOptions + invoke.js
-        const confScript = document.createElement("script");
-        confScript.type = "text/javascript";
-        confScript.innerHTML = `
-          atOptions = {
-            'key' : '${effectiveKey}',
-            'format' : 'iframe',
-            'height' : ${height},
-            'width' : ${width},
-            'params' : {}
-          };
-        `;
-        container.appendChild(confScript);
-
-        const invokeScript = document.createElement("script");
-        invokeScript.type = "text/javascript";
-        invokeScript.async = true;
-        invokeScript.src = `//www.highperformanceformat.com/${effectiveKey}/invoke.js`;
-
-        invokeScript.onload = () => {
-          if (!isMounted) return;
-          console.log(`[AdUnit] Script loaded for ${zoneName}`);
-          // Verify iframe existence to prevent showing blank unpopulated space
-          setTimeout(() => {
-            if (!isMounted) return;
-            const iframe = container.querySelector("iframe");
-            if (iframe) {
-              setIsActive(true);
-            }
-          }, 350);
-        };
-
-        invokeScript.onerror = () => {
-          if (!isMounted) return;
-          console.warn(`[AdUnit] Script load failed or ad blocked for ${zoneName}`);
-          setIsActive(false);
-        };
-
-        container.appendChild(invokeScript);
-      }
-    } catch (err) {
-      console.warn(`[AdUnit] Injection error on ${zoneName}:`, err);
-      setIsActive(false);
-    }
-
-    // Unmount cleanup: Remove injected scripts and iframes cleanly
-    return () => {
-      isMounted = false;
-      if (container) {
-        container.innerHTML = "";
-      }
+  </style>
+</head>
+<body>
+  <script type="text/javascript">
+    atOptions = {
+      'key' : '${effectiveKey}',
+      'format' : 'iframe',
+      'height' : ${height},
+      'width' : ${width},
+      'params' : {}
     };
-  }, [effectiveKey, effectiveContainerId, hasKey, isExcludedRoute, isNative, width, height, zoneName]);
+  </script>
+  <script type="text/javascript" src="${effectiveScriptUrl}"></script>
+</body>
+</html>`;
+  }, [effectiveKey, effectiveScriptUrl, width, height, hasKey]);
 
-  // If no key configured or excluded route, collapse completely with zero DOM footprint
+  // If excluded, ads globally disabled, or key missing, collapse cleanly with zero DOM space
   if (isExcludedRoute || !ADS_CONFIG.ENABLE_ADS || !hasKey) {
     return null;
   }
 
   return (
     <div
-      className={`ad-unit-wrapper transition-all duration-300 ${
-        isActive ? "opacity-100 my-4" : "opacity-0 h-0 overflow-hidden pointer-events-none"
-      } ${className}`}
+      className={`ad-unit-wrapper flex flex-col items-center justify-center my-4 transition-all duration-300 ${className}`}
+      data-ad-zone={zoneLabel}
     >
-      <div className="w-full flex items-center justify-between max-w-full px-1 mb-1">
+      <div className="flex items-center justify-between w-full px-1 mb-1" style={{ maxWidth: `${width}px` }}>
         <span className="text-[9px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/50" />
           Sponsored
@@ -190,13 +127,21 @@ export const AdUnit: React.FC<AdUnitProps> = ({
       </div>
 
       <div
-        ref={containerRef}
-        className="ad-unit-container w-full flex items-center justify-center overflow-hidden rounded-xl border border-slate-800/60 bg-slate-900/40 p-1"
-        style={{ minHeight: isActive ? (height ? `${height}px` : "auto") : "0px" }}
-      />
+        className="ad-unit-card rounded-xl border border-slate-800/80 bg-slate-900/60 p-1 flex items-center justify-center overflow-hidden shadow-lg"
+        style={{ width: `${width + 10}px`, minHeight: `${height + 10}px`, maxWidth: "100%" }}
+      >
+        <iframe
+          srcDoc={srcDocHtml}
+          width={width}
+          height={height}
+          scrolling="no"
+          frameBorder="0"
+          style={{ border: "none", overflow: "hidden", display: "block", maxWidth: "100%" }}
+          title={`Adsterra ${zoneLabel}`}
+        />
+      </div>
     </div>
   );
 };
 
 export default AdUnit;
-

@@ -2,8 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { AnalyticsTracker } from "../components/AnalyticsTracker";
 import { PushNotificationPrompt } from "../components/PushNotificationPrompt";
-import { MonetagGlobalScript } from "../components/MonetagGlobalScript";
-import { SocialBarAd } from "../components/SocialBarAd";
+import { GlobalAdsManager } from "../components/GlobalAdsManager";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -118,33 +117,6 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
 
-        {/* Monetag MultiTag (All-In-One High CPM Ads: OnClick Popunder, In-Page Push, Vignette - Zone 305177) */}
-        <Script
-          id="monetag-multitag-305177"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(s,u,z,p){s.src=u;s.setAttribute('data-zone',z);p.appendChild(s);})(document.createElement('script'),'https://quge5.com/88/tag.min.js',305177,[document.documentElement, document.body].filter(Boolean).pop());`,
-          }}
-        />
-
-        {/* Monetag In-Page Push (Zone 12187520) */}
-        <Script
-          id="monetag-zone-12187520"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(s){s.dataset.zone='12187520',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
-          }}
-        />
-
-        {/* Monetag Vignette Interstitial Banner (Zone 12187525) */}
-        <Script
-          id="monetag-zone-12187525"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(s){s.dataset.zone='12187525',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
-          }}
-        />
-
         {/* OneSignal Web Push Notifications (Free Global Audience Retention) */}
         <Script
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
@@ -222,8 +194,7 @@ export default function RootLayout({
         <div className="relative z-10 flex flex-col flex-1 min-h-screen">
           <AnalyticsTracker />
           <PushNotificationPrompt />
-          <MonetagGlobalScript />
-          <SocialBarAd />
+          <GlobalAdsManager />
           {children}
         </div>
       </body>

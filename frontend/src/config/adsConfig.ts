@@ -4,46 +4,40 @@
 
 export interface AdsConfigInterface {
   ENABLE_ADS: boolean;
+  ARTICLE_MODAL_300x250_KEY: string;
+  ARTICLE_MODAL_300x250_SCRIPT_URL: string;
   TOP_LEADERBOARD_728x90_KEY: string;
+  TOP_LEADERBOARD_SCRIPT_URL: string;
+  SOCIAL_BAR_SCRIPT_URL: string;
   IN_FEED_NATIVE_KEY: string;
   IN_FEED_NATIVE_CONTAINER_ID: string;
-  ARTICLE_MODAL_300x250_KEY: string;
-  SOCIAL_BAR_SCRIPT_URL: string;
 }
 
 export const ADS_CONFIG: AdsConfigInterface = {
   ENABLE_ADS: true,
 
-  // 1. TOP LEADERBOARD BANNER (728x90 Desktop / 320x50 Mobile)
-  // Placement: Directly below top market ticker / navigation bar on Homepage and Article pages
-  // ---> LINE 19: PASTE YOUR 728x90 ZONE KEY HERE <---
+  // 1. ADSTERRA 300x250 BANNER (In-Feed & Article Modal)
+  ARTICLE_MODAL_300x250_KEY: "f7126291d68f9df3872005cf005de9aa",
+  ARTICLE_MODAL_300x250_SCRIPT_URL: "https://bauval.org/22/f7126291d68f9df3872005cf005de9aa",
+
+  // 2. TOP LEADERBOARD BANNER (728x90 Desktop / 320x50 Mobile)
   TOP_LEADERBOARD_728x90_KEY: "",
+  TOP_LEADERBOARD_SCRIPT_URL: "",
 
-  // 2. IN-FEED NATIVE RECOMMENDATION BANNER
-  // Placement: Injected automatically in Latest News feed after every 6th card
-  // ---> LINE 24: PASTE YOUR IN-FEED NATIVE BANNER KEY HERE <---
-  IN_FEED_NATIVE_KEY: "",
-
-  // ---> LINE 27: PASTE YOUR IN-FEED NATIVE CONTAINER ID HERE (e.g. "container-XXXXX") <---
-  IN_FEED_NATIVE_CONTAINER_ID: "",
-
-  // 3. 300x250 MEDIUM RECTANGLE BANNER
-  // Placement: Article Detail right sidebar & AI News Analyst intelligence section
-  // ---> LINE 32: PASTE YOUR 300x250 RECTANGLE ZONE KEY HERE <---
-  ARTICLE_MODAL_300x250_KEY: "",
-
-  // 4. SOCIAL BAR / IN-PAGE PUSH SCRIPT URL
-  // Placement: Injected globally in root layout for high-CPM mobile & desktop alerts
-  // ---> LINE 37: PASTE YOUR SOCIAL BAR SCRIPT URL HERE <---
+  // 3. SOCIAL BAR / IN-PAGE PUSH SCRIPT URL
   SOCIAL_BAR_SCRIPT_URL: "",
+
+  // Legacy Native aliases
+  IN_FEED_NATIVE_KEY: "f7126291d68f9df3872005cf005de9aa",
+  IN_FEED_NATIVE_CONTAINER_ID: "container-f7126291d68f9df3872005cf005de9aa",
 };
 
+export const ARTICLE_MODAL_300x250_KEY = ADS_CONFIG.ARTICLE_MODAL_300x250_KEY;
+export const ARTICLE_MODAL_300x250_SCRIPT_URL = ADS_CONFIG.ARTICLE_MODAL_300x250_SCRIPT_URL;
 export const TOP_LEADERBOARD_728x90_KEY = ADS_CONFIG.TOP_LEADERBOARD_728x90_KEY;
+export const SOCIAL_BAR_SCRIPT_URL = ADS_CONFIG.SOCIAL_BAR_SCRIPT_URL;
 export const IN_FEED_NATIVE_KEY = ADS_CONFIG.IN_FEED_NATIVE_KEY;
 export const IN_FEED_NATIVE_CONTAINER_ID = ADS_CONFIG.IN_FEED_NATIVE_CONTAINER_ID;
-export const ARTICLE_MODAL_300x250_KEY = ADS_CONFIG.ARTICLE_MODAL_300x250_KEY;
-export const SOCIAL_BAR_SCRIPT_URL = ADS_CONFIG.SOCIAL_BAR_SCRIPT_URL;
 export const ENABLE_ADS = ADS_CONFIG.ENABLE_ADS;
 
 export default ADS_CONFIG;
-
