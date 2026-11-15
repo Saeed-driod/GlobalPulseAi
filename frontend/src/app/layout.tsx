@@ -92,6 +92,23 @@ export default function RootLayout({
           href="/rss.xml"
         />
 
+        {/* Google Tag Manager (GTM-K65V6S6B) */}
+        <Script
+          src="https://www.googletagmanager.com/gtm.js?id=GTM-K65V6S6B"
+          strategy="afterInteractive"
+        />
+        <Script
+          id="gtm-init"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+            `,
+          }}
+        />
+
         {/* Google AdSense Official Script */}
         <Script
           async
@@ -192,6 +209,15 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-[#080c14] text-slate-100 font-sans relative overflow-x-hidden selection:bg-cyan-500 selection:text-black">
+        {/* Google Tag Manager (noscript fallback) */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-K65V6S6B"
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
         <div className="relative z-10 flex flex-col flex-1 min-h-screen">
           <AnalyticsTracker />
           <PushNotificationPrompt />
