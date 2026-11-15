@@ -11,6 +11,7 @@ import { HeroFeatured } from "./HeroFeatured";
 import { ArticleCard } from "./ArticleCard";
 import { AdBanner } from "./AdBanner";
 import { AdSlot } from "./AdSlot";
+import { AdUnit } from "./AdUnit";
 import { Footer } from "./Footer";
 import { Sparkles, RefreshCw, ShieldCheck, Briefcase, ExternalLink } from "./Icons";
 import { getCategoryTheme } from "../lib/categoryTheme";
@@ -72,51 +73,7 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
       <BreakingTicker articles={articles} />
 
       {/* Top Leaderboard Banner (Adsterra 728x90 Desktop / 320x50 Mobile) */}
-      <AdSlot type="leaderboard" />
-
-      {/* High-Impact GlobalHire Remote Careers Alert Strip */}
-      <div className="max-w-7xl w-full mx-auto px-2 sm:px-6 my-2">
-        <aside aria-label="GlobalHire Remote Careers Alert" className="w-full">
-          <div className="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-gradient-to-r from-emerald-950/90 via-slate-900/95 to-teal-950/90 p-3.5 sm:p-5 shadow-[0_0_25px_rgba(16,185,129,0.18)] group transition-all duration-300 hover:border-emerald-400">
-            <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-emerald-500/10 via-transparent to-transparent pointer-events-none" />
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-              <div className="flex items-start sm:items-center gap-3.5">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-md shadow-emerald-500/20 shrink-0">
-                  <Briefcase className="w-6 h-6 text-emerald-400 animate-pulse" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-mono text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      400+ GLOBAL ROLES HIRING
-                    </span>
-                    <span className="text-xs font-mono text-emerald-400 font-bold">$80,000 – $190,000 / Year</span>
-                    <span className="text-[11px] font-mono text-slate-400 hidden lg:inline">• Remote Worldwide</span>
-                  </div>
-                  <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                    Looking for a High-Paying Remote AI, Tech, or Executive Role?
-                  </h3>
-                  <p className="text-xs text-slate-300 font-sans hidden sm:block">
-                    Skip agency middlemen. Direct verified applications with US &amp; European tech employers hiring now on <strong className="text-emerald-400">GlobalHire AI</strong>.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
-                <a
-                  href="https://globalhireai.vercel.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs font-mono tracking-wider transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105 active:scale-95 whitespace-nowrap cursor-pointer"
-                >
-                  <span>BROWSE 400+ JOBS NOW</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </aside>
-      </div>
+      <AdUnit type="leaderboard" className="max-w-5xl mx-auto px-4" />
 
       {/* 2. Main Newsroom Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 pt-2 sm:pt-3 pb-16">
@@ -216,8 +173,8 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
             {articles.map((article, index) => (
               <React.Fragment key={article.id}>
                 <ArticleCard article={article} />
-                {(index + 1) % 4 === 0 && (
-                  <AdSlot type="in-feed" />
+                {(index + 1) % 6 === 0 && (
+                  <AdUnit type="in-feed" className="col-span-full" />
                 )}
               </React.Fragment>
             ))}
@@ -226,6 +183,50 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
 
         {/* Daily Viral Sentiment Poll & Social Share */}
         <ViralPoll />
+
+        {/* Verified Internal Partner Banner (High-Impact GlobalHire Remote Careers Alert) */}
+        <div className="w-full my-10">
+          <aside aria-label="GlobalHire Remote Careers Partner" className="w-full">
+            <div className="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-gradient-to-r from-emerald-950/90 via-slate-900/95 to-teal-950/90 p-4 sm:p-6 shadow-[0_0_25px_rgba(16,185,129,0.18)] group transition-all duration-300 hover:border-emerald-400">
+              <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-emerald-500/10 via-transparent to-transparent pointer-events-none" />
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                <div className="flex items-start sm:items-center gap-3.5">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-md shadow-emerald-500/20 shrink-0">
+                    <Briefcase className="w-6 h-6 text-emerald-400 animate-pulse" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-mono text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        400+ GLOBAL ROLES HIRING
+                      </span>
+                      <span className="text-xs font-mono text-emerald-400 font-bold">$80,000 – $190,000 / Year</span>
+                      <span className="text-[11px] font-mono text-slate-400 hidden lg:inline">• Verified Partner</span>
+                    </div>
+                    <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                      Looking for a High-Paying Remote AI, Tech, or Executive Role?
+                    </h3>
+                    <p className="text-xs text-slate-300 font-sans hidden sm:block">
+                      Direct verified applications with US &amp; European employers hiring now on <strong className="text-emerald-400">GlobalHire AI</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
+                  <a
+                    href="https://globalhireai.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs font-mono tracking-wider transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105 active:scale-95 whitespace-nowrap cursor-pointer"
+                  >
+                    <span>BROWSE 400+ JOBS NOW</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
 
         {/* Daily Briefing Newsletter Banner */}
         <section className="mt-16 neu-flat p-8 sm:p-10 relative overflow-hidden">
@@ -263,9 +264,6 @@ export function HomePageClient({ initialArticles = [] }: HomePageClientProps) {
           </div>
         </section>
       </main>
-
-      {/* Sticky Bottom Ad Banner */}
-      <AdBanner slot="sticky-footer" />
 
       {/* Footer */}
       <Footer />

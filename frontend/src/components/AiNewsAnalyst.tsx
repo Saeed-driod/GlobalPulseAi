@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Sparkles, ShieldCheck, Zap, RefreshCw, CheckCircle2, Share2 } from "./Icons";
+import { AdUnit } from "./AdUnit";
 
 type AnalysisMode = "executive" | "bias" | "eli5" | "market";
 
@@ -197,6 +198,11 @@ export const AiNewsAnalyst: React.FC = () => {
                 <span>{bullet}</span>
               </div>
             ))}
+          </div>
+
+          {/* AI Analysis Ad Slot (Adsterra 300x250 High Engagement) */}
+          <div className="flex justify-center my-3">
+            <AdUnit type="rectangle" className="w-full max-w-[320px]" />
           </div>
 
           {/* Detected Entities & Share Button */}

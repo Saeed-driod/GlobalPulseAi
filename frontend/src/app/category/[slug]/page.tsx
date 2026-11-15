@@ -7,6 +7,7 @@ import { Header } from "../../../components/Header";
 import { Footer } from "../../../components/Footer";
 import { BreakingTicker } from "../../../components/BreakingTicker";
 import { AdBanner } from "../../../components/AdBanner";
+import { AdUnit } from "../../../components/AdUnit";
 import { NewsletterBox } from "../../../components/NewsletterBox";
 import { getHdImageUrl, getPollinationsFallback } from "../../../lib/imageOptimizer";
 import { getCategoryTheme } from "../../../lib/categoryTheme";
@@ -166,9 +167,9 @@ export default async function CategoryPage({ params }: PageProps) {
           </div>
         </header>
 
-        {/* Top Ad Slot */}
-        <div className="neu-flat p-2 sm:p-4 mb-10">
-          <AdBanner slot="header" />
+        {/* Top Ad Slot (Adsterra 728x90) */}
+        <div className="mb-10">
+          <AdUnit type="leaderboard" />
         </div>
 
         {/* Articles Grid */}

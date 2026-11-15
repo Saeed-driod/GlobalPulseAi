@@ -8,6 +8,7 @@ import { Header } from "../../../components/Header";
 import { BreakingTicker } from "../../../components/BreakingTicker";
 import { AdBanner } from "../../../components/AdBanner";
 import { AdSlot } from "../../../components/AdSlot";
+import { AdUnit } from "../../../components/AdUnit";
 import { useDirectLink } from "../../../lib/useDirectLink";
 import { NewsletterBox } from "../../../components/NewsletterBox";
 import { Footer } from "../../../components/Footer";
@@ -269,7 +270,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-20">
         {/* Top Leaderboard Ad (Adsterra 728x90) */}
-        <AdSlot type="leaderboard" className="mb-6" />
+        <AdUnit type="leaderboard" className="mb-6 max-w-5xl mx-auto" />
 
         {/* Back Link */}
         <div className="mb-6">
@@ -485,7 +486,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
 
             {/* In-Article Ad Banner (Adsterra In-Feed Native) */}
             <div className="my-8">
-              <AdSlot type="in-feed" fallbackTitle="Accelerate Your Career with GlobalHire AI" />
+              <AdUnit type="in-feed" className="w-full" />
             </div>
 
             {/* Exclusive High-Impact GlobalHire Remote Career Spotlight */}
@@ -537,7 +538,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
           {/* Right Sidebar */}
           <aside className="lg:col-span-4 space-y-6">
             {/* Sticky Sidebar Banner (Adsterra 300x250) */}
-            <AdSlot type="sidebar" />
+            <AdUnit type="sidebar" className="sticky top-24" />
 
             {/* Trending News */}
             <div className="p-5 rounded-2xl neu-flat border border-white/5">

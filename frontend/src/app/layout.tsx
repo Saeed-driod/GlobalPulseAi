@@ -3,6 +3,7 @@ import Script from "next/script";
 import { AnalyticsTracker } from "../components/AnalyticsTracker";
 import { PushNotificationPrompt } from "../components/PushNotificationPrompt";
 import { MonetagGlobalScript } from "../components/MonetagGlobalScript";
+import { SocialBarAd } from "../components/SocialBarAd";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -222,6 +223,7 @@ export default function RootLayout({
           <AnalyticsTracker />
           <PushNotificationPrompt />
           <MonetagGlobalScript />
+          <SocialBarAd />
           {children}
         </div>
       </body>

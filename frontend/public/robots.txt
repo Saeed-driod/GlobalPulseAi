@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://globalpulseai.vercel.app/sitemap.xml
+Sitemap: https://globalpulseai.vercel.app/news-sitemap.xml
+Sitemap: https://globalpulseai.vercel.app/rss.xml

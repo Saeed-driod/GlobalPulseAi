@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Header } from "../../components/Header";
 import { Footer } from "../../components/Footer";
 import { AdBanner } from "../../components/AdBanner";
+import { AdUnit } from "../../components/AdUnit";
 import {
   Video,
   ArrowLeft,
@@ -369,9 +370,9 @@ export default function LiveStreamPage() {
               </div>
             </div>
 
-            {/* Monetag / Sponsor Banner Slot below stream */}
-            <div className="neu-flat p-4">
-              <AdBanner slot="header" />
+            {/* Adsterra Leaderboard Banner below stream */}
+            <div className="my-4">
+              <AdUnit type="leaderboard" />
             </div>
           </div>
 
