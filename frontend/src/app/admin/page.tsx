@@ -28,6 +28,7 @@ import {
 } from "../../lib/api";
 import { AnalyticsModal } from "../../components/AnalyticsModal";
 import { AdManagerModal } from "../../components/AdManagerModal";
+import { VideoStudio } from "../../components/VideoStudio";
 
 import {
   Sparkles,
@@ -76,6 +77,8 @@ export default function AdminPage() {
   const [schedulerInfo, setSchedulerInfo] = useState<SchedulerStatusResponse | null>(null);
   const [ytAuthStatus, setYtAuthStatus] = useState<{ authenticated: boolean; channel?: string } | null>(null);
   const [videoFormatMode, setVideoFormatMode] = useState<"long" | "short">("short");
+  const [isStudioOpen, setIsStudioOpen] = useState<boolean>(false);
+  const [studioArticle, setStudioArticle] = useState<Article | undefined>(undefined);
 
   // Real-time local worker & video progress states
   const [workerStatus, setWorkerStatus] = useState<WorkerStatusInfo | null>(null);
@@ -181,7 +184,7 @@ export default function AdminPage() {
     checkAuth();
 
     if (typeof window !== "undefined" && window.location.search.includes("youtube=connected")) {
-      showToast("YouTube Channel GloblePulseAi successfully connected!");
+      showToast("YouTube Channel GlobalPulseAI successfully connected!");
     }
   }, []);
 
@@ -546,6 +549,19 @@ export default function AdminPage() {
               </button>
             </div>
 
+            {/* AI Video Studio Presenter Hub */}
+            <button
+              type="button"
+              onClick={() => {
+                setStudioArticle(undefined);
+                setIsStudioOpen(true);
+              }}
+              className="neu-btn px-3.5 py-2 text-xs flex items-center gap-1.5 font-bold text-cyan-600 hover:text-cyan-700 cursor-pointer"
+            >
+              <Video className="w-3.5 h-3.5 text-cyan-500" />
+              <span>AI Video Studio (Sarah / David)</span>
+            </button>
+
             {/* Run Full Master Pipeline */}
             <button
               onClick={handleRunMasterPipeline}
@@ -561,7 +577,7 @@ export default function AdminPage() {
               <div className="neu-sm px-4 py-2 text-emerald-600 font-bold text-xs flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <Youtube className="w-4 h-4 text-red-600" />
-                <span>Connected: {ytAuthStatus?.channel || workerStatus?.channel_name || "@GloblePulseAi"}</span>
+                <span>Connected: {ytAuthStatus?.channel || workerStatus?.channel_name || "@GlobalPulseAI"}</span>
               </div>
             ) : (
               <button
@@ -646,7 +662,7 @@ export default function AdminPage() {
                   </span>
                 </div>
                 <p className="text-xs text-[#718096] font-mono mt-0.5">
-                  Automated Voiceover • High-Definition Frames • FFmpeg Hardware MP4 Render • YouTube Channel @GloblePulseAi
+                  Automated Voiceover • High-Definition Frames • FFmpeg Hardware MP4 Render • YouTube Channel @GlobalPulseAI
                 </p>
               </div>
             </div>
@@ -870,7 +886,7 @@ export default function AdminPage() {
           <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-[#718096] w-full md:w-auto justify-between md:justify-end">
             <div className="neu-sm px-3 py-1.5">
               <span className="text-[#718096]">Target Channel:</span>{" "}
-              <span className="text-red-600 font-bold">GloblePulseAi</span>
+              <span className="text-red-600 font-bold">GlobalPulseAI</span>
             </div>
             <button
               onClick={handleRunMasterPipeline}
@@ -1156,6 +1172,18 @@ export default function AdminPage() {
                           >
                             <Video className="w-3.5 h-3.5 text-purple-600" />
                             Script
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setStudioArticle(art);
+                              setIsStudioOpen(true);
+                            }}
+                            className="neu-sm flex items-center gap-1 px-2.5 py-1.5 text-cyan-700 font-bold text-xs hover:text-cyan-800 transition cursor-pointer"
+                            title="Open in AI Video Studio"
+                          >
+                            <Video className="w-3.5 h-3.5 text-cyan-600" />
+                            Studio
                           </button>
 
                           {/* YouTube / Video Action Button */}
@@ -1444,6 +1472,13 @@ export default function AdminPage() {
         isOpen={showAdManagerModal}
         onClose={() => setShowAdManagerModal(false)}
         onSuccessToast={(msg) => setToastMessage(msg)}
+      />
+
+      {/* AI Video Studio & Presenter Hub Modal */}
+      <VideoStudio
+        isOpen={isStudioOpen}
+        onClose={() => setIsStudioOpen(false)}
+        initialArticle={studioArticle}
       />
     </div>
   );

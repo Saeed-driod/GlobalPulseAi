@@ -27,13 +27,18 @@ STATIC_VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
 PUBLIC_SITE_URL = os.getenv("PUBLIC_SITE_URL", os.getenv("FRONTEND_URL", "https://globalpulse.ai")).rstrip("/")
 
 def get_clean_domain(url: str) -> str:
-    """Extracts a clean uppercase domain or host for display banners."""
+    """Extracts a clean uppercase domain for display banners (never localhost)."""
+    if not url or "localhost" in str(url).lower() or "127.0.0.1" in str(url):
+        return "GLOBALPULSEAI.VERCEL.APP"
     try:
         parsed = urllib.parse.urlparse(url)
         domain = parsed.netloc or parsed.path
-        return domain.strip("/").upper()
+        cleaned = domain.strip("/").upper()
+        if not cleaned or "LOCALHOST" in cleaned:
+            return "GLOBALPULSEAI.VERCEL.APP"
+        return cleaned
     except Exception:
-        return url.replace("https://", "").replace("http://", "").split("/")[0].upper()
+        return "GLOBALPULSEAI.VERCEL.APP"
 
 def run_async_in_isolated_thread(async_func, *args, timeout: float = 45.0) -> bool:
     """
@@ -365,143 +370,109 @@ def clean_script_for_voiceover(
     fallback_summary: str = "",
     fallback_content: str = "",
     category: str = "",
-    min_words: int = 185
+    min_words: int = 90
 ) -> str:
     """
-    Cleans raw script by removing director cues, timing brackets, fractions, and markdown artifacts.
-    Guarantees pure, natural spoken broadcaster dialogue with ZERO visual instructions read aloud.
-    Enforces minimum 1 minute 5 seconds (65s) duration by ensuring >= 185 spoken words (~70-85s audio)
-    for full monetization and TikTok Creator Rewards qualification (> 60 seconds).
+    Constructs a crisp, punchy 35-45 second news script (90-110 words max)
+    with ZERO repeated sentences and ZERO robotic filler phrases.
+    Enforces the 4-part viral news structure:
+      1. 0-3s Hook: Immediate conflict / surprising fact
+      2. 3-25s Core Facts (3 short conversational sentences): What happened, why it matters, who it affects
+      3. 25-35s Takeaway: One sharp insight on what happens next
+      4. 35-40s Fast CTA: "Read the full breakdown on globalpulseai.vercel.app and subscribe to @GlobalPulseAI."
     """
     text = youtube_script or ""
-    # 1. Remove bracketed and parenthetical notes e.g. [00:00 - 00:05] or [HOOK:] or [VISUAL: ...]
     text = re.sub(r"\[.*?\]", " ", text)
     text = re.sub(r"\(.*?\)", " ", text)
 
-    # 2. Filter line by line: eliminate director cues and visual instructions
     filtered_lines = []
     for raw_line in text.split("\n"):
         line = raw_line.strip()
         if not line:
             continue
         line_lower = line.lower()
-        # If line starts with a speaker cue like "HOOK:", "NARRATION:", "CTA:" - keep only the spoken text
         matched = re.match(r"^(?:hook|narration|spoken|speaker|voiceover|presenter|host|cta)\s*:\s*(.+)$", line, re.IGNORECASE)
         if matched:
             line = matched.group(1).strip()
             line_lower = line.lower()
 
-        # If line is or contains director / visual cues, discard entirely
         if any(line_lower.startswith(cue) for cue in [
             "visual:", "visuals:", "graphic:", "stat overlay:", "tactical board", 
             "b-roll:", "camera:", "scene:", "bgm:", "sfx:", "telemetry:"
         ]):
             continue
-        if any(bad_phrase in line_lower for bad_phrase in [
-            "tactical board displaying", "stadium visuals", "match telemetry", 
-            "stat overlay rating", "on-screen graphic", "b-roll showing"
+        if any(bad in line_lower for bad in [
+            "breaking intelligence dispatch", "primary operational findings",
+            "furthermore, further developments expected", "operational transition",
+            "tactical board", "stadium visuals"
         ]):
             continue
-
         filtered_lines.append(line)
 
     cleaned = " ".join(filtered_lines)
-
-    # 3. Strip remaining inline cues
-    cleaned = re.sub(r"(?i)\b(hook|visual|narration|on-screen graphic|cta|stats|action|bgm|scene|audio):\s*", " ", cleaned)
+    cleaned = re.sub(r"(?i)\b(hook|visual|narration|cta|on-screen graphic|scene|audio):\s*", " ", cleaned)
     cleaned = cleaned.replace("*", "").replace("•", "").replace("▸", "").replace(">", "").replace("|", " ")
-
-    # 4. Fix fractions e.g. 9.4/10 -> 9.4 out of 10 so TTS never reads it as 'September 4th'
     cleaned = re.sub(r"\b(\d+(?:\.\d+)?)\s*/\s*10\b", r"\1 out of 10", cleaned)
     cleaned = re.sub(r"\b(\d+)\s*/\s*(\d+)\b", r"\1 out of \2", cleaned)
-
     cleaned = " ".join(cleaned.split()).strip()
 
-    # If the clean script is too brief (< 40 chars), enrich with headline & summary
-    if len(cleaned) < 40:
-        cleaned = f"{fallback_title}. {fallback_summary}."
-
-    # Enforce minimum duration (> 60 seconds / ~65s - 85s):
-    # At standard 135-145 words/minute TTS, 185 words produces 70-85 seconds of audio.
     words = cleaned.split()
-    if len(words) < min_words:
-        enrichment_parts = []
-        
-        def current_total():
-            return len(words) + sum(len(p.split()) for p in enrichment_parts)
+    if len(words) < 70 or len(words) > 130:
+        clean_title = re.sub(r"(?i)\s*#shorts\b", "", fallback_title or "Breaking News Update").strip().rstrip(".:,-")
+        hook = f"{clean_title}."
 
-        # Step A: Enrich from summary bullet points if available
-        if fallback_summary and current_total() < min_words - 25:
+        fact_candidates = []
+        if fallback_summary:
             for s_line in fallback_summary.split("\n"):
-                s_clean = re.sub(r"[•▸*`#>]", "", s_line).strip()
-                if len(s_clean) > 20 and s_clean.lower() not in cleaned.lower():
-                    enrichment_parts.append(s_clean.rstrip(".") + ".")
-                    if current_total() >= min_words - 25:
+                s_c = re.sub(r"[•▸*`#>]", "", s_line).strip()
+                if len(s_c) > 20 and not any(r in s_c.lower() for r in ["operational findings", "intelligence dispatch"]):
+                    fact_candidates.append(s_c.rstrip(".") + ".")
+                    if len(fact_candidates) >= 3:
                         break
 
-        # Step B: Enrich from article content if still under minimum words
-        if fallback_content and current_total() < min_words - 25:
-            for para in fallback_content.split("\n\n"):
-                p_clean = re.sub(r"[#*`>|]", "", para).strip()
-                if len(p_clean) > 40 and not p_clean.startswith("###") and not p_clean.startswith("Q:") and not p_clean.startswith("A:"):
-                    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", p_clean) if len(s.strip()) > 20]
-                    for s in sentences:
-                        if s.lower() not in cleaned.lower() and not any(bad in s.lower() for bad in ["table", "http", "unsplash"]):
-                            enrichment_parts.append(s.rstrip(".") + ".")
-                            if current_total() >= min_words - 25:
+        if len(fact_candidates) < 2 and fallback_content:
+            for p in fallback_content.split("\n\n"):
+                p_c = re.sub(r"[#*`>|]", "", p).strip()
+                if len(p_c) > 40 and not p_c.startswith("###"):
+                    for s in re.split(r"(?<=[.!?])\s+", p_c):
+                        s_strip = s.strip()
+                        if len(s_strip) > 20 and s_strip not in fact_candidates:
+                            fact_candidates.append(s_strip.rstrip(".") + ".")
+                            if len(fact_candidates) >= 3:
                                 break
-                if current_total() >= min_words - 25:
+                if len(fact_candidates) >= 3:
                     break
 
-        # Step C: Enrich with category-specific contextual analysis, impacts, and outlook
-        norm_cat = normalize_category_key(category)
-        cat_data = CATEGORY_ANALYTICS.get(norm_cat, CATEGORY_ANALYTICS["AI & Tech"])
+        if not fact_candidates:
+            fact_candidates = [
+                f"Verified field reports in {category or 'world news'} confirm a major transition is now underway.",
+                "Key stakeholders are assessing immediate operational and market impacts worldwide.",
+                "Analysts emphasize that this milestone changes the strategic trajectory for coming months."
+            ]
 
-        # C1. Core Analysis Pool
-        for sentence in cat_data.get("analysis", []):
-            if current_total() >= min_words - 25:
-                break
-            if sentence.lower() not in cleaned.lower():
-                enrichment_parts.append(sentence)
+        takeaway = f"Industry experts project this momentum will trigger widespread structural adjustments across {category or 'the sector'}."
+        cta = "For the verified full breakdown, visit globalpulseai.vercel.app and subscribe to @GlobalPulseAI."
 
-        # C2. Strategic Impact Pool
-        for sentence in cat_data.get("impact", []):
-            if current_total() >= min_words - 25:
-                break
-            if sentence.lower() not in cleaned.lower():
-                enrichment_parts.append(sentence)
+        all_parts = [hook] + fact_candidates[:3] + [takeaway, cta]
+        cleaned = " ".join(all_parts)
 
-        # C3. Future Outlook Pool
-        for sentence in cat_data.get("outlook", []):
-            if current_total() >= min_words - 25:
-                break
-            if sentence.lower() not in cleaned.lower():
-                enrichment_parts.append(sentence)
-
-        # Step D: Interactive Engagement Prompt & Broadcaster CTA Sign-off
-        prompt_q = cat_data.get("prompt", "What are your key takeaways from these developments?")
-        if prompt_q.lower() not in cleaned.lower():
-            enrichment_parts.append(prompt_q)
-        if CTA_SIGN_OFF.lower() not in cleaned.lower():
-            enrichment_parts.append(CTA_SIGN_OFF)
-
-        if enrichment_parts:
-            cleaned = cleaned.rstrip(".") + ". " + " ".join(enrichment_parts)
-            cleaned = " ".join(cleaned.split()).strip()
-
-    return cleaned
+    return " ".join(cleaned.split()).strip()
 
 def prepare_text_for_tts(clean_text: str) -> str:
     """
     Transforms text specifically for speech synthesis engine:
-    - Adds a trailing pause buffer so the voiceover never cuts off abruptly at the end.
+    - Normalizes channel handles and brand names.
+    - Strips artificial robotic trailing filler like 'Thank you for watching GlobalPulse AI.'
     """
     t = clean_text
     t = re.sub(r"(?i)\beduhub\s+by\s+saeed\b", "GlobalPulse AI", t)
-    t = re.sub(r"(?i)\b@eduhubbysaeed\b", "@GloblePulseAi", t)
-    # Trailing 1-second pause buffer
-    t = t.rstrip(".!? ") + ". ... Thank you for watching GlobalPulse AI."
-    return t
+    t = re.sub(r"(?i)\b@eduhubbysaeed\b", "@GlobalPulseAI", t)
+    t = re.sub(r"(?i)\b@globlepulseai\b", "@GlobalPulseAI", t)
+    t = re.sub(r"(?i)\bgloblepulseai\b", "GlobalPulseAI", t)
+    t = re.sub(r"(?i)\bwww\.localhost:3000\b", "globalpulseai.vercel.app", t)
+    t = re.sub(r"(?i)\blocalhost:3000\b", "globalpulseai.vercel.app", t)
+    t = re.sub(r"(?i)\bthank you for watching.*$", "", t).strip()
+    return t.rstrip(".!? ") + "."
 
 def segment_script_into_sentences(text: str, fallback_title: str = "", count: int = 7) -> List[str]:
     """
@@ -567,7 +538,7 @@ def build_long_form_narration(
       2. Core Operational Facts & Executive Summary
       3. Deep-Dive Investigation (from full cleaned article content)
       4. Global Market & Strategic Implications
-      5. Outro & Call-to-Action for GlobalPulse AI (@GloblePulseAi)
+      5. Outro & Call-to-Action for GlobalPulse AI (@GlobalPulseAI)
     """
     clean_domain = get_clean_domain(PUBLIC_SITE_URL)
     clean_title = re.sub(r"(?i)\s*#shorts\b", "", title).strip().rstrip(".:,-")
@@ -588,8 +559,8 @@ def build_long_form_narration(
         intro_lead = f"Breaking sports dispatch in {category}. {clean_title}."
         intro_body = "Welcome to GlobalPulse AI, bringing you high-octane match analytics, tactical breakdowns, and championship reporting."
     else:
-        intro_lead = f"Breaking intelligence dispatch in {category}. {clean_title}."
-        intro_body = "Welcome to GlobalPulse AI, delivering verified global news reporting, strategic industry intelligence, and deep-dive technical briefings."
+        intro_lead = f"Top story today in {category}: {clean_title}."
+        intro_body = "Welcome to GlobalPulse AI. Global analysts and markets are closely following these fast-moving developments."
 
     # Section 2: Core Facts & Executive Summary
     summary_bullets = [
@@ -601,7 +572,7 @@ def build_long_form_narration(
         summary_sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", summary) if len(s.strip()) > 15]
         summary_bullets = summary_sentences
 
-    exec_summary_text = "Here are the primary operational findings." if category != "Global Sports" else "Examining the key turning points and match dynamics:"
+    exec_summary_text = "Here is what you need to know:" if category != "Global Sports" else "Key match dynamics and turning points:"
     if summary_bullets:
         bullet_phrases = []
         transitions = ["First", "Second", "Furthermore", "In addition"]
@@ -642,7 +613,7 @@ def build_long_form_narration(
     # Section 5: Outro & Call-to-Action (GlobalPulse AI)
     outro_text = (
         "For daily technical dispatches, real-world implementations, and cutting-edge intelligence briefings, "
-        "make sure to subscribe to our official YouTube channel, GlobalPulse AI, at handle GloblePulseAi. "
+        "make sure to subscribe to our official YouTube channel, GlobalPulse AI, at handle GlobalPulseAI. "
         f"And to inspect the complete dossier and verified data, visit GlobalPulse AI at {clean_domain}. Thank you for watching."
     )
 
@@ -1291,7 +1262,7 @@ def generate_news_slides(
 
         # 3. Clean Bottom Bar (y=1810 to 1860)
         draw.line([(60, 1800), (width - 60, 1800)], fill=(51, 65, 85, 180), width=1)
-        bottom_text = "● LIVE WIRE • @GloblePulseAi • GLOBALPULSE AI"
+        bottom_text = "● LIVE WIRE • @GlobalPulseAI • GLOBALPULSE AI"
         b_box = draw.textbbox((0, 0), bottom_text, font=font_bottom)
         bw = b_box[2] - b_box[0]
         draw.text(((width - bw) // 2, 1825), bottom_text, fill=(203, 213, 225), font=font_bottom)
@@ -1319,9 +1290,9 @@ def generate_widescreen_long_slides(
     - 100% photo-rich dynamic visuals (no static PowerPoint cards or fake stat boxes).
     - Dynamic zoom & crop variations per scene.
     - Sleek top-left live broadcast badge (🔴 BREAKING • {category.upper()}).
-    - Top-right verified channel branding (@GloblePulseAi • YouTube).
+    - Top-right verified channel branding (@GlobalPulseAI • YouTube).
     - High-contrast broadcast subtitles in lower third with neon keyword highlights!
-    - Clean bottom bar (@GloblePulseAi • GlobalPulse AI).
+    - Clean bottom bar (@GlobalPulseAI • GlobalPulse AI).
     """
     import gc
     width, height = 1280, 720
@@ -1361,7 +1332,7 @@ def generate_widescreen_long_slides(
         draw.text((74, 34), badge_text, fill=(255, 255, 255), font=font_top_badge)
 
         # Top-Right Channel Pill
-        channel_text = "@GloblePulseAi • YOUTUBE"
+        channel_text = "@GlobalPulseAI • YOUTUBE"
         ch_box = draw.textbbox((0, 0), channel_text, font=font_top_channel)
         ch_w = ch_box[2] - ch_box[0]
         ch_h = ch_box[3] - ch_box[1]
@@ -1383,7 +1354,7 @@ def generate_widescreen_long_slides(
 
         # 4. Clean Bottom Bar
         draw.line([(40, 672), (width - 40, 672)], fill=(51, 65, 85, 180), width=1)
-        bottom_text = f"● LIVE DISPATCH • @GloblePulseAi • GLOBALPULSE AI • WWW.{clean_domain.upper()}"
+        bottom_text = f"● LIVE DISPATCH • @GlobalPulseAI • GLOBALPULSE AI • {clean_domain.upper()}"
         bot_box = draw.textbbox((0, 0), bottom_text, font=font_bottom)
         bot_w = bot_box[2] - bot_box[0]
         draw.text(((width - bot_w) // 2, 686), bottom_text, fill=(203, 213, 225), font=font_bottom)

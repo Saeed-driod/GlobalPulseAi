@@ -331,13 +331,13 @@ export default function LiveStreamPage() {
 
                 {/* Official YouTube Channel CTA */}
                 <a
-                  href="https://www.youtube.com/@GloblePulseAi"
+                  href="https://www.youtube.com/@GlobalPulseAI"
                   target="_blank"
                   rel="noreferrer"
                   className="neu-btn-primary px-4 py-2 text-xs uppercase tracking-wider flex items-center gap-2 shrink-0 cursor-pointer self-start sm:self-center"
                 >
                   <Youtube className="w-4 h-4 text-white" />
-                  <span>Subscribe @GloblePulseAi</span>
+                  <span>Subscribe @GlobalPulseAI</span>
                 </a>
               </div>
             </div>

@@ -430,7 +430,7 @@ export async function fetchWorkerStatus(): Promise<WorkerStatusInfo> {
       online: false,
       worker_name: "LOCAL_PC_WORKER",
       status: "OFFLINE",
-      channel_name: "@GloblePulseAi",
+      channel_name: "@GlobalPulseAI",
       total_completed: 0,
     };
   } catch {
@@ -438,7 +438,7 @@ export async function fetchWorkerStatus(): Promise<WorkerStatusInfo> {
       online: false,
       worker_name: "LOCAL_PC_WORKER",
       status: "OFFLINE",
-      channel_name: "@GloblePulseAi",
+      channel_name: "@GlobalPulseAI",
       total_completed: 0,
     };
   }

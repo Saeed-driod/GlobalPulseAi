@@ -92,7 +92,7 @@ export const Footer: React.FC = () => {
               </li>
               <li className="pt-2">
                 <a
-                  href="https://www.youtube.com/@GloblePulseAi"
+                  href="https://www.youtube.com/@GlobalPulseAI"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-red-400 font-bold hover:text-red-300 font-mono text-[11px]"
@@ -137,12 +137,12 @@ export const Footer: React.FC = () => {
               Contact Desk
             </Link>
             <a
-              href="https://www.youtube.com/@GloblePulseAi"
+              href="https://www.youtube.com/@GlobalPulseAI"
               target="_blank"
               rel="noreferrer"
               className="text-red-500 hover:text-red-600 transition font-bold"
             >
-              @GloblePulseAi
+              @GlobalPulseAI
             </a>
           </div>
         </div>

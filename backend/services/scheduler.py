@@ -86,7 +86,7 @@ def start_scheduler() -> BackgroundScheduler:
     scheduler.start()
     print(f"============================================================")
     print(f"[Scheduler] 24/7 BACKGROUND AUTOMATION ACTIVE ({interval_desc})")
-    print(f"   Target YouTube Channel: 'GloblePulseAi'")
+    print(f"   Target YouTube Channel: 'GlobalPulseAI'")
     print(f"   First Run: In 20 seconds, then recurring {interval_desc}")
     print(f"============================================================")
 
@@ -126,5 +126,5 @@ def get_scheduler_status() -> Dict[str, Any]:
         "last_run_time": last_run_info["last_run_time"],
         "last_run_status": last_run_info["last_run_status"],
         "last_run_summary": last_run_info["last_run_summary"],
-        "channel": "GloblePulseAi"
+        "channel": "GlobalPulseAI"
     }

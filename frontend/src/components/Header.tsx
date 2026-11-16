@@ -121,10 +121,10 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* YouTube Channel Link */}
             <a
-              href="https://www.youtube.com/@GloblePulseAi"
+              href="https://www.youtube.com/@GlobalPulseAI"
               target="_blank"
               rel="noreferrer"
-              title="Official YouTube Channel @GloblePulseAi"
+              title="Official YouTube Channel @GlobalPulseAI"
               className="neu-sm p-1.5 text-rose-400 hover:text-rose-300 border border-red-500/30 bg-red-950/30 shadow-[0_0_10px_rgba(239,68,68,0.25)] transition shrink-0 inline-flex items-center justify-center"
             >
               <Youtube className="w-3.5 h-3.5" />

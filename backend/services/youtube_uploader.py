@@ -147,7 +147,7 @@ def get_oauth_success_html() -> str:
     <div class="icon">🎉</div>
     <div class="badge">CHANNEL CONNECTED</div>
     <h1>YouTube Authorization Complete!</h1>
-    <p>Your Google account and YouTube channel (<strong>GloblePulseAi</strong>) are successfully authorized for automated Shorts publishing.</p>
+    <p>Your Google account and YouTube channel (<strong>GlobalPulseAI</strong>) are successfully authorized for automated Shorts publishing.</p>
     <p style="color: #64748b; font-size: 12px;">Token saved to backend/token.json. Auto-redirecting to Admin Dashboard...</p>
     <a href="{ADMIN_DASHBOARD_URL}" class="btn">Return to Admin Dashboard</a>
   </div>
@@ -299,7 +299,7 @@ def check_auth_status() -> Dict[str, Any]:
                 "authenticated": True,
                 "message": "Authenticated with YouTube!",
                 "token_file": str(TOKEN_FILE),
-                "channel": "GloblePulseAi"
+                "channel": "GlobalPulseAI"
             }
         if creds.expired and creds.refresh_token:
             try:
@@ -310,20 +310,20 @@ def check_auth_status() -> Dict[str, Any]:
                     "authenticated": True,
                     "message": "Authenticated with YouTube (Token refreshed)!",
                     "token_file": str(TOKEN_FILE),
-                    "channel": "GloblePulseAi"
+                    "channel": "GlobalPulseAI"
                 }
             except Exception as ref_err:
                 return {
                     "authenticated": False,
                     "message": f"YouTube token expired or revoked ({ref_err}). Please re-authorize.",
                     "token_file": str(TOKEN_FILE),
-                    "channel": "GloblePulseAi"
+                    "channel": "GlobalPulseAI"
                 }
         return {
             "authenticated": False,
             "message": "YouTube token is invalid or missing refresh token.",
             "token_file": str(TOKEN_FILE),
-            "channel": "GloblePulseAi"
+            "channel": "GlobalPulseAI"
         }
     except Exception as e:
         return {"authenticated": False, "message": f"Invalid token file: {e}"}
@@ -504,19 +504,19 @@ def upload_video_to_youtube(
             upload_title = clean_t[:95]
             cat_str = str(category or "").lower()
             if category_id == "17":
-                default_tags = ["GlobalPulse AI", "GloblePulseAi", "Global Sports", "Sports", "Match Analysis", "Highlights"]
+                default_tags = ["GlobalPulse AI", "GlobalPulseAI", "Global Sports", "Sports", "Match Analysis", "Highlights"]
             elif "politics" in cat_str or "geopolitics" in cat_str:
-                default_tags = ["GlobalPulse AI", "GloblePulseAi", "World Politics", "Politics", "Elections", "Breaking News", "Diplomacy", "Geopolitics", "World Leaders"]
+                default_tags = ["GlobalPulse AI", "GlobalPulseAI", "World Politics", "Politics", "Elections", "Breaking News", "Diplomacy", "Geopolitics", "World Leaders"]
             else:
-                default_tags = ["GlobalPulse AI", "GloblePulseAi", "News", "Technology", "World News", "Market Analysis"]
+                default_tags = ["GlobalPulse AI", "GlobalPulseAI", "News", "Technology", "World News", "Market Analysis"]
         else:
             raw_title = f"{title.strip()} #shorts" if "#shorts" not in title.lower() else title.strip()
             upload_title = raw_title[:100]
             cat_str = str(category or "").lower()
             if "politics" in cat_str or "geopolitics" in cat_str:
-                default_tags = ["GlobalPulse AI", "GloblePulseAi", "World Politics", "Shorts", "Politics", "Elections", "Breaking News", "Diplomacy"]
+                default_tags = ["GlobalPulse AI", "GlobalPulseAI", "World Politics", "Shorts", "Politics", "Elections", "Breaking News", "Diplomacy"]
             else:
-                default_tags = ["GlobalPulse AI", "GloblePulseAi", "News", "Technology", "Shorts"]
+                default_tags = ["GlobalPulse AI", "GlobalPulseAI", "News", "Technology", "Shorts"]
 
         body = {
             "snippet": {
@@ -676,13 +676,13 @@ def upload_long_video_to_youtube(
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Stay ahead of global shifts with daily deep-dive intelligence briefings.
-Subscribe to GlobalPulse AI on YouTube (@GloblePulseAi) for cutting-edge AI, geopolitical insights, global sports, and markets:
-👉 https://www.youtube.com/@GloblePulseAi
+Subscribe to GlobalPulse AI on YouTube (@GlobalPulseAI) for cutting-edge AI, geopolitical insights, global sports, and markets:
+👉 https://www.youtube.com/@GlobalPulseAI
 
-#{category.replace(' ', '').replace('&', '')} #News #GlobalMarkets #Technology #GlobalPulseAI #GloblePulseAi #WorldNews #IntelligenceBriefing
+#{category.replace(' ', '').replace('&', '')} #News #GlobalMarkets #Technology #GlobalPulseAI #GlobalPulseAI #WorldNews #IntelligenceBriefing
 """
 
-    tags = ["GlobalPulse AI", "GloblePulseAi", category, "Breaking News", "World News", "Technology", "Markets", "Documentary"]
+    tags = ["GlobalPulse AI", "GlobalPulseAI", category, "Breaking News", "World News", "Technology", "Markets", "Documentary"]
     cat_id = get_category_id(category)
 
     try:
@@ -775,7 +775,7 @@ def upload_short_to_youtube(
 👉 {website_url}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔔 Subscribe to @GloblePulseAi for daily global intelligence briefings!
+🔔 Subscribe to @GlobalPulseAI for daily global intelligence briefings!
 Daily AI breakthroughs, financial markets, geopolitics & sports highlights.
 
 #GlobalPulseAI #News #Shorts #viral #trending #{category.replace(' ', '').replace('&', '')}

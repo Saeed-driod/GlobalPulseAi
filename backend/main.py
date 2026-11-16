@@ -671,7 +671,7 @@ def get_worker_status_endpoint(db: Session = Depends(get_db)):
             last_seen=None,
             active_article_id=None,
             active_article_title=None,
-            channel_name="@GloblePulseAi",
+            channel_name="@GlobalPulseAI",
             total_completed=0,
             shorts_today=counts["shorts_today"],
             longs_today=counts["longs_today"],
@@ -694,7 +694,7 @@ def get_worker_status_endpoint(db: Session = Depends(get_db)):
         last_seen=heartbeat.last_seen,
         active_article_id=heartbeat.active_article_id if is_online else None,
         active_article_title=heartbeat.active_article_title if is_online else None,
-        channel_name=heartbeat.channel_name or "@GloblePulseAi",
+        channel_name=heartbeat.channel_name or "@GlobalPulseAI",
         total_completed=heartbeat.total_completed or 0,
         shorts_today=counts["shorts_today"],
         longs_today=counts["longs_today"],
@@ -1123,7 +1123,7 @@ def auth_youtube():
 <body>
   <div class="card">
     <div class="badge">&#9679; YOUTUBE OAUTH STATUS: RE-AUTHORIZATION NEEDED</div>
-    <h1>Connect YouTube Channel (@GloblePulseAi)</h1>
+    <h1>Connect YouTube Channel (@GlobalPulseAI)</h1>
     <p>
       GlobalPulse AI uses <strong>Local PC Hardware Offloading</strong> for video generation and YouTube publishing. This prevents Render Cloud memory crashes (512MB RAM cap) and ensures high-definition video rendering.
     </p>
@@ -1133,7 +1133,7 @@ def auth_youtube():
       <p style="margin: 0; color: #cbd5e1; font-size: 13px; line-height: 1.8;">
         1. On your PC, open your project folder: <code>d:\Global English Audience</code><br>
         2. Double-click <code>REAUTH_YOUTUBE.bat</code> (or run <code>local_worker.py --auth</code>).<br>
-        3. Sign in to your Google Account (<strong>@GloblePulseAi</strong>) and click <em>Allow</em>.<br>
+        3. Sign in to your Google Account (<strong>@GlobalPulseAI</strong>) and click <em>Allow</em>.<br>
         4. Done! Double-click <code>START_VIDEO_WORKER.bat</code> to resume auto-uploads.
       </p>
     </div>
@@ -1175,7 +1175,7 @@ def auth_youtube_status(db: Session = Depends(get_db)):
             return {
                 "authenticated": True,
                 "message": "Authenticated with YouTube via Local PC Worker!",
-                "channel": heartbeat.channel_name or "@GloblePulseAi",
+                "channel": heartbeat.channel_name or "@GlobalPulseAI",
                 "worker_online": True
             }
 
@@ -1340,7 +1340,7 @@ def sync_youtube_token_endpoint(payload: TokenSyncPayload, db: Session = Depends
         if hb:
             hb.status = "IDLE"
             hb.last_seen = datetime.now(timezone.utc)
-            hb.channel_name = "@GloblePulseAi"
+            hb.channel_name = "@GlobalPulseAI"
             db.commit()
 
         status_res = check_auth_status()

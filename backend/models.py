@@ -76,7 +76,7 @@ class WorkerHeartbeat(Base):
     last_seen = Column(DateTime(timezone=True), nullable=True)
     active_article_id = Column(Integer, nullable=True)
     active_article_title = Column(String(300), nullable=True)
-    channel_name = Column(String(100), default="@GloblePulseAi", nullable=False)
+    channel_name = Column(String(100), default="@GlobalPulseAI", nullable=False)
     total_completed = Column(Integer, default=0, nullable=False)
     shorts_today = Column(Integer, default=0, nullable=False)
     longs_today = Column(Integer, default=0, nullable=False)

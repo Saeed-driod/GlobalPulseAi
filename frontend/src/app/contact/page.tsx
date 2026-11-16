@@ -192,12 +192,12 @@ export default function ContactPage() {
                 Connect directly with our primary broadcast channel for video dispatches, technology intelligence, and global market coverage.
               </p>
               <a
-                href="https://www.youtube.com/@GloblePulseAi"
+                href="https://www.youtube.com/@GlobalPulseAI"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition shadow-md shadow-red-600/20 active:scale-95"
               >
-                <span>Visit YouTube Channel (@GloblePulseAi)</span>
+                <span>Visit YouTube Channel (@GlobalPulseAI)</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>

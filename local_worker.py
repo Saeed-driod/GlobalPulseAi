@@ -88,7 +88,7 @@ def send_worker_heartbeat(status: str = "IDLE", active_id: int = None, active_ti
                 last_seen=datetime.now(timezone.utc),
                 active_article_id=active_id,
                 active_article_title=active_title[:290] if active_title else None,
-                channel_name="@GloblePulseAi",
+                channel_name="@GlobalPulseAI",
                 total_completed=1 if increment_completed else 0,
                 shorts_today=counts["shorts_today"],
                 longs_today=counts["longs_today"],
@@ -422,8 +422,8 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                 print(f"============================================================\n")
                 return True
 
-            print(f"[Worker] Uploading video to YouTube channel @GloblePulseAi ({target_dest})...")
-            update_article_progress(db, article, 90, "UPLOADING_YOUTUBE", f"Step 4/4: Uploading video directly to YouTube {target_dest} (@GloblePulseAi)...", eta="~5s remaining")
+            print(f"[Worker] Uploading video to YouTube channel @GlobalPulseAI ({target_dest})...")
+            update_article_progress(db, article, 90, "UPLOADING_YOUTUBE", f"Step 4/4: Uploading video directly to YouTube {target_dest} (@GlobalPulseAI)...", eta="~5s remaining")
 
             upload_disk_path = video_path or ""
             if upload_disk_path.startswith("/static/"):
@@ -784,7 +784,7 @@ def run_daemon_worker(interval_seconds: int = 30, video_format: str = "auto", do
     using your local PC hardware with strict daily quotas (3 Shorts + 1 Long).
     """
     auth = check_auth_status()
-    channel = auth.get("channel", "GloblePulseAi")
+    channel = auth.get("channel", "GlobalPulseAI")
     db = SessionLocal()
     try:
         counts = get_daily_youtube_upload_counts(db)
@@ -855,7 +855,7 @@ def reauthenticate_youtube() -> bool:
 
         print(f"Starting local authorization flow...")
         print(f"Scopes: {SCOPES}")
-        print("A browser window will open. Sign in with your YouTube channel Google account (@GloblePulseAi) and click 'Allow'.\n")
+        print("A browser window will open. Sign in with your YouTube channel Google account (@GlobalPulseAI) and click 'Allow'.\n")
 
         flow = InstalledAppFlow.from_client_secrets_file(str(CLIENT_SECRETS_FILE), SCOPES)
         creds = flow.run_local_server(port=8088, prompt="consent")
@@ -913,7 +913,7 @@ def interactive_menu():
         print("  [3] Process All Pending Articles (Missing Videos)")
         print("  [4] Start Background Daemon / Watchdog Mode")
         print("  [5] List Recent Articles & Media Status")
-        print("  [6] Re-Authorize YouTube Channel (@GloblePulseAi)")
+        print("  [6] Re-Authorize YouTube Channel (@GlobalPulseAI)")
         print("  [7] Generate Viral Movie Promo (TikTok / Reels 9:16)")
         print("  [8] Batch Index All Articles to Search Engines (IndexNow)")
         print("  [9] Exit")
@@ -921,7 +921,7 @@ def interactive_menu():
         choice = input("\nEnter choice [1-9]: ").strip()
         if choice == "1":
             fmt = input("Select format: 'long' (16:9 HD) or 'short' (9:16 Shorts) [default: short]: ").strip().lower() or "short"
-            u_in = input(f"Auto-upload to YouTube ({auth.get('channel', 'GloblePulseAi')})? (y/n) [default: {default_upload}]: ").strip().lower()
+            u_in = input(f"Auto-upload to YouTube ({auth.get('channel', 'GlobalPulseAI')})? (y/n) [default: {default_upload}]: ").strip().lower()
             upload_choice = (u_in != "n") if is_auth else (u_in == "y")
             fetch_and_publish_news(target_category="Global Sports", video_format=fmt, do_upload=upload_choice)
         elif choice == "2":
@@ -1015,7 +1015,7 @@ def main():
         print("!" * 78 + "\n")
 
     if should_upload:
-        print(f"[Worker] YouTube Auto-Upload is ACTIVE for channel '{auth.get('channel', 'GloblePulseAi')}'.")
+        print(f"[Worker] YouTube Auto-Upload is ACTIVE for channel '{auth.get('channel', 'GlobalPulseAI')}'.")
     else:
         print("[Worker] YouTube Auto-Upload is PAUSED (Authentication required).")
 

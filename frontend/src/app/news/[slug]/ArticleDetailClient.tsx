@@ -13,6 +13,7 @@ import { useDirectLink } from "../../../lib/useDirectLink";
 import { NewsletterBox } from "../../../components/NewsletterBox";
 import { Footer } from "../../../components/Footer";
 import { AudioArticlePlayer } from "../../../components/AudioArticlePlayer";
+import { VideoStudio } from "../../../components/VideoStudio";
 import {
   ArrowLeft,
   Share2,
@@ -38,6 +39,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
   const [copied, setCopied] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(!initialArticle);
   const [scrollProgress, setScrollProgress] = useState<number>(0);
+  const [isStudioOpen, setIsStudioOpen] = useState<boolean>(false);
   const { handleActionClick } = useDirectLink();
 
   useEffect(() => {
@@ -371,6 +373,38 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
               author="GlobalPulse AI Desk"
             />
 
+            {/* AI News Anchor Studio Briefing */}
+            <div className="my-6">
+              <button
+                type="button"
+                onClick={() => setIsStudioOpen(true)}
+                className="w-full neu-flat p-4 rounded-2xl flex items-center justify-between group hover:border-cyan-500/50 transition-all cursor-pointer bg-gradient-to-r from-slate-900/60 via-cyan-950/20 to-slate-900/60"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25">
+                    <Video className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-white group-hover:text-cyan-400 transition-colors">
+                        Watch AI Anchor Briefing (35s)
+                      </span>
+                      <span className="text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full">
+                        TV Studio
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Watch Anchor Sarah or David present this story with live dynamic B-roll & synced captions
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 group-hover:translate-x-1 transition-transform">
+                  <span>Open Studio</span>
+                  <span>→</span>
+                </div>
+              </button>
+            </div>
+
             {/* Video broadcast embed if available */}
             {article.youtube_video_id && (
               <div className="my-8 p-4 rounded-2xl neu-flat">
@@ -567,6 +601,19 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
           </aside>
         </div>
       </main>
+
+      {/* AI Video Studio Modal */}
+      <VideoStudio
+        isOpen={isStudioOpen}
+        onClose={() => setIsStudioOpen(false)}
+        initialArticle={{
+          title: cleanHeadline,
+          summary: article.summary,
+          content: cleanBodyText,
+          category: article.category,
+          image_url: article.image_url,
+        }}
+      />
 
       <Footer />
     </div>
