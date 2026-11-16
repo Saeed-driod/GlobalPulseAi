@@ -201,9 +201,7 @@ export const AiNewsAnalyst: React.FC = () => {
           </div>
 
           {/* AI Analysis Ad Slot (Adsterra 300x250 High Engagement) */}
-          <div className="flex justify-center my-3">
-            <AdUnit type="rectangle" className="w-full max-w-[320px]" />
-          </div>
+          <AdUnit type="modal" className="w-full max-w-[320px] my-3" />
 
           {/* Detected Entities & Share Button */}
           <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">

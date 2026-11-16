@@ -484,10 +484,8 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
               </div>
             )}
 
-            {/* In-Article Ad Banner (Adsterra In-Feed Native) */}
-            <div className="my-8">
-              <AdUnit type="in-feed" className="w-full" />
-            </div>
+            {/* In-Article Ad Banner (Adsterra 300x250 Isolated Execution) */}
+            <AdUnit type="article" className="w-full my-8" />
 
             {/* Exclusive High-Impact GlobalHire Remote Career Spotlight */}
             <div className="my-8 p-6 rounded-2xl border border-emerald-500/40 bg-gradient-to-br from-emerald-950/80 via-slate-900/90 to-teal-950/70 shadow-2xl relative overflow-hidden group">
