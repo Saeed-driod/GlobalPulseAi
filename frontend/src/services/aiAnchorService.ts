@@ -1,10 +1,10 @@
 /**
  * AI Anchor Presenter & Lip-Sync Service for GlobalPulse AI
  * 
- * Supports:
- * 1. D-ID API (NEXT_PUBLIC_DID_API_KEY / VITE_DID_API_KEY)
- * 2. HeyGen API (NEXT_PUBLIC_HEYGEN_API_KEY / VITE_HEYGEN_API_KEY)
- * 3. Built-in Canvas Voice-Synced Animated Anchor Fallback (Zero cost, runs 100% offline/client-side)
+ * Secure Architecture:
+ * 1. Calls secure Vercel Serverless Function `/api/generate-anchor` (zero CORS, API key hidden on server).
+ * 2. Polls `/api/generate-anchor?id=<talkId>` every 2.5s until `status === 'done'`.
+ * 3. Graceful fallback to Built-in Canvas Voice-Synced Animated Anchor if credits run out or API fails.
  */
 
 export type AnchorId = "sarah" | "david" | "none";
@@ -16,40 +16,41 @@ export interface AnchorProfile {
   gender: "female" | "male" | "none";
   avatarUrl: string;
   voiceGender: "female" | "male";
+  voiceId: string; // Microsoft Neural Voice ID for D-ID
   preferredVoiceNames: string[];
 }
 
 export const ANCHOR_PROFILES: Record<AnchorId, AnchorProfile> = {
   sarah: {
     id: "sarah",
-    name: "Sarah Jenkins",
+    name: "Sarah Jenkins (Jenny)",
     title: "Senior World & Tech Anchor",
     gender: "female",
     avatarUrl: "/assets/anchors/anchor_female_sarah.jpg",
     voiceGender: "female",
+    voiceId: "en-US-JennyNeural",
     preferredVoiceNames: [
       "Microsoft Jenny Online (Natural) - English (United States)",
       "Microsoft Aria Online (Natural) - English (United States)",
       "Google US English",
       "Samantha",
       "Victoria",
-      "Karen",
     ],
   },
   david: {
     id: "david",
-    name: "David Vance",
+    name: "David Vance (Guy)",
     title: "Chief Markets & AI Correspondent",
     gender: "male",
     avatarUrl: "/assets/anchors/anchor_male_david.jpg",
     voiceGender: "male",
+    voiceId: "en-US-GuyNeural",
     preferredVoiceNames: [
       "Microsoft Guy Online (Natural) - English (United States)",
       "Microsoft Christopher Online (Natural) - English (United States)",
       "Google UK English Male",
       "Daniel",
       "Alex",
-      "Fred",
     ],
   },
   none: {
@@ -59,6 +60,7 @@ export const ANCHOR_PROFILES: Record<AnchorId, AnchorProfile> = {
     gender: "none",
     avatarUrl: "",
     voiceGender: "female",
+    voiceId: "en-US-JennyNeural",
     preferredVoiceNames: ["Google US English", "Samantha"],
   },
 };
@@ -74,12 +76,8 @@ export interface ViralScript {
 }
 
 /**
- * Generates a high-retention 35-45 second news script (90-110 words max)
- * following the 4-part viral newsroom structure:
- *  1. 0-3s Hook: Immediate conflict / surprising fact
- *  2. 3-25s Core Facts: 3 punchy sentences (what, why, who)
- *  3. 25-35s Takeaway: Forward-looking consequence
- *  4. 35-40s CTA: Visit globalpulseai.vercel.app and subscribe
+ * Generates a high-retention 30-35 second news anchor script (75-95 words)
+ * with zero repeated lines, ending with "Read more on GlobalPulseAI.vercel.app".
  */
 export function generateViral35sScript(
   title: string,
@@ -87,7 +85,7 @@ export function generateViral35sScript(
   content?: string,
   category: string = "Global News"
 ): ViralScript {
-  const cleanTitle = title
+  const cleanTitle = (title || "")
     .replace(/#\w+/g, "")
     .replace(/^BREAKING:\s*/i, "")
     .replace(/^EXCLUSIVE:\s*/i, "")
@@ -110,7 +108,6 @@ export function generateViral35sScript(
   if (rawBullets.length >= 2) {
     coreFacts = rawBullets.slice(0, 3).map((f) => (f.endsWith(".") ? f : f + "."));
   } else {
-    // Split summary by sentences
     const sentences = (summary || "")
       .replace(/([.?!])\s+/g, "$1|")
       .split("|")
@@ -143,24 +140,23 @@ export function generateViral35sScript(
     ];
   }
 
-  // 3. Takeaway / Impact (25-35s)
-  let takeaway = `Expect widespread shifts across the industry as institutions and investors adapt to this momentum.`;
+  // 3. Takeaway / Impact (25-30s)
+  let takeaway = `Expect widespread structural adjustments as institutions and investors adapt to this momentum.`;
   if (category.toLowerCase().includes("tech") || category.toLowerCase().includes("ai")) {
     takeaway = `This milestone marks a decisive shift in how next-generation AI capabilities are deployed at scale.`;
   } else if (category.toLowerCase().includes("market") || category.toLowerCase().includes("econom")) {
-    takeaway = `Analysts predict these signals could redefine sector valuations over the coming quarter.`;
+    takeaway = `Analysts predict these signals will redefine sector valuations over the coming quarter.`;
   } else if (category.toLowerCase().includes("sport")) {
     takeaway = `Championship odds and upcoming tournament seeding are now dramatically altered by this result.`;
   }
 
-  // 4. Fast CTA (35-40s)
-  const cta = `For the complete investigative breakdown, visit globalpulseai.vercel.app and follow @GlobalPulseAI.`;
+  // 4. Fast CTA (30-35s)
+  const cta = `Read more on GlobalPulseAI.vercel.app and follow @GlobalPulseAI for daily alerts.`;
 
-  const scriptParts = [hook, ...coreFacts, takeaway, cta];
+  const scriptParts = [hook, ...coreFacts.slice(0, 3), takeaway, cta];
   const fullScript = scriptParts.join(" ").replace(/\s+/g, " ").trim();
   const words = fullScript.split(/\s+/).filter(Boolean);
   const wordCount = words.length;
-  // Estimated audio duration at 145 words per minute
   const estimatedSeconds = Math.round((wordCount / 145) * 60);
 
   return {
@@ -174,138 +170,115 @@ export function generateViral35sScript(
   };
 }
 
+export interface DidAnchorResult {
+  success: boolean;
+  videoUrl?: string;
+  error?: string;
+  code?: string;
+  duration?: number;
+}
+
 /**
- * Attempts to generate a real lip-synced talking head video via D-ID or HeyGen.
- * If no API key is provided or the call fails, returns null so the app falls back
- * gracefully to the zero-cost built-in voice-synced animated studio anchor.
+ * Initiates real lip-synced D-ID AI Anchor video generation via the secure serverless route.
+ * Automatically polls until the MP4 video is rendered and ready.
+ */
+export async function requestDidAnchorVideo(
+  scriptText: string,
+  anchorId: AnchorId = "sarah",
+  onProgress?: (statusText: string, percentage: number) => void
+): Promise<DidAnchorResult> {
+  if (anchorId === "none") {
+    return { success: false, error: "B-Roll mode selected. No talking anchor requested." };
+  }
+
+  const profile = ANCHOR_PROFILES[anchorId];
+  const presenterGender = profile?.gender || "female";
+
+  try {
+    if (onProgress) onProgress("Contacting D-ID Serverless API...", 10);
+
+    const postRes = await fetch("/api/generate-anchor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scriptText,
+        presenterGender,
+        aspectRatio: "9:16",
+      }),
+    });
+
+    const postData = await postRes.json().catch(() => null);
+
+    if (!postRes.ok || !postData?.success) {
+      const isCreditError = postRes.status === 402 || postData?.code === "INSUFFICIENT_CREDITS";
+      return {
+        success: false,
+        code: postData?.code || (isCreditError ? "INSUFFICIENT_CREDITS" : "API_ERROR"),
+        error:
+          postData?.error ||
+          (isCreditError
+            ? "D-ID API: Insufficient credits remaining on account. You can recharge at studio.d-id.com or continue using the 100% Free Built-in Studio Presenter Mode."
+            : `D-ID request failed (${postRes.status}).`),
+      };
+    }
+
+    const talkId = postData.id;
+    if (onProgress) onProgress("Rendering D-ID neural lip-sync frames...", 25);
+
+    // Poll every 2.5s for up to 75 seconds
+    const maxAttempts = 30;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+
+      const progressPct = Math.min(95, 25 + Math.round((attempt / maxAttempts) * 70));
+      if (onProgress) {
+        onProgress(`Rendering AI Anchor lip-sync (${progressPct}%)...`, progressPct);
+      }
+
+      const getRes = await fetch(`/api/generate-anchor?id=${talkId}`);
+      const getData = await getRes.json().catch(() => null);
+
+      if (getRes.ok && getData?.success) {
+        if (getData.status === "done" && getData.result_url) {
+          if (onProgress) onProgress("D-ID AI News Anchor Video Ready!", 100);
+          return {
+            success: true,
+            videoUrl: getData.result_url,
+            duration: getData.duration,
+          };
+        }
+
+        if (getData.status === "error") {
+          return {
+            success: false,
+            code: "RENDER_ERROR",
+            error: getData.error?.description || getData.error?.message || "D-ID rendering failed on server.",
+          };
+        }
+      }
+    }
+
+    return {
+      success: false,
+      code: "TIMEOUT",
+      error: "D-ID video rendering timed out after 75 seconds.",
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      code: "NETWORK_ERROR",
+      error: err?.message || "Network error while connecting to /api/generate-anchor.",
+    };
+  }
+}
+
+/**
+ * Backward compatibility wrapper
  */
 export async function generateLipSyncVideo(
   scriptText: string,
   anchorId: AnchorId
 ): Promise<string | null> {
-  if (anchorId === "none") return null;
-
-  const profile = ANCHOR_PROFILES[anchorId];
-  if (!profile || !profile.avatarUrl) return null;
-
-  const didKey =
-    typeof process !== "undefined"
-      ? process.env.NEXT_PUBLIC_DID_API_KEY ||
-        process.env.VITE_DID_API_KEY ||
-        ""
-      : "";
-
-  const heygenKey =
-    typeof process !== "undefined"
-      ? process.env.NEXT_PUBLIC_HEYGEN_API_KEY ||
-        process.env.VITE_HEYGEN_API_KEY ||
-        ""
-      : "";
-
-  // 1. Try D-ID if key is configured
-  if (didKey) {
-    try {
-      console.log("[AI Anchor Service] Requesting D-ID lip-sync generation...");
-      const fullOrigin =
-        typeof window !== "undefined" ? window.location.origin : "https://globalpulseai.vercel.app";
-      const sourceUrl = `${fullOrigin}${profile.avatarUrl}`;
-
-      const res = await fetch("https://api.d-id.com/talks", {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${didKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          source_url: sourceUrl,
-          script: {
-            type: "text",
-            input: scriptText,
-            subtitles: false,
-            provider: {
-              type: "microsoft",
-              voice_id:
-                profile.gender === "female"
-                  ? "en-US-JennyNeural"
-                  : "en-US-GuyNeural",
-            },
-          },
-          config: {
-            fluent: true,
-            pad_audio: 0.5,
-          },
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const talkId = data.id;
-
-        // Poll for result
-        for (let i = 0; i < 20; i++) {
-          await new Promise((r) => setTimeout(r, 2000));
-          const checkRes = await fetch(`https://api.d-id.com/talks/${talkId}`, {
-            headers: { Authorization: `Basic ${didKey}` },
-          });
-          if (checkRes.ok) {
-            const checkData = await checkRes.json();
-            if (checkData.status === "done" && checkData.result_url) {
-              console.log("[AI Anchor Service] D-ID lip-sync video ready:", checkData.result_url);
-              return checkData.result_url;
-            }
-            if (checkData.status === "error") {
-              console.warn("[AI Anchor Service] D-ID generation error:", checkData.error);
-              break;
-            }
-          }
-        }
-      } else {
-        console.warn("[AI Anchor Service] D-ID API returned:", res.status, await res.text());
-      }
-    } catch (e) {
-      console.warn("[AI Anchor Service] D-ID call failed, using built-in canvas presenter:", e);
-    }
-  }
-
-  // 2. Try HeyGen if key is configured
-  if (heygenKey) {
-    try {
-      console.log("[AI Anchor Service] Requesting HeyGen lip-sync generation...");
-      const res = await fetch("https://api.heygen.com/v2/video/generate", {
-        method: "POST",
-        headers: {
-          "X-Api-Key": heygenKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          video_inputs: [
-            {
-              character: {
-                type: "talking_photo",
-                talking_photo_id: anchorId === "sarah" ? "sarah_anchor" : "david_anchor",
-              },
-              voice: {
-                type: "text",
-                input_text: scriptText,
-                voice_id: profile.gender === "female" ? "en_us_female" : "en_us_male",
-              },
-            },
-          ],
-          dimension: { width: 1080, height: 1920 },
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.data?.video_url) {
-          return data.data.video_url;
-        }
-      }
-    } catch (e) {
-      console.warn("[AI Anchor Service] HeyGen call failed:", e);
-    }
-  }
-
-  // Fallback: null triggers real-time voice-synced Canvas Anchor Animation
-  return null;
+  const res = await requestDidAnchorVideo(scriptText, anchorId);
+  return res.success && res.videoUrl ? res.videoUrl : null;
 }

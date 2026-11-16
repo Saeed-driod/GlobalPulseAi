@@ -5,11 +5,12 @@
 export const ANCHOR_PROFILES = {
   sarah: {
     id: "sarah",
-    name: "Sarah Jenkins",
+    name: "Sarah Jenkins (Jenny)",
     title: "Senior World & Tech Anchor",
     gender: "female",
     avatarUrl: "/assets/anchors/anchor_female_sarah.jpg",
     voiceGender: "female",
+    voiceId: "en-US-JennyNeural",
     preferredVoiceNames: [
       "Microsoft Jenny Online (Natural) - English (United States)",
       "Microsoft Aria Online (Natural) - English (United States)",
@@ -20,11 +21,12 @@ export const ANCHOR_PROFILES = {
   },
   david: {
     id: "david",
-    name: "David Vance",
+    name: "David Vance (Guy)",
     title: "Chief Markets & AI Correspondent",
     gender: "male",
     avatarUrl: "/assets/anchors/anchor_male_david.jpg",
     voiceGender: "male",
+    voiceId: "en-US-GuyNeural",
     preferredVoiceNames: [
       "Microsoft Guy Online (Natural) - English (United States)",
       "Microsoft Christopher Online (Natural) - English (United States)",
@@ -40,6 +42,7 @@ export const ANCHOR_PROFILES = {
     gender: "none",
     avatarUrl: "",
     voiceGender: "female",
+    voiceId: "en-US-JennyNeural",
     preferredVoiceNames: ["Google US English", "Samantha"],
   },
 };
@@ -81,14 +84,14 @@ export function generateViral35sScript(title, summary, content, category = "Glob
     ];
   }
 
-  let takeaway = `Expect widespread shifts across the industry as institutions and investors adapt to this momentum.`;
+  let takeaway = `Expect widespread structural adjustments as institutions and investors adapt to this momentum.`;
   if (category.toLowerCase().includes("tech") || category.toLowerCase().includes("ai")) {
     takeaway = `This milestone marks a decisive shift in how next-generation AI capabilities are deployed at scale.`;
   }
 
-  const cta = `For the complete investigative breakdown, visit globalpulseai.vercel.app and follow @GlobalPulseAI.`;
+  const cta = `Read more on GlobalPulseAI.vercel.app and follow @GlobalPulseAI for daily alerts.`;
 
-  const scriptParts = [hook, ...coreFacts, takeaway, cta];
+  const scriptParts = [hook, ...coreFacts.slice(0, 3), takeaway, cta];
   const fullScript = scriptParts.join(" ").replace(/\s+/g, " ").trim();
   const words = fullScript.split(/\s+/).filter(Boolean);
   const wordCount = words.length;
@@ -105,64 +108,91 @@ export function generateViral35sScript(title, summary, content, category = "Glob
   };
 }
 
-export async function generateLipSyncVideo(scriptText, anchorId) {
-  if (anchorId === "none") return null;
-  const profile = ANCHOR_PROFILES[anchorId];
-  if (!profile || !profile.avatarUrl) return null;
-
-  const didKey =
-    typeof process !== "undefined"
-      ? process.env.NEXT_PUBLIC_DID_API_KEY ||
-        process.env.VITE_DID_API_KEY ||
-        ""
-      : "";
-
-  if (didKey) {
-    try {
-      const fullOrigin =
-        typeof window !== "undefined" ? window.location.origin : "https://globalpulseai.vercel.app";
-      const sourceUrl = `${fullOrigin}${profile.avatarUrl}`;
-
-      const res = await fetch("https://api.d-id.com/talks", {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${didKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          source_url: sourceUrl,
-          script: {
-            type: "text",
-            input: scriptText,
-            subtitles: false,
-            provider: {
-              type: "microsoft",
-              voice_id: profile.gender === "female" ? "en-US-JennyNeural" : "en-US-GuyNeural",
-            },
-          },
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const talkId = data.id;
-        for (let i = 0; i < 20; i++) {
-          await new Promise((r) => setTimeout(r, 2000));
-          const checkRes = await fetch(`https://api.d-id.com/talks/${talkId}`, {
-            headers: { Authorization: `Basic ${didKey}` },
-          });
-          if (checkRes.ok) {
-            const checkData = await checkRes.json();
-            if (checkData.status === "done" && checkData.result_url) {
-              return checkData.result_url;
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("[aiAnchorService] D-ID call error:", e);
-    }
+export async function requestDidAnchorVideo(scriptText, anchorId = "sarah", onProgress) {
+  if (anchorId === "none") {
+    return { success: false, error: "B-Roll mode selected." };
   }
 
-  return null;
+  const profile = ANCHOR_PROFILES[anchorId];
+  const presenterGender = profile?.gender || "female";
+
+  try {
+    if (onProgress) onProgress("Contacting D-ID Serverless API...", 10);
+
+    const postRes = await fetch("/api/generate-anchor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scriptText,
+        presenterGender,
+        aspectRatio: "9:16",
+      }),
+    });
+
+    const postData = await postRes.json().catch(() => null);
+
+    if (!postRes.ok || !postData?.success) {
+      const isCreditError = postRes.status === 402 || postData?.code === "INSUFFICIENT_CREDITS";
+      return {
+        success: false,
+        code: postData?.code || (isCreditError ? "INSUFFICIENT_CREDITS" : "API_ERROR"),
+        error:
+          postData?.error ||
+          (isCreditError
+            ? "D-ID API: Insufficient credits remaining on account. You can recharge at studio.d-id.com or continue using the 100% Free Built-in Studio Presenter Mode."
+            : `D-ID request failed (${postRes.status}).`),
+      };
+    }
+
+    const talkId = postData.id;
+    if (onProgress) onProgress("Rendering D-ID neural lip-sync frames...", 25);
+
+    const maxAttempts = 30;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      const progressPct = Math.min(95, 25 + Math.round((attempt / maxAttempts) * 70));
+      if (onProgress) {
+        onProgress(`Rendering AI Anchor lip-sync (${progressPct}%)...`, progressPct);
+      }
+
+      const getRes = await fetch(`/api/generate-anchor?id=${talkId}`);
+      const getData = await getRes.json().catch(() => null);
+
+      if (getRes.ok && getData?.success) {
+        if (getData.status === "done" && getData.result_url) {
+          if (onProgress) onProgress("D-ID AI News Anchor Video Ready!", 100);
+          return {
+            success: true,
+            videoUrl: getData.result_url,
+            duration: getData.duration,
+          };
+        }
+
+        if (getData.status === "error") {
+          return {
+            success: false,
+            code: "RENDER_ERROR",
+            error: getData.error?.description || "D-ID rendering failed on server.",
+          };
+        }
+      }
+    }
+
+    return {
+      success: false,
+      code: "TIMEOUT",
+      error: "D-ID video rendering timed out after 75 seconds.",
+    };
+  } catch (err) {
+    return {
+      success: false,
+      code: "NETWORK_ERROR",
+      error: err?.message || "Network error while connecting to /api/generate-anchor.",
+    };
+  }
+}
+
+export async function generateLipSyncVideo(scriptText, anchorId) {
+  const res = await requestDidAnchorVideo(scriptText, anchorId);
+  return res.success && res.videoUrl ? res.videoUrl : null;
 }

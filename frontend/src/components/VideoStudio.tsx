@@ -6,9 +6,9 @@ import {
   ANCHOR_PROFILES,
   generateViral35sScript,
   ViralScript,
-  generateLipSyncVideo,
+  requestDidAnchorVideo,
 } from "../services/aiAnchorService";
-import { Sparkles, Video, Play, Pause, Download, RefreshCw, X, Shield, Eye } from "./Icons";
+import { Sparkles, Video, Play, Pause, Download, RefreshCw, X, Shield, Eye, CheckCircle2 } from "./Icons";
 
 export interface VideoStudioProps {
   isOpen: boolean;
@@ -49,19 +49,27 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(38);
+  const [duration, setDuration] = useState(35);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingProgress, setRecordingProgress] = useState(0);
   const [activeWordIndex, setActiveWordIndex] = useState<number>(0);
   const [currentCaptionWords, setCurrentCaptionWords] = useState<string[]>([]);
   const [activeWordInCaption, setActiveWordInCaption] = useState<number>(0);
 
+  // D-ID Real Lip-Sync Video State
+  const [isGeneratingDid, setIsGeneratingDid] = useState<boolean>(false);
+  const [didProgressText, setDidProgressText] = useState<string>("");
+  const [didProgressPct, setDidProgressPct] = useState<number>(0);
+  const [didVideoUrl, setDidVideoUrl] = useState<string | null>(null);
+  const [didError, setDidError] = useState<string | null>(null);
+  const [didErrorCode, setDidErrorCode] = useState<string | null>(null);
+
   // Canvas & Audio refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animFrameRef = useRef<number | null>(null);
   const anchorImgRef = useRef<HTMLImageElement | null>(null);
   const studioBgImgRef = useRef<HTMLImageElement | null>(null);
   const brollImgRef = useRef<HTMLImageElement | null>(null);
+  const didVideoRef = useRef<HTMLVideoElement | null>(null);
 
   // Speech & Web Audio refs
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -98,7 +106,6 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
 
   // Preload Images
   useEffect(() => {
-    // Studio BG
     const bg = new Image();
     bg.crossOrigin = "anonymous";
     bg.src = "/assets/anchors/newsroom_studio_bg.jpg";
@@ -106,7 +113,6 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
       studioBgImgRef.current = bg;
     };
 
-    // B-Roll
     const broll = new Image();
     broll.crossOrigin = "anonymous";
     broll.src = articleImage || "/assets/anchors/newsroom_studio_bg.jpg";
@@ -131,6 +137,14 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
     }
   }, [anchorId]);
 
+  // Handle D-ID video loading
+  useEffect(() => {
+    if (didVideoUrl && didVideoRef.current) {
+      didVideoRef.current.src = didVideoUrl;
+      didVideoRef.current.load();
+    }
+  }, [didVideoUrl]);
+
   // Web Audio News Ambient Sound Bed (ducked low under voiceover, 0.12 volume)
   const initWebAudioBGM = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -150,15 +164,14 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
       masterGain.gain.setValueAtTime(0.12, ctx.currentTime);
       bgmGainRef.current = masterGain;
 
-      // Create subtle newsroom synthesizer pulses
       const osc1 = ctx.createOscillator();
       const osc2 = ctx.createOscillator();
       const filter = ctx.createBiquadFilter();
 
       osc1.type = "sine";
-      osc1.frequency.setValueAtTime(110, ctx.currentTime); // A2
+      osc1.frequency.setValueAtTime(110, ctx.currentTime);
       osc2.type = "triangle";
-      osc2.frequency.setValueAtTime(220, ctx.currentTime); // A3
+      osc2.frequency.setValueAtTime(220, ctx.currentTime);
 
       filter.type = "lowpass";
       filter.frequency.setValueAtTime(800, ctx.currentTime);
@@ -207,11 +220,9 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         canvas.height = h;
       }
 
-      // Smooth Ken Burns zoom factor: scale from 1.0 to 1.10 over scene
       const sceneCycleTime = timeSec % 4.0;
       const kenBurnsScale = 1.0 + (sceneCycleTime / 4.0) * 0.08;
 
-      // Anchor speech & breathing physics
       const isSpeaking = isPlayingRef.current;
       const now = performance.now();
 
@@ -232,8 +243,8 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         headBobRef.current = Math.sin(timeSec * 1.5) * 1.5;
       }
 
-      // Breathing y-offset
       const breathingY = Math.sin(timeSec * 1.8) * 2;
+      const hasDidVideo = didVideoUrl && didVideoRef.current && !didVideoRef.current.paused && !didVideoRef.current.ended;
 
       // -------------------------------------------------------------
       // LAYOUT 1: 16:9 Widescreen Broadcast Newsroom Studio
@@ -243,7 +254,6 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         if (studioBgImgRef.current && studioBgImgRef.current.complete) {
           ctx.drawImage(studioBgImgRef.current, 0, 0, w, h);
         } else {
-          // Deep studio gradient fallback
           const bgGrad = ctx.createLinearGradient(0, 0, w, h);
           bgGrad.addColorStop(0, "#080e1a");
           bgGrad.addColorStop(0.5, "#0b1528");
@@ -266,7 +276,6 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         const screenH = 500;
 
         ctx.save();
-        // Screen glowing cyan/amber border
         ctx.shadowColor = "rgba(6, 182, 212, 0.4)";
         ctx.shadowBlur = 25;
         ctx.strokeStyle = "rgba(6, 182, 212, 0.8)";
@@ -276,25 +285,17 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         ctx.stroke();
         ctx.clip();
 
-        // Render B-Roll with subtle Ken Burns zoom
         if (brollImgRef.current && brollImgRef.current.complete) {
           ctx.save();
           ctx.translate(screenX + screenW / 2, screenY + screenH / 2);
           ctx.scale(kenBurnsScale, kenBurnsScale);
-          ctx.drawImage(
-            brollImgRef.current,
-            -screenW / 2,
-            -screenH / 2,
-            screenW,
-            screenH
-          );
+          ctx.drawImage(brollImgRef.current, -screenW / 2, -screenH / 2, screenW, screenH);
           ctx.restore();
         } else {
           ctx.fillStyle = "#1e293b";
           ctx.fillRect(screenX, screenY, screenW, screenH);
         }
 
-        // Screen Top Badge
         ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
         ctx.fillRect(screenX, screenY, screenW, 44);
         ctx.fillStyle = "#facc15";
@@ -302,24 +303,24 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         ctx.fillText(`● LIVE FIELD REPORT • ${category.toUpperCase()}`, screenX + 20, screenY + 28);
         ctx.restore();
 
-        // 3. AI Anchor Presenter (Left side, behind news desk)
-        if (anchorId !== "none" && anchorImgRef.current && anchorImgRef.current.complete) {
-          ctx.save();
-          const anchorW = 680;
-          const anchorH = 880;
-          const anchorX = 140;
-          const anchorY = 160 + breathingY + headBobRef.current;
+        // 3. AI Anchor Presenter (Left side)
+        const anchorW = 680;
+        const anchorH = 880;
+        const anchorX = 140;
+        const anchorY = 160 + (hasDidVideo ? 0 : breathingY + headBobRef.current);
 
-          // Soft drop shadow
-          ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
-          ctx.shadowBlur = 30;
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+        ctx.shadowBlur = 30;
 
-          // Draw Anchor Portrait
+        // Draw D-ID Talking Video if available, else draw animated portrait
+        if (hasDidVideo && didVideoRef.current) {
+          ctx.drawImage(didVideoRef.current, anchorX, anchorY, anchorW, anchorH);
+        } else if (anchorId !== "none" && anchorImgRef.current && anchorImgRef.current.complete) {
           ctx.drawImage(anchorImgRef.current, anchorX, anchorY, anchorW, anchorH);
 
-          // Simulated animated mouth overlay when speaking (jaw / mouth opening)
+          // Simulated voice-synced mouth movement
           if (isSpeaking && mouthOpenRef.current > 0.1) {
-            // Mouth area on portrait (approx center-lower face)
             const mouthX = anchorX + anchorW * 0.495;
             const mouthY = anchorY + anchorH * 0.385;
             const mouthW = 28;
@@ -330,7 +331,6 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
             ctx.ellipse(mouthX, mouthY, mouthW / 2, mouthH / 2, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Inner dark oral cavity
             ctx.fillStyle = "rgba(30, 10, 10, 0.9)";
             ctx.beginPath();
             ctx.ellipse(mouthX, mouthY + 1, mouthW * 0.35, mouthH * 0.4, 0, 0, Math.PI * 2);
@@ -346,26 +346,31 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
             ctx.fillRect(eyeLeftX - 14, eyeY - 4, 28, 8);
             ctx.fillRect(eyeRightX - 14, eyeY - 4, 28, 8);
           }
+        }
+        ctx.restore();
 
-          ctx.restore();
-
-          // Anchor Name Card
+        // Anchor Name Card
+        if (anchorId !== "none") {
           const cardX = 160;
           const cardY = 820;
           ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
           ctx.strokeStyle = "rgba(6, 182, 212, 0.6)";
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.roundRect(cardX, cardY, 320, 64, 8);
+          ctx.roundRect(cardX, cardY, 340, 64, 8);
           ctx.fill();
           ctx.stroke();
 
           ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 20px 'Inter', sans-serif";
+          ctx.font = "bold 18px 'Inter', sans-serif";
           ctx.fillText(ANCHOR_PROFILES[anchorId].name, cardX + 18, cardY + 28);
           ctx.fillStyle = "#06b6d4";
-          ctx.font = "600 13px 'Inter', sans-serif";
-          ctx.fillText(ANCHOR_PROFILES[anchorId].title.toUpperCase(), cardX + 18, cardY + 48);
+          ctx.font = "600 12px 'Inter', sans-serif";
+          ctx.fillText(
+            `${ANCHOR_PROFILES[anchorId].title.toUpperCase()} ${hasDidVideo ? "• D-ID NEURAL" : "• LIVE PRESENTER"}`,
+            cardX + 18,
+            cardY + 48
+          );
         }
 
         // 4. Studio Lower-Third Breaking News Ticker
@@ -379,20 +384,18 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         ctx.lineTo(w, tickerY);
         ctx.stroke();
 
-        // Ticker Red Badge
         ctx.fillStyle = "#dc2626";
         ctx.fillRect(0, tickerY, 260, 90);
         ctx.fillStyle = "#ffffff";
         ctx.font = "900 22px 'Inter', sans-serif";
         ctx.fillText("● BREAKING NEWS", 28, tickerY + 52);
 
-        // Ticker Text
         ctx.fillStyle = "#e2e8f0";
         ctx.font = "bold 22px 'Inter', sans-serif";
         const tickerHeadline = `${title.toUpperCase()} • GLOBALPULSE AI • globalpulseai.vercel.app`;
         ctx.fillText(tickerHeadline, 290, tickerY + 52);
 
-        // 5. Hormozi-Style Captions (Centered in right lower-third area)
+        // 5. Hormozi Captions
         drawHormoziCaptions(ctx, 960, 680, 860);
       }
 
@@ -400,7 +403,7 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
       // LAYOUT 2: 9:16 Vertical News Shorts / Reels (1080x1920)
       // -------------------------------------------------------------
       else {
-        // 1. Full-Bleed Top B-Roll Background with Ken Burns Zoom
+        // 1. Full-Bleed Top B-Roll Background
         ctx.save();
         ctx.translate(w / 2, h * 0.42);
         ctx.scale(kenBurnsScale, kenBurnsScale);
@@ -412,7 +415,6 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         }
         ctx.restore();
 
-        // Heavy dark vignette & gradient over lower half
         const vGrad = ctx.createLinearGradient(0, h * 0.35, 0, h);
         vGrad.addColorStop(0, "rgba(8, 12, 22, 0.1)");
         vGrad.addColorStop(0.55, "rgba(8, 12, 22, 0.85)");
@@ -454,70 +456,73 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         // 2. Bold Hormozi Captions in Middle Lower-Third (Y=1180)
         drawHormoziCaptions(ctx, w / 2, 1180, 960, true);
 
-        // 3. Circular / Rounded Picture-in-Picture (PiP) AI Anchor in Bottom-Right
-        if (anchorId !== "none" && anchorImgRef.current && anchorImgRef.current.complete) {
+        // 3. Circular PiP AI Anchor in Bottom-Right
+        if (anchorId !== "none") {
           ctx.save();
           const pipSize = 340;
           const pipX = w - pipSize - 50;
           const pipY = h - pipSize - 160;
 
-          // Glowing circular border
           ctx.shadowColor = "rgba(6, 182, 212, 0.7)";
           ctx.shadowBlur = 25;
-          ctx.strokeStyle = "#06b6d4";
+          ctx.strokeStyle = hasDidVideo ? "#10b981" : "#06b6d4";
           ctx.lineWidth = 6;
           ctx.beginPath();
           ctx.arc(pipX + pipSize / 2, pipY + pipSize / 2, pipSize / 2, 0, Math.PI * 2);
           ctx.stroke();
 
-          // Clip to circle
           ctx.save();
           ctx.beginPath();
           ctx.arc(pipX + pipSize / 2, pipY + pipSize / 2, pipSize / 2 - 3, 0, Math.PI * 2);
           ctx.clip();
 
-          // Anchor image inside PiP circle
-          ctx.drawImage(
-            anchorImgRef.current,
-            pipX - 20,
-            pipY - 20 + breathingY + headBobRef.current,
-            pipSize + 40,
-            pipSize + 80
-          );
+          if (hasDidVideo && didVideoRef.current) {
+            ctx.drawImage(didVideoRef.current, pipX - 20, pipY - 20, pipSize + 40, pipSize + 80);
+          } else if (anchorImgRef.current && anchorImgRef.current.complete) {
+            ctx.drawImage(
+              anchorImgRef.current,
+              pipX - 20,
+              pipY - 20 + breathingY + headBobRef.current,
+              pipSize + 40,
+              pipSize + 80
+            );
 
-          // Voice-synced mouth movement inside PiP
-          if (isSpeaking && mouthOpenRef.current > 0.1) {
-            const mX = pipX + pipSize * 0.49;
-            const mY = pipY + pipSize * 0.46;
-            ctx.fillStyle = "rgba(110, 30, 30, 0.85)";
-            ctx.beginPath();
-            ctx.ellipse(mX, mY, 14, 3 + mouthOpenRef.current * 5, 0, 0, Math.PI * 2);
-            ctx.fill();
-          }
+            if (isSpeaking && mouthOpenRef.current > 0.1) {
+              const mX = pipX + pipSize * 0.49;
+              const mY = pipY + pipSize * 0.46;
+              ctx.fillStyle = "rgba(110, 30, 30, 0.85)";
+              ctx.beginPath();
+              ctx.ellipse(mX, mY, 14, 3 + mouthOpenRef.current * 5, 0, 0, Math.PI * 2);
+              ctx.fill();
+            }
 
-          // Blinking inside PiP
-          if (blinkRef.current > 0.2) {
-            const eyeY = pipY + pipSize * 0.38;
-            ctx.fillStyle = "rgba(180, 140, 120, 0.95)";
-            ctx.fillRect(pipX + pipSize * 0.38, eyeY, 18, 5);
-            ctx.fillRect(pipX + pipSize * 0.56, eyeY, 18, 5);
+            if (blinkRef.current > 0.2) {
+              const eyeY = pipY + pipSize * 0.38;
+              ctx.fillStyle = "rgba(180, 140, 120, 0.95)";
+              ctx.fillRect(pipX + pipSize * 0.38, eyeY, 18, 5);
+              ctx.fillRect(pipX + pipSize * 0.56, eyeY, 18, 5);
+            }
           }
 
           ctx.restore();
 
           // Anchor Name Badge beneath PiP
           ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
-          ctx.strokeStyle = "#06b6d4";
+          ctx.strokeStyle = hasDidVideo ? "#10b981" : "#06b6d4";
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.roundRect(pipX + 20, pipY + pipSize - 20, pipSize - 40, 44, 22);
+          ctx.roundRect(pipX + 15, pipY + pipSize - 20, pipSize - 30, 44, 22);
           ctx.fill();
           ctx.stroke();
 
           ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 16px 'Inter', sans-serif";
+          ctx.font = "bold 15px 'Inter', sans-serif";
           ctx.textAlign = "center";
-          ctx.fillText(`🎙️ ${ANCHOR_PROFILES[anchorId].name}`, pipX + pipSize / 2, pipY + pipSize + 8);
+          ctx.fillText(
+            `🎙️ ${ANCHOR_PROFILES[anchorId].name.split(" ")[0]} ${hasDidVideo ? "(D-ID)" : ""}`,
+            pipX + pipSize / 2,
+            pipY + pipSize + 8
+          );
           ctx.textAlign = "start";
           ctx.restore();
         }
@@ -539,7 +544,7 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         ctx.textAlign = "start";
       }
     },
-    [aspectRatio, anchorId, category, title]
+    [aspectRatio, anchorId, category, title, didVideoUrl]
   );
 
   // Helper to draw 2-4 word bold uppercase Hormozi subtitles
@@ -557,7 +562,6 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
     ctx.font = `900 ${fontSize}px 'Inter', Impact, sans-serif`;
     ctx.textAlign = "center";
 
-    // Measure total width to space words
     const wordWidths = currentCaptionWords.map((w) => ctx.measureText(w.toUpperCase()).width);
     const spaceWidth = ctx.measureText(" ").width;
     const totalW = wordWidths.reduce((a, b) => a + b, 0) + spaceWidth * (currentCaptionWords.length - 1);
@@ -570,18 +574,15 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
       const posX = startX + wW / 2;
       const isActive = idx === activeWordInCaption;
 
-      // 3D Drop Shadow
       ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
       ctx.shadowBlur = 12;
       ctx.shadowOffsetX = 3;
       ctx.shadowOffsetY = 4;
 
-      // Heavy Black Stroke (7px for vertical, 5px for widescreen)
       ctx.strokeStyle = "#000000";
       ctx.lineWidth = isVertical ? 8 : 6;
       ctx.strokeText(wUpper, posX, centerY);
 
-      // Active Word: Electric Yellow (#FACC15), Inactive: Pure White (#FFFFFF)
       ctx.fillStyle = isActive ? "#facc15" : "#ffffff";
       ctx.fillText(wUpper, posX, centerY);
 
@@ -603,14 +604,11 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
             return duration;
           }
 
-          // Update active word from timestamps
           const currentWordIdx = wordTimestampsRef.current.findIndex(
             (wt) => next >= wt.start && next < wt.end
           );
           if (currentWordIdx !== -1) {
             setActiveWordIndex(currentWordIdx);
-
-            // Group into 3 words per caption chunk
             const chunkStart = Math.floor(currentWordIdx / 3) * 3;
             const chunk = wordTimestampsRef.current.slice(chunkStart, chunkStart + 3).map((w) => w.word);
             setCurrentCaptionWords(chunk);
@@ -630,8 +628,26 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
     return () => cancelAnimationFrame(animId);
   }, [duration, renderCanvasFrame, currentTime]);
 
-  // Speech Synthesis Control
+  // Speech Synthesis Control (or D-ID Video Playback)
   const handlePlay = () => {
+    // If D-ID video is ready, play the D-ID talking head video
+    if (didVideoUrl && didVideoRef.current) {
+      if (isPaused) {
+        didVideoRef.current.play();
+        setIsPaused(false);
+        setIsPlaying(true);
+        isPlayingRef.current = true;
+        return;
+      }
+      didVideoRef.current.currentTime = 0;
+      didVideoRef.current.play();
+      setIsPlaying(true);
+      setIsPaused(false);
+      isPlayingRef.current = true;
+      initWebAudioBGM();
+      return;
+    }
+
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
     if (isPaused) {
@@ -649,7 +665,6 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
     const voices = window.speechSynthesis.getVoices();
     const profile = ANCHOR_PROFILES[anchorId];
 
-    // Pick best matching natural voice
     let voice: SpeechSynthesisVoice | undefined;
     if (profile && profile.preferredVoiceNames) {
       voice = voices.find((v) =>
@@ -668,7 +683,6 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
     utterance.rate = 1.05;
     utterance.pitch = profile.voiceGender === "female" ? 1.05 : 0.95;
 
-    // Real-time boundary event listener for word-level subtitle sync
     utterance.onboundary = (e) => {
       if (e.name === "word") {
         const charIdx = e.charIndex;
@@ -702,6 +716,9 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
   };
 
   const handlePause = () => {
+    if (didVideoUrl && didVideoRef.current) {
+      didVideoRef.current.pause();
+    }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.pause();
     }
@@ -711,6 +728,10 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
   };
 
   const handleStop = () => {
+    if (didVideoUrl && didVideoRef.current) {
+      didVideoRef.current.pause();
+      didVideoRef.current.currentTime = 0;
+    }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -721,7 +742,47 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
     setCurrentCaptionWords([]);
   };
 
-  // Video Export using MediaRecorder (Record Canvas + Web Audio)
+  // D-ID Talks API Generation
+  const handleGenerateDidAnchor = async () => {
+    if (anchorId === "none") {
+      setDidError("Please select either Sarah (Jenny) or David (Guy) anchor to generate a talking head video.");
+      return;
+    }
+
+    setIsGeneratingDid(true);
+    setDidError(null);
+    setDidErrorCode(null);
+    setDidProgressText("Submitting to D-ID Talks Serverless API...");
+    setDidProgressPct(10);
+    handleStop();
+
+    const result = await requestDidAnchorVideo(
+      scriptData.fullScript,
+      anchorId,
+      (statusText, pct) => {
+        setDidProgressText(statusText);
+        setDidProgressPct(pct);
+      }
+    );
+
+    setIsGeneratingDid(false);
+
+    if (result.success && result.videoUrl) {
+      setDidVideoUrl(result.videoUrl);
+      setDidError(null);
+      if (result.duration) {
+        setDuration(Math.round(result.duration));
+      }
+    } else {
+      setDidErrorCode(result.code || "DID_ERROR");
+      setDidError(
+        result.error ||
+          "D-ID video generation encountered an error. You can continue using the 100% Free Built-in Studio Presenter Mode."
+      );
+    }
+  };
+
+  // Video Export using MediaRecorder
   const handleExportVideo = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -730,12 +791,10 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
     setRecordingProgress(0);
     recordedChunksRef.current = [];
 
-    // Reset playback
     handleStop();
 
     const stream = canvas.captureStream(30);
 
-    // Attach audio track from Web Audio
     if (destNodeRef.current && destNodeRef.current.stream.getAudioTracks().length > 0) {
       stream.addTrack(destNodeRef.current.stream.getAudioTracks()[0]);
     }
@@ -773,7 +832,6 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
       recorder.start();
       handlePlay();
 
-      // Progress interval
       const startMs = Date.now();
       const totalMs = duration * 1000;
       const progInt = setInterval(() => {
@@ -797,6 +855,18 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+      {/* Hidden D-ID Video Element for Canvas Compositing */}
+      {didVideoUrl && (
+        <video
+          ref={didVideoRef}
+          src={didVideoUrl}
+          crossOrigin="anonymous"
+          playsInline
+          className="hidden"
+          onEnded={handleStop}
+        />
+      )}
+
       <div className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-6 max-h-[92vh]">
         {/* Header Bar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/70">
@@ -808,11 +878,11 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold text-white">AI Video Studio & Presenter Hub</h2>
                 <span className="px-2 py-0.5 text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-full">
-                  v2.0 Broadcast
+                  D-ID Talks API Powered
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                TV Newsroom Anchor Presenter • 35s Viral Retention • Word-Synced Hormozi Captions
+                Real Lip-Synced AI Anchor • 35s Viral News Retention • Hormozi Subtitles
               </p>
             </div>
           </div>
@@ -861,27 +931,36 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
               {/* Anchor Switcher */}
               <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs font-semibold">
                 <button
-                  onClick={() => setAnchorId("sarah")}
+                  onClick={() => {
+                    setAnchorId("sarah");
+                    setDidVideoUrl(null);
+                  }}
                   className={`px-2.5 py-1.5 rounded-lg transition-all ${
                     anchorId === "sarah"
                       ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  👩 Sarah (Female)
+                  👩 Sarah (Jenny)
                 </button>
                 <button
-                  onClick={() => setAnchorId("david")}
+                  onClick={() => {
+                    setAnchorId("david");
+                    setDidVideoUrl(null);
+                  }}
                   className={`px-2.5 py-1.5 rounded-lg transition-all ${
                     anchorId === "david"
                       ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  👨 David (Male)
+                  👨 David (Guy)
                 </button>
                 <button
-                  onClick={() => setAnchorId("none")}
+                  onClick={() => {
+                    setAnchorId("none");
+                    setDidVideoUrl(null);
+                  }}
                   className={`px-2.5 py-1.5 rounded-lg transition-all ${
                     anchorId === "none"
                       ? "bg-slate-700 text-white"
@@ -892,6 +971,81 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
                 </button>
               </div>
             </div>
+
+            {/* D-ID Status / Error Alert Banner */}
+            {isGeneratingDid && (
+              <div className="w-full mb-3 p-3 rounded-xl bg-cyan-950/60 border border-cyan-500/40 flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-cyan-300">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                    {didProgressText}
+                  </span>
+                  <span>{didProgressPct}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300"
+                    style={{ width: `${didProgressPct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {didError && (
+              <div className="w-full mb-3 p-3 rounded-xl bg-amber-950/70 border border-amber-500/40 text-xs text-amber-200 flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-bold text-amber-300 block mb-0.5">
+                      {didErrorCode === "INSUFFICIENT_CREDITS" ? "⚠️ D-ID Account Notice: Insufficient Credits" : "⚠️ D-ID Generation Notice"}
+                    </span>
+                    <p className="text-[11px] leading-relaxed text-amber-200/90">{didError}</p>
+                  </div>
+                  <button
+                    onClick={() => setDidError(null)}
+                    className="text-amber-400 hover:text-white text-xs font-bold px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => {
+                      setDidError(null);
+                      handlePlay();
+                    }}
+                    className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[11px] font-bold transition-all"
+                  >
+                    ▶ Continue in Free Studio Mode
+                  </button>
+                  <a
+                    href="https://studio.d-id.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-medium transition-all"
+                  >
+                    Recharge D-ID Credits ↗
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {didVideoUrl && (
+              <div className="w-full mb-3 p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs text-emerald-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="font-semibold">Real D-ID Lip-Synced Anchor Video Ready!</span>
+                </div>
+                <a
+                  href={didVideoUrl}
+                  download="DID_Anchor_Video.mp4"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold"
+                >
+                  Download MP4 ↗
+                </a>
+              </div>
+            )}
 
             {/* Canvas Stage Viewport */}
             <div
@@ -907,14 +1061,16 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
               {/* Live Status Badge */}
               <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] text-white font-medium">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span>{isPlaying ? "PLAYING" : isPaused ? "PAUSED" : "READY"}</span>
+                <span>
+                  {didVideoUrl ? "D-ID LIP-SYNC" : isPlaying ? "PLAYING" : isPaused ? "PAUSED" : "READY"}
+                </span>
                 <span className="text-slate-400">|</span>
                 <span className="text-cyan-400">{Math.floor(currentTime)}s / {duration}s</span>
               </div>
             </div>
 
-            {/* Transport Player Controls */}
-            <div className="w-full mt-4 flex items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 px-4 py-3 rounded-xl">
+            {/* Transport Player Controls & D-ID Generation Button */}
+            <div className="w-full mt-4 flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 px-4 py-3 rounded-xl">
               <div className="flex items-center gap-2">
                 {!isPlaying ? (
                   <button
@@ -943,7 +1099,7 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
               </div>
 
               {/* Timeline Progress */}
-              <div className="flex-1 mx-3 hidden sm:flex items-center gap-2">
+              <div className="flex-1 mx-2 hidden sm:flex items-center gap-2">
                 <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-75"
@@ -952,19 +1108,36 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
                 </div>
               </div>
 
-              {/* Export Button */}
-              <button
-                onClick={handleExportVideo}
-                disabled={isRecording}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-                  isRecording
-                    ? "bg-slate-800 text-cyan-400 border border-cyan-500/30 animate-pulse"
-                    : "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/20"
-                }`}
-              >
-                <Download className="w-4 h-4" />
-                <span>{isRecording ? `Exporting (${recordingProgress}%)...` : "Export Video"}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {/* D-ID Real Anchor Button */}
+                <button
+                  onClick={handleGenerateDidAnchor}
+                  disabled={isGeneratingDid || anchorId === "none"}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-all ${
+                    isGeneratingDid
+                      ? "bg-purple-900/60 text-purple-300 border border-purple-500/40 animate-pulse"
+                      : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-500/25"
+                  }`}
+                  title="Generate photorealistic lip-synced MP4 using D-ID Talks API"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                  <span>{isGeneratingDid ? "Rendering D-ID..." : "✨ Generate Real AI Anchor (D-ID)"}</span>
+                </button>
+
+                {/* Export Button */}
+                <button
+                  onClick={handleExportVideo}
+                  disabled={isRecording}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-bold text-xs transition-all ${
+                    isRecording
+                      ? "bg-slate-800 text-cyan-400 border border-cyan-500/30 animate-pulse"
+                      : "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/20"
+                  }`}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{isRecording ? `Exporting (${recordingProgress}%)...` : "Export Video"}</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -975,7 +1148,7 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-yellow-400" />
-                  <h3 className="font-bold text-white text-base">35-Second Viral Script</h3>
+                  <h3 className="font-bold text-white text-base">35-Second Anchor Script</h3>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
@@ -1007,13 +1180,13 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
 
                 {/* 3. Takeaway */}
                 <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                  <span className="font-bold text-purple-400 block mb-1">25–35s TAKEAWAY / IMPACT:</span>
+                  <span className="font-bold text-purple-400 block mb-1">25–30s TAKEAWAY / IMPACT:</span>
                   <p className="text-slate-200 leading-relaxed">{scriptData.takeaway}</p>
                 </div>
 
                 {/* 4. Fast CTA */}
                 <div className="p-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                  <span className="font-bold text-yellow-400 block mb-1">35–40s FAST CTA:</span>
+                  <span className="font-bold text-yellow-400 block mb-1">30–35s FAST CTA:</span>
                   <p className="text-slate-200 font-medium leading-relaxed">{scriptData.cta}</p>
                 </div>
               </div>
@@ -1024,28 +1197,23 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-white text-sm flex items-center gap-2">
                   <Shield className="w-4 h-4 text-cyan-400" />
-                  <span>Presenter Engine Configuration</span>
+                  <span>D-ID & Studio Configuration</span>
                 </h4>
                 <span className="text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-semibold">
-                  Zero Cost Mode Active
+                  Secure Serverless Connected
                 </span>
               </div>
 
               <div className="text-xs text-slate-400 space-y-1.5 leading-relaxed">
                 <p>
-                  • <strong className="text-slate-200">Voice-Synced Mouth Movement:</strong> Synchronized automatically with speech frequency amplitudes.
+                  • <strong className="text-slate-200">D-ID Talks API:</strong> Securely proxied via <code className="text-cyan-300">/api/generate-anchor</code>. Zero client-side API key exposure.
                 </p>
                 <p>
-                  • <strong className="text-slate-200">Micro-Expressions:</strong> Natural breathing (sinusoidal offset), head nod, and auto-blinking every 3.5s.
+                  • <strong className="text-slate-200">Neural Voices:</strong> Female anchor uses <code className="text-purple-300">en-US-JennyNeural</code>, male anchor uses <code className="text-blue-300">en-US-GuyNeural</code>.
                 </p>
                 <p>
-                  • <strong className="text-slate-200">Verified Brand Overlay:</strong> Displays <code className="text-cyan-300">globalpulseai.vercel.app</code> and <code className="text-cyan-300">@GlobalPulseAI</code> on all frames.
+                  • <strong className="text-slate-200">Auto-Fallback:</strong> If D-ID account credits run out, the studio smoothly plays the built-in voice-synced animated anchor without disruption.
                 </p>
-              </div>
-
-              {/* Optional D-ID / HeyGen API Note */}
-              <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] text-slate-500">
-                To connect deepfake photorealistic lip-sync APIs, set <code className="text-slate-400">NEXT_PUBLIC_DID_API_KEY</code> or <code className="text-slate-400">NEXT_PUBLIC_HEYGEN_API_KEY</code> in Vercel environment variables.
               </div>
             </div>
           </div>
