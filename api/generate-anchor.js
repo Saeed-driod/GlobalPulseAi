@@ -1,34 +1,4 @@
 // Vercel Serverless Function for D-ID AI News Anchor Video Generation
-const fs = require('fs');
-const path = require('path');
-
-function getDidApiKey() {
-  let key = process.env.DID_API_KEY || process.env.NEXT_PUBLIC_DID_API_KEY || '';
-  if (!key) {
-    try {
-      const candidates = [
-        path.resolve(process.cwd(), '.env.local'),
-        path.resolve(process.cwd(), '.env'),
-        path.resolve(process.cwd(), 'frontend', '.env.local'),
-        path.resolve(process.cwd(), 'frontend', '.env'),
-      ];
-      for (const c of candidates) {
-        if (fs.existsSync(c)) {
-          const content = fs.readFileSync(c, 'utf-8');
-          const m = content.match(/DID_API_KEY\s*=\s*(.+)/);
-          if (m && m[1]) {
-            key = m[1].trim().replace(/^["']|["']$/g, '');
-            break;
-          }
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-  }
-  return key;
-}
-
 const ANCHOR_IMAGE_URLS = {
   female: 'https://globalpulseai.vercel.app/assets/anchors/anchor_female_sarah.jpg',
   male: 'https://globalpulseai.vercel.app/assets/anchors/anchor_male_david.jpg',
@@ -38,18 +8,20 @@ module.exports = async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-did-api-key');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  const apiKey = getDidApiKey();
+  const headerKey = req.headers['x-did-api-key'] || '';
+  const apiKey = (process.env.DID_API_KEY || process.env.NEXT_PUBLIC_DID_API_KEY || headerKey || req.body?.apiKey || req.query?.key || '').trim();
+
   if (!apiKey) {
     return res.status(400).json({
       success: false,
       code: 'MISSING_API_KEY',
-      error: 'D-ID API Key not configured. Please set DID_API_KEY in environment variables.',
+      error: 'D-ID API Key not configured. Please set DID_API_KEY in Vercel Environment Variables or provide it in Video Studio settings.',
     });
   }
 
@@ -60,7 +32,7 @@ module.exports = async function handler(req, res) {
     try {
       const { scriptText, presenterGender = 'female', customImageUrl } = req.body || {};
 
-      if (!scriptText || typeof scriptText !== 'string' || scriptText.trim().length < 5) {
+      if (!scriptText || typeof scriptText !== "string" || scriptText.trim().length < 5) {
         return res.status(400).json({
           success: false,
           error: 'A valid scriptText (at least 5 characters) is required to generate the talking anchor.',

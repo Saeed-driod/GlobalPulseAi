@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Publicly reachable high-resolution studio presenter portraits
 const ANCHOR_IMAGE_URLS = {
   female: "https://globalpulseai.vercel.app/assets/anchors/anchor_female_sarah.jpg",
   male: "https://globalpulseai.vercel.app/assets/anchors/anchor_male_david.jpg",
@@ -12,19 +11,21 @@ const ANCHOR_IMAGE_URLS = {
  */
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = (process.env.DID_API_KEY || process.env.NEXT_PUBLIC_DID_API_KEY || "").trim();
+    const body = await req.json().catch(() => ({}));
+    const headerKey = req.headers.get("x-did-api-key") || "";
+    const apiKey = (process.env.DID_API_KEY || process.env.NEXT_PUBLIC_DID_API_KEY || headerKey || body.apiKey || "").trim();
+
     if (!apiKey) {
       return NextResponse.json(
         {
           success: false,
           code: "MISSING_API_KEY",
-          error: "D-ID API Key not configured. Please set DID_API_KEY in environment variables.",
+          error: "D-ID API Key not configured. Please set DID_API_KEY in Vercel Environment Variables or provide it in Video Studio settings.",
         },
         { status: 400 }
       );
     }
 
-    const body = await req.json().catch(() => ({}));
     const { scriptText, presenterGender = "female", customImageUrl } = body;
 
     if (!scriptText || typeof scriptText !== "string" || scriptText.trim().length < 5) {
@@ -127,16 +128,18 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const apiKey = (process.env.DID_API_KEY || process.env.NEXT_PUBLIC_DID_API_KEY || "").trim();
+    const { searchParams } = new URL(req.url);
+    const talkId = searchParams.get("id");
+    const queryKey = searchParams.get("key") || "";
+    const headerKey = req.headers.get("x-did-api-key") || "";
+    const apiKey = (process.env.DID_API_KEY || process.env.NEXT_PUBLIC_DID_API_KEY || queryKey || headerKey || "").trim();
+
     if (!apiKey) {
       return NextResponse.json(
         { success: false, error: "DID_API_KEY is not configured." },
         { status: 400 }
       );
     }
-
-    const { searchParams } = new URL(req.url);
-    const talkId = searchParams.get("id");
 
     if (!talkId) {
       return NextResponse.json(
