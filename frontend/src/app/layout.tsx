@@ -1,9 +1,32 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { Inter, Newsreader, JetBrains_Mono } from "next/font/google";
 import { AnalyticsTracker } from "../components/AnalyticsTracker";
 import { PushNotificationPrompt } from "../components/PushNotificationPrompt";
 import { GlobalAdsManager } from "../components/GlobalAdsManager";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+});
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-newsreader",
+  style: ["normal", "italic"],
+  weight: ["400", "600", "700", "800"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jetbrains-mono",
+  weight: ["400", "500", "600"],
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -73,18 +96,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html
+      lang="en"
+      className={`h-full antialiased ${inter.variable} ${newsreader.variable} ${jetbrainsMono.variable}`}
+    >
       <head>
         <meta name="referrer" content="strict-origin-when-cross-origin" />
         <meta name="monetag" content="debefa1274cfb3da902e7d4ca24045da" />
         <meta name="tiktok-developers-site-verification" content="8ZtJ7ileN14xFRdPeEgUday0VvqUf7Zj" />
         <meta name="tiktok-developers-site-verification" content="QFp2awRN7qTwaTOTSh824lhTKoK2Q9tO" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;0,6..72,800;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
         <link
           rel="alternate"
           type="application/rss+xml"
@@ -120,12 +140,11 @@ export default function RootLayout({
         {/* OneSignal Web Push Notifications (Free Global Audience Retention) */}
         <Script
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-          strategy="afterInteractive"
-          defer
+          strategy="lazyOnload"
         />
         <Script
           id="onesignal-init"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -152,7 +171,6 @@ export default function RootLayout({
                       'dialog.blocked.message': "Follow instructions to allow notifications:"
                     }
                   },
-                  allowLocalhostAsSecureOrigin: true,
                 });
               });
             `,
@@ -162,11 +180,11 @@ export default function RootLayout({
         {/* Google Reader Revenue Manager (Subscribe with Google) */}
         <Script
           src="https://news.google.com/swg/js/v1/swg-basic.js"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <Script
           id="google-rrm-init"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               (self.SWG_BASIC = self.SWG_BASIC || []).push( basicSubscriptions => {

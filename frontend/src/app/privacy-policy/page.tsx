@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
           </h1>
 
           <p className="text-xs text-[#718096] font-mono mt-3">
-            Last Updated &amp; Verified: October 2026 • Effective Immediately
+            Last Updated: October 2026 • Effective Immediately
           </p>
         </div>
 

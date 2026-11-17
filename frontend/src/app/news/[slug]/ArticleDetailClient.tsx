@@ -320,9 +320,36 @@ export function ArticleDetailClient({ initialArticle, slug, initialRelatedArticl
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-4xl lg:text-[2.65rem] font-bold text-white font-serif tracking-tight leading-tight sm:leading-[1.2] mb-4">
+            <h1 className="text-2xl sm:text-4xl lg:text-[2.65rem] font-bold text-white font-serif tracking-tight leading-tight sm:leading-[1.2] mb-3">
               {cleanHeadline}
             </h1>
+
+            {/* AI Disclosure near top */}
+            <p className="text-xs text-slate-400 font-mono mb-4 flex flex-wrap items-center gap-1">
+              <span>AI-assisted summary based on reporting from</span>
+              {article.source_url ? (
+                <a
+                  href={article.source_url}
+                  target="_blank"
+                  rel="nofollow noopener sponsored"
+                  className="text-cyan-400 hover:text-cyan-300 hover:underline font-medium inline-flex items-center gap-0.5"
+                >
+                  {article.source_name || "original source"}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              ) : (
+                <span className="text-slate-300 font-medium">
+                  {article.source_name || "original source"}
+                </span>
+              )}
+              <span>.</span>
+              <Link
+                href="/about"
+                className="text-slate-400 hover:text-cyan-300 underline underline-offset-2 ml-1"
+              >
+                About our reporting
+              </Link>
+            </p>
 
             {/* 2. Byline + Published/Updated Date */}
             <div className="flex flex-wrap items-center justify-between gap-3 py-3 border-y border-white/10 mb-6 text-xs text-slate-300 font-mono">

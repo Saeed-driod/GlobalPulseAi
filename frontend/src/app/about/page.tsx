@@ -38,7 +38,7 @@ export default function AboutPage() {
           </h1>
 
           <p className="text-base sm:text-lg text-[#718096] mt-4 leading-relaxed font-light">
-            GlobalPulse AI delivers clear, plain-English news coverage covering technology, markets, world politics, science, sports, and entertainment. Every article is strictly grounded in facts reported by verified primary sources.
+            GlobalPulse AI delivers clear, plain-English news coverage covering technology, markets, world politics, science, sports, and entertainment. Our articles are AI-assisted summaries synthesized from primary source reporting, with direct attribution and links to the original coverage in every story.
           </p>
         </div>
 
@@ -58,9 +58,9 @@ export default function AboutPage() {
             <div className="w-11 h-11 rounded-2xl neu-sm flex items-center justify-center text-emerald-600 font-bold mb-4 font-mono">
               02
             </div>
-            <h3 className="text-lg font-bold text-[#2d3748] font-serif mb-2">Strict Fact Grounding</h3>
+            <h3 className="text-lg font-bold text-[#2d3748] font-serif mb-2">AI-Assisted Summaries</h3>
             <p className="text-xs text-[#718096] leading-relaxed">
-              Our automated editorial pipelines use only confirmed facts from the source text. We never invent names, scores, statistics, quotes, or numbers.
+              Our automated editorial pipelines summarize key facts directly from primary source reporting. Because AI can make mistakes, we link to the original article so readers can easily verify details.
             </p>
           </div>
 
@@ -95,14 +95,14 @@ export default function AboutPage() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-[#1a8cff] shrink-0 mt-1" />
                 <div>
-                  <strong className="text-[#2d3748]">Cited Source Verification:</strong> Every article is synthesized from a single, accredited primary wire report or official release, with explicit attribution and a direct link to read the original story.
+                  <strong className="text-[#2d3748]">Cited Source Attribution:</strong> Every article is synthesized from a single, accredited primary wire report or official release, with explicit attribution and a direct link to read the original story.
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-[#1a8cff] shrink-0 mt-1" />
                 <div>
-                  <strong className="text-[#2d3748]">Zero Hallucination Guarantee:</strong> Every number, score, date, and statistic is validated against the source text before publication. If source information is insufficient, publication is withheld.
+                  <strong className="text-[#2d3748]">Source Grounding &amp; AI Limitations:</strong> Articles are synthesized with AI assistance from cited primary sources. While our workflows aim to reflect the source text accurately, AI models can make mistakes, and readers should consult the linked original coverage for full context.
                 </div>
               </div>
 
@@ -116,7 +116,7 @@ export default function AboutPage() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-[#1a8cff] shrink-0 mt-1" />
                 <div>
-                  <strong className="text-[#2d3748]">Corrections &amp; Updates:</strong> If a cited publisher updates or clarifies an article, our editorial pipeline updates the corresponding story with a timestamped note.
+                  <strong className="text-[#2d3748]">Corrections &amp; Error Reporting:</strong> Readers can report any error, discrepancy, or outdated information via our <Link href="/contact" className="text-[#1a8cff] underline hover:text-[#0055ff]">Contact page</Link>. When an error is verified or an original publisher updates a report, the article is corrected and clearly marked with an updated timestamp.
                 </div>
               </div>
             </div>
