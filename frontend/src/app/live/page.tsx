@@ -151,20 +151,6 @@ export default function LiveStreamPage() {
     syncLiveStreams();
   }, []);
 
-  // Load custom live stream ID from localStorage if configured by Admin
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const customId = localStorage.getItem("gp_custom_live_id");
-      if (customId) {
-        setChannels((prev) =>
-          prev.map((ch) =>
-            ch.id === "official-studio" ? { ...ch, youtubeId: customId } : ch
-          )
-        );
-      }
-    }
-  }, []);
-
   // Fetch recent video articles for sidebar
   useEffect(() => {
     const loadVideos = async () => {
