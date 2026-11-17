@@ -73,9 +73,9 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/movies" className="text-pink-300 hover:text-pink-200 font-bold transition-colors flex items-center gap-1.5">
-                  <span>🎬</span>
-                  Cinema &amp; Streaming Radar
+                <Link href="/sports" className="text-amber-300 hover:text-amber-200 font-bold transition-colors flex items-center gap-1.5">
+                  <span>🏆</span>
+                  Live Scores &amp; Sports Schedule
                 </Link>
               </li>
               <li>

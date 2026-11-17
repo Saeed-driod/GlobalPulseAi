@@ -97,14 +97,14 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </a>
 
-            {/* Cinema & Streaming Radar Button */}
+            {/* Live Sports Scores & Schedule Button */}
             <Link
-              href="/movies"
-              className="inline-flex items-center gap-1 neu-sm px-2.5 py-1 text-xs font-bold text-pink-300 hover:text-pink-200 border border-purple-500/40 bg-purple-950/40 shadow-[0_0_12px_rgba(236,72,153,0.25)] hover:border-pink-400 transition shrink-0"
-              title="Global Cinema & Streaming Radar"
+              href="/sports"
+              className="inline-flex items-center gap-1 neu-sm px-2.5 py-1 text-xs font-bold text-amber-300 hover:text-amber-200 border border-amber-500/40 bg-amber-950/40 shadow-[0_0_12px_rgba(245,158,11,0.25)] hover:border-amber-400 transition shrink-0"
+              title="Live Sports Scores & Schedule"
             >
-              <span>🎬</span>
-              <span className="font-mono text-[11px] font-bold">MOVIES</span>
+              <span>🏆</span>
+              <span className="font-mono text-[11px] font-bold">SPORTS</span>
             </Link>
 
             {/* Live TV Button */}
@@ -158,11 +158,12 @@ export const Header: React.FC<HeaderProps> = ({
             </a>
 
             <Link
-              href="/movies"
-              className="inline-flex items-center gap-1 neu-sm px-2 py-1 text-[11px] font-bold text-pink-300 border border-purple-500/40 bg-purple-950/40 shadow-[0_0_10px_rgba(236,72,153,0.2)] shrink-0"
+              href="/sports"
+              className="inline-flex items-center gap-1 neu-sm px-2 py-1 text-[11px] font-bold text-amber-300 border border-amber-500/40 bg-amber-950/40 shadow-[0_0_10px_rgba(245,158,11,0.2)] shrink-0"
+              title="Live Sports Scores & Schedule"
             >
-              <span>🎬</span>
-              <span className="font-mono text-[10px]">MOVIES</span>
+              <span>🏆</span>
+              <span className="font-mono text-[10px]">SPORTS</span>
             </Link>
 
             <Link

@@ -16,6 +16,8 @@ When deploying the frontend to Vercel, configure the following server environmen
 
 - `BACKEND_URL`: The origin URL of your backend server (e.g., `http://YOUR_SERVER_IP` or your custom domain). Next.js server-side route handlers and server components use this variable to securely communicate with the backend API without exposing the server IP or host in client browser bundles.
 - `ADMIN_SECRET_KEY`: Required master secret key (must match the backend's `ADMIN_SECRET_KEY`, minimum 16 characters). Used by serverless API routes (`/api/articles`, `/api/articles/[slug]`, `/api/articles/stats`, `/api/analytics/summary`) for constant-time cryptographic verification of administrative requests.
+- `CRICKET_API_KEY`: (Optional) API key for CricketData (https://api.cricapi.com) to retrieve live cricket scores and fixtures on the `/sports` page. If omitted or quota-exhausted (free tier: 100 hits/day), the cricket section gracefully returns empty without error.
+- `SPORTS_API_KEY`: (Optional) API key for TheSportsDB (https://www.thesportsdb.com) to retrieve schedules and results across Football, Basketball, Hockey, Tennis, and international leagues. Defaults to the public evaluation test key `123` if omitted.
 - `GEMINI_API_KEY`: Google Gemini API key used by the AI News Analyst (`/api/ai-analyst`) to generate instant structured takeaways and intelligence summaries.
 - `GEMINI_MODEL`: (Optional) The Google Gemini model name to query for news synthesis. Defaults to `"gemini-flash-latest"` if omitted.
 
