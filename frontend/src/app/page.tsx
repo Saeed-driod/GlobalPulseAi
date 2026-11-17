@@ -1,11 +1,12 @@
 import { HomePageClient } from "../components/HomePageClient";
 import { Article } from "../types/article";
+import { getBackendBaseUrl } from "../lib/backendUrl";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 async function getInitialArticles(): Promise<Article[]> {
-  const backendUrl = "http://150.136.214.192";
+  const backendUrl = getBackendBaseUrl();
   try {
     const res = await fetch(`${backendUrl}/api/articles?limit=30`, {
       cache: "no-store",

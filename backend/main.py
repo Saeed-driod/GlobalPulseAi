@@ -185,30 +185,36 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Enable CORS for Next.js frontend and production deployment
-cors_origins = [
+# Enable CORS with strict allowed origins and locked headers
+default_cors_origins = [
+    "https://globalpulseai.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://localhost:3000",
-    "https://globlepluse.onrender.com",
-    "https://globlepulseai.onrender.com",
-    "https://globalpulseai.onrender.com",
-    "https://globlepluseai.onrender.com",
-    "https://globalpulseai.vercel.app",
-    "https://globlepulseai.vercel.app",
 ]
+
+cors_origins: List[str] = []
+env_cors = os.getenv("CORS_ORIGINS", "")
+if env_cors.strip():
+    for origin in env_cors.split(","):
+        clean_orig = origin.strip().rstrip("/")
+        if clean_orig and clean_orig not in cors_origins:
+            cors_origins.append(clean_orig)
+
+for d_orig in default_cors_origins:
+    if d_orig not in cors_origins:
+        cors_origins.append(d_orig)
+
 if FRONTEND_URL:
     clean_frontend = FRONTEND_URL.strip().rstrip("/")
-    if clean_frontend not in cors_origins:
+    if clean_frontend and clean_frontend not in cors_origins:
         cors_origins.append(clean_frontend)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"https://.*(\.onrender\.com|\.vercel\.app)",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Admin-Secret", "Authorization", "Accept"],
 )
 
 # Mount static files directory for rendered videos and assets

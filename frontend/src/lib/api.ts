@@ -27,11 +27,11 @@ export function getBackendUrl(): string {
   if (typeof window !== "undefined") {
     return "/backend-api";
   }
-  const envUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && envUrl.trim() && !envUrl.includes("localhost") && !envUrl.includes("onrender.com")) {
+  const envUrl = process.env.BACKEND_URL;
+  if (envUrl && envUrl.trim()) {
     return envUrl.trim().replace(/\/+$/, "");
   }
-  return "http://150.136.214.192";
+  return "";
 }
 
 export const API_BASE = getApiBase();

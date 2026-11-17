@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendBaseUrl } from "@/lib/backendUrl";
 
 const NEON_CONNECTION_STRING = process.env.DATABASE_URL || "";
 
@@ -38,7 +39,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const backendUrl = "http://150.136.214.192";
+    const backendUrl = getBackendBaseUrl();
 
     // 1. Primary: Fetch directly from high-speed Oracle VM Cloud Backend
     try {
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
 
     // Seamless fallback to Render backend API
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://150.136.214.192";
+      const backendUrl = getBackendBaseUrl();
       const bRes = await fetch(`${backendUrl}/api/articles?${searchParams.toString()}`, { cache: "no-store" });
       if (bRes.ok) {
         return NextResponse.json(await bRes.json());

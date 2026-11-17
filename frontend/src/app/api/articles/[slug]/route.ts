@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendBaseUrl } from "@/lib/backendUrl";
 
 const NEON_CONNECTION_STRING = process.env.DATABASE_URL || "";
 
@@ -46,7 +47,7 @@ export async function GET(
     }
 
     const cleanSlug = slug.replace(/'/g, "''");
-    const backendUrl = "http://150.136.214.192";
+    const backendUrl = getBackendBaseUrl();
 
     // 1. Primary: Fetch from Oracle VM Cloud Backend
     try {
@@ -65,7 +66,7 @@ export async function GET(
     if (!rows || rows.length === 0) {
       // Seamless fallback to Render backend API
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://150.136.214.192";
+        const backendUrl = getBackendBaseUrl();
         const bRes = await fetch(`${backendUrl}/api/articles/${cleanSlug}`, { cache: "no-store" });
         if (bRes.ok) {
           const article = await bRes.json();

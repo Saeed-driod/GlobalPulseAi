@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { getBackendBaseUrl } from "@/lib/backendUrl";
 
 const NEON_CONNECTION_STRING = process.env.DATABASE_URL || "";
 
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     // Forward directly to Oracle Cloud VM backend API
     try {
-      const backendUrl = "http://150.136.214.192";
+      const backendUrl = getBackendBaseUrl();
       await fetch(`${backendUrl}/api/analytics/track`, {
         method: "POST",
         headers: {
