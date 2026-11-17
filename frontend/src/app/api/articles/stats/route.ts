@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getBackendBaseUrl } from "@/lib/backendUrl";
+import { isAdminRequest } from "@/lib/adminAuth";
 
 const NEON_CONNECTION_STRING = process.env.DATABASE_URL || "";
 
@@ -36,12 +37,26 @@ async function queryNeon<T = any>(query: string, params: any[] = []): Promise<T[
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Require admin authentication for stats
+    if (!isAdminRequest(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const backendUrl = getBackendBaseUrl();
+    const backendHeaders: Record<string, string> = {};
+    const adminSecret = request.headers.get("x-admin-secret");
+    if (adminSecret) {
+      backendHeaders["X-Admin-Secret"] = adminSecret;
+    }
+
     // 1. Primary: Fetch from Oracle VM Cloud Backend
     try {
-      const bRes = await fetch(`${backendUrl}/api/articles/stats`, { cache: "no-store" });
+      const bRes = await fetch(`${backendUrl}/api/articles/stats`, {
+        headers: backendHeaders,
+        cache: "no-store",
+      });
       if (bRes.ok) {
         return NextResponse.json(await bRes.json());
       }
@@ -49,6 +64,7 @@ export async function GET() {
       console.warn("[API Stats] Oracle backend fetch error:", bErr);
     }
 
+    // 2. Query Neon Database
     const rows = await queryNeon<{
       total_articles: number;
       drafts_count: number;
@@ -69,15 +85,18 @@ export async function GET() {
       return NextResponse.json(rows[0]);
     }
 
-    // Seamless fallback to Render backend API
+    // 3. Fallback to Render backend API
     try {
-      const backendUrl = getBackendBaseUrl();
-      const bRes = await fetch(`${backendUrl}/api/articles/stats`, { cache: "no-store" });
+      const bRes = await fetch(`${backendUrl}/api/articles/stats`, {
+        headers: backendHeaders,
+        cache: "no-store",
+      });
       if (bRes.ok) {
         return NextResponse.json(await bRes.json());
       }
     } catch {}
 
+    // Return real zeros when no data exists (no made-up numbers)
     return NextResponse.json({
       total_articles: 0,
       drafts_count: 0,
@@ -93,4 +112,3 @@ export async function GET() {
     );
   }
 }
-

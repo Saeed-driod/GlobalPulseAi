@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBackendBaseUrl } from "@/lib/backendUrl";
+import { isAdminRequest } from "@/lib/adminAuth";
 
 const NEON_CONNECTION_STRING = process.env.DATABASE_URL || "";
 
@@ -46,42 +47,67 @@ export async function GET(
       return NextResponse.json({ error: "Slug required" }, { status: 400 });
     }
 
-    const cleanSlug = slug.replace(/'/g, "''");
+    const isAdmin = isAdminRequest(request);
+    const backendHeaders: Record<string, string> = {};
+    const adminHeader = request.headers.get("x-admin-secret");
+    if (isAdmin && adminHeader) {
+      backendHeaders["X-Admin-Secret"] = adminHeader;
+    }
+
     const backendUrl = getBackendBaseUrl();
 
     // 1. Primary: Fetch from Oracle VM Cloud Backend
     try {
-      const bRes = await fetch(`${backendUrl}/api/articles/${cleanSlug}`, { cache: "no-store" });
+      const bRes = await fetch(`${backendUrl}/api/articles/${encodeURIComponent(slug)}`, {
+        headers: backendHeaders,
+        cache: "no-store",
+      });
       if (bRes.ok) {
-        return NextResponse.json(await bRes.json());
+        const article = await bRes.json();
+        if (!isAdmin && article && article.status !== "PUBLISHED") {
+          return NextResponse.json({ error: "Article not found" }, { status: 404 });
+        }
+        return NextResponse.json(article);
       }
     } catch (bErr) {
       console.warn("[API Article Slug] Oracle backend fetch error:", bErr);
     }
 
-    const rows = await queryNeon(
-      `SELECT * FROM articles WHERE slug = '${cleanSlug}' LIMIT 1;`
-    );
+    // 2. Query Neon with parameterized query
+    let fetchSql = "SELECT * FROM articles WHERE slug = $1";
+    const params: any[] = [slug];
 
-    if (!rows || rows.length === 0) {
-      // Seamless fallback to Render backend API
-      try {
-        const backendUrl = getBackendBaseUrl();
-        const bRes = await fetch(`${backendUrl}/api/articles/${cleanSlug}`, { cache: "no-store" });
-        if (bRes.ok) {
-          const article = await bRes.json();
-          return NextResponse.json(article);
-        }
-      } catch (bErr) {
-        console.warn("[API Article Slug] Backend fallback error:", bErr);
-      }
-      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+    if (!isAdmin) {
+      fetchSql += " AND status = $2";
+      params.push("PUBLISHED");
+    }
+    fetchSql += " LIMIT 1;";
+
+    const rows = await queryNeon(fetchSql, params);
+
+    if (rows && rows.length > 0) {
+      // Views increment removed - views are counted only by the analytics tracker
+      return NextResponse.json(rows[0]);
     }
 
-    // Increment view count in background
-    queryNeon(`UPDATE articles SET views = views + 1 WHERE slug = '${cleanSlug}';`).catch(() => {});
+    // 3. Seamless fallback to Render backend API
+    try {
+      const bRes = await fetch(`${backendUrl}/api/articles/${encodeURIComponent(slug)}`, {
+        headers: backendHeaders,
+        cache: "no-store",
+      });
+      if (bRes.ok) {
+        const article = await bRes.json();
+        if (!isAdmin && article && article.status !== "PUBLISHED") {
+          return NextResponse.json({ error: "Article not found" }, { status: 404 });
+        }
+        return NextResponse.json(article);
+      }
+    } catch (bErr) {
+      console.warn("[API Article Slug] Backend fallback error:", bErr);
+    }
 
-    return NextResponse.json(rows[0]);
+    return NextResponse.json({ error: "Article not found" }, { status: 404 });
   } catch (err: any) {
     console.error("[API Article Slug] Error:", err);
     return NextResponse.json(
@@ -90,4 +116,3 @@ export async function GET(
     );
   }
 }
-

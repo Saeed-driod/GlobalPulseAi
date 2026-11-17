@@ -80,19 +80,33 @@ export async function fetchArticles(params?: {
   skip?: number;
   limit?: number;
   revalidate?: number;
+  admin?: boolean;
 }): Promise<ArticleListResponse> {
+  const isAdmin = !!params?.admin;
+  const statusToUse = params?.status || (isAdmin ? "ALL" : undefined);
+  const secret = isAdmin ? getAdminSecret() : "";
+
   try {
     const searchParams = new URLSearchParams();
-    if (params?.status) searchParams.set("status", params.status);
-    if (params?.category && params.category !== "All") searchParams.set("category", params.category);
+    if (statusToUse) searchParams.set("status", statusToUse);
+    if (params?.category && params.category !== "All" && params.category !== "ALL") {
+      searchParams.set("category", params.category);
+    }
     if (params?.search) searchParams.set("search", params.search);
     if (params?.skip !== undefined) searchParams.set("skip", params.skip.toString());
     if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 
-    const fetchOptions: RequestInit =
-      typeof window === "undefined" && params?.revalidate !== undefined
+    const headers: Record<string, string> = {};
+    if (secret) {
+      headers["X-Admin-Secret"] = secret;
+    }
+
+    const fetchOptions: RequestInit = {
+      ...(typeof window === "undefined" && params?.revalidate !== undefined
         ? { next: { revalidate: params.revalidate } }
-        : { cache: "no-store" };
+        : { cache: "no-store" }),
+      headers,
+    };
 
     const res = await fetch(`${getApiBase()}/api/articles?${searchParams.toString()}`, fetchOptions);
 
@@ -107,33 +121,40 @@ export async function fetchArticles(params?: {
       const values: any[] = [];
       let pIdx = 1;
 
-      if (params?.status) {
-        const cleanStatus = params.status.replace(/'/g, "''");
-        conditions.push(`status = '${cleanStatus}'`);
-      } else {
-        conditions.push(`status = 'PUBLISHED'`);
+      // Public callers always get 'PUBLISHED' only; admin callers can query ALL or specific status
+      if (!isAdmin) {
+        conditions.push(`status = $${pIdx++}`);
+        values.push("PUBLISHED");
+      } else if (statusToUse && statusToUse.toUpperCase() !== "ALL") {
+        conditions.push(`status = $${pIdx++}`);
+        values.push(statusToUse.toUpperCase());
       }
 
       if (params?.category && params.category !== "All" && params.category !== "ALL") {
-        const cleanCat = params.category.replace(/'/g, "''");
-        conditions.push(`category = '${cleanCat}'`);
+        conditions.push(`category = $${pIdx++}`);
+        values.push(params.category);
       }
 
-      if (params?.search) {
-        const cleanSearch = params.search.replace(/'/g, "''");
-        conditions.push(`(title ILIKE '%${cleanSearch}%' OR summary ILIKE '%${cleanSearch}%')`);
+      if (params?.search && params.search.trim()) {
+        const escaped = params.search.trim().replace(/([%_\\])/g, "\\$1");
+        conditions.push(`(title ILIKE $${pIdx} ESCAPE '\\' OR summary ILIKE $${pIdx} ESCAPE '\\')`);
+        values.push(`%${escaped}%`);
+        pIdx++;
       }
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-      const limit = params?.limit || 20;
-      const skip = params?.skip || 0;
+      const rawLimit = Number(params?.limit);
+      const limit = isNaN(rawLimit) ? 20 : Math.max(1, Math.min(100, Math.floor(rawLimit)));
+      const rawSkip = Number(params?.skip);
+      const skip = isNaN(rawSkip) ? 0 : Math.max(0, Math.min(100000, Math.floor(rawSkip)));
 
       const countSql = `SELECT count(*)::int as total FROM articles ${whereClause};`;
-      const countRows = await queryNeonDirect<{ total: number }>(countSql);
+      const countRows = await queryNeonDirect<{ total: number }>(countSql, values);
       const total = countRows[0]?.total || 0;
 
-      const fetchSql = `SELECT * FROM articles ${whereClause} ORDER BY id DESC LIMIT ${limit} OFFSET ${skip};`;
-      const items = await queryNeonDirect<Article>(fetchSql);
+      const fetchValues = [...values, limit, skip];
+      const fetchSql = `SELECT * FROM articles ${whereClause} ORDER BY id DESC LIMIT $${pIdx++} OFFSET $${pIdx++};`;
+      const items = await queryNeonDirect<Article>(fetchSql, fetchValues);
 
       if (items.length > 0) {
         return {
@@ -150,16 +171,25 @@ export async function fetchArticles(params?: {
     // Fallback to Render backend API
     try {
       const searchParams = new URLSearchParams();
-      if (params?.status) searchParams.set("status", params.status);
-      if (params?.category && params.category !== "All") searchParams.set("category", params.category);
+      if (statusToUse) searchParams.set("status", statusToUse);
+      if (params?.category && params.category !== "All" && params.category !== "ALL") {
+        searchParams.set("category", params.category);
+      }
       if (params?.search) searchParams.set("search", params.search);
       if (params?.skip !== undefined) searchParams.set("skip", params.skip.toString());
       if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 
-      const fetchOptions: RequestInit =
-        typeof window === "undefined" && params?.revalidate !== undefined
+      const headers: Record<string, string> = {};
+      if (secret) {
+        headers["X-Admin-Secret"] = secret;
+      }
+
+      const fetchOptions: RequestInit = {
+        ...(typeof window === "undefined" && params?.revalidate !== undefined
           ? { next: { revalidate: params.revalidate } }
-          : { cache: "no-store" };
+          : { cache: "no-store" }),
+        headers,
+      };
 
       const bRes = await fetch(`${getBackendUrl()}/api/articles?${searchParams.toString()}`, fetchOptions);
       if (bRes.ok) {
@@ -170,8 +200,10 @@ export async function fetchArticles(params?: {
     }
 
     let filtered = [...FALLBACK_ARTICLES];
-    if (params?.status) {
-      filtered = filtered.filter((a) => a.status === params.status);
+    if (statusToUse && statusToUse.toUpperCase() !== "ALL") {
+      filtered = filtered.filter((a) => a.status === statusToUse.toUpperCase());
+    } else if (!isAdmin) {
+      filtered = filtered.filter((a) => a.status === "PUBLISHED");
     }
     if (params?.category && params.category !== "All") {
       filtered = filtered.filter((a) => a.category === params.category);
@@ -182,42 +214,61 @@ export async function fetchArticles(params?: {
         (a) => a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q)
       );
     }
+    const rawLimit = Number(params?.limit);
+    const limit = isNaN(rawLimit) ? 20 : Math.max(1, Math.min(100, Math.floor(rawLimit)));
     return {
       items: filtered,
       total: filtered.length,
       page: 1,
-      limit: params?.limit || 20,
+      limit,
     };
   }
 }
 
 export async function fetchArticleBySlug(
   slug: string,
-  options?: { revalidate?: number }
+  options?: { revalidate?: number; admin?: boolean }
 ): Promise<Article | null> {
-  const fetchOptions: RequestInit =
-    typeof window === "undefined" && options?.revalidate !== undefined
+  const isAdmin = !!options?.admin;
+  const secret = isAdmin ? getAdminSecret() : "";
+  const headers: Record<string, string> = {};
+  if (secret) {
+    headers["X-Admin-Secret"] = secret;
+  }
+
+  const fetchOptions: RequestInit = {
+    ...(typeof window === "undefined" && options?.revalidate !== undefined
       ? { next: { revalidate: options.revalidate } }
-      : { cache: "no-store" };
+      : { cache: "no-store" }),
+    headers,
+  };
 
   try {
-    const res = await fetch(`${getApiBase()}/api/articles/${slug}`, fetchOptions);
+    const res = await fetch(`${getApiBase()}/api/articles/${encodeURIComponent(slug)}`, fetchOptions);
     if (res.ok) {
-      return await res.json();
+      const article = await res.json();
+      if (!isAdmin && article && article.status !== "PUBLISHED") {
+        return null;
+      }
+      return article;
     }
   } catch (err) {
     console.warn("Could not fetch article by slug from API, querying Neon:", err);
   }
 
-  // Direct Neon PostgreSQL fallback
+  // Direct Neon PostgreSQL fallback (parameterized query)
   try {
-    const rows = await queryNeonDirect<Article>(
-      "SELECT * FROM articles WHERE slug = $1 LIMIT 1;",
-      [slug]
-    );
+    let sql = "SELECT * FROM articles WHERE slug = $1";
+    const params: any[] = [slug];
+    if (!isAdmin) {
+      sql += " AND status = $2";
+      params.push("PUBLISHED");
+    }
+    sql += " LIMIT 1;";
+
+    const rows = await queryNeonDirect<Article>(sql, params);
     if (rows && rows.length > 0) {
-      // Background increment view count
-      queryNeonDirect("UPDATE articles SET views = views + 1 WHERE slug = $1;", [slug]).catch(() => {});
+      // Views increment removed - views are counted only by the analytics tracker
       return rows[0];
     }
   } catch (neonErr) {
@@ -226,9 +277,13 @@ export async function fetchArticleBySlug(
 
   // Fallback to Render backend API
   try {
-    const backendRes = await fetch(`${getBackendUrl()}/api/articles/${slug}`, fetchOptions);
+    const backendRes = await fetch(`${getBackendUrl()}/api/articles/${encodeURIComponent(slug)}`, fetchOptions);
     if (backendRes.ok) {
-      return await backendRes.json();
+      const article = await backendRes.json();
+      if (!isAdmin && article && article.status !== "PUBLISHED") {
+        return null;
+      }
+      return article;
     }
   } catch (bErr) {
     console.warn("Backend API article lookup fallback failed:", bErr);
@@ -237,21 +292,43 @@ export async function fetchArticleBySlug(
   // Fallback match
   const found = FALLBACK_ARTICLES.find((a) => a.slug === slug);
   if (found) {
-    return { ...found, views: found.views + 1 };
+    if (!isAdmin && found.status !== "PUBLISHED") {
+      return null;
+    }
+    return found;
   }
   return null;
 }
 
-export async function fetchAdminStats(): Promise<AdminStats> {
+export async function fetchAdminStats(options?: { admin?: boolean }): Promise<AdminStats> {
+  const secret = getAdminSecret();
+  const headers: Record<string, string> = {};
+  if (secret) {
+    headers["X-Admin-Secret"] = secret;
+  }
+
   try {
     const res = await fetch(`${getApiBase()}/api/articles/stats`, {
       cache: "no-store",
+      headers,
     });
     if (res.ok) {
       return await res.json();
     }
   } catch (err) {
-    console.warn("Admin stats API unavailable, computing from Neon:", err);
+    console.warn("Admin stats API unavailable, trying backend:", err);
+  }
+
+  try {
+    const res = await fetch(`${getBackendUrl()}/api/articles/stats`, {
+      cache: "no-store",
+      headers,
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn("Backend admin stats API unavailable, computing from Neon:", err);
   }
 
   try {
@@ -277,12 +354,13 @@ export async function fetchAdminStats(): Promise<AdminStats> {
     console.error("Neon admin stats query failed:", neonErr);
   }
 
+  // Real zeros fallback - no made-up numbers
   return {
-    total_articles: FALLBACK_ARTICLES.length,
-    drafts_count: FALLBACK_ARTICLES.filter((a) => a.status === "DRAFT").length,
-    video_ready_count: FALLBACK_ARTICLES.filter((a) => a.status === "VIDEO_READY").length,
-    published_count: FALLBACK_ARTICLES.filter((a) => a.status === "PUBLISHED").length,
-    total_views: FALLBACK_ARTICLES.reduce((acc, a) => acc + a.views, 0),
+    total_articles: 0,
+    drafts_count: 0,
+    video_ready_count: 0,
+    published_count: 0,
+    total_views: 0,
   };
 }
 
@@ -423,9 +501,15 @@ export async function fetchVideoProgress(articleId: number): Promise<VideoProgre
 }
 
 export async function fetchWorkerStatus(): Promise<WorkerStatusInfo> {
+  const secret = getAdminSecret();
+  const headers: Record<string, string> = {};
+  if (secret) {
+    headers["X-Admin-Secret"] = secret;
+  }
   try {
     const res = await fetch(`${getBackendUrl()}/api/worker/status`, {
       cache: "no-store",
+      headers,
     });
     if (res.ok) {
       return await res.json();
@@ -452,9 +536,15 @@ export async function fetchActiveVideoJobs(): Promise<{
   active_jobs: VideoProgressInfo[];
   recent_completed: VideoProgressInfo[];
 }> {
+  const secret = getAdminSecret();
+  const headers: Record<string, string> = {};
+  if (secret) {
+    headers["X-Admin-Secret"] = secret;
+  }
   try {
     const res = await fetch(`${getBackendUrl()}/api/worker/active-jobs`, {
       cache: "no-store",
+      headers,
     });
     if (res.ok) {
       return await res.json();
@@ -546,8 +636,15 @@ export async function publishInstantArticle(
 }
 
 export async function getLastError(): Promise<any> {
+  const secret = getAdminSecret();
+  const headers: Record<string, string> = {};
+  if (secret) {
+    headers["X-Admin-Secret"] = secret;
+  }
   try {
-    const res = await fetch(`${getBackendUrl()}/api/debug/last-error`);
+    const res = await fetch(`${getBackendUrl()}/api/debug/last-error`, {
+      headers,
+    });
     if (res.ok) {
       return await res.json();
     }
@@ -564,8 +661,15 @@ export async function checkOrAuthorizeYouTube(): Promise<{
   channel_title?: string;
   token_file?: string;
 }> {
+  const secret = getAdminSecret();
+  const headers: Record<string, string> = {};
+  if (secret) {
+    headers["X-Admin-Secret"] = secret;
+  }
   try {
-    const res = await fetch(`${getBackendUrl()}/api/auth-youtube/status`);
+    const res = await fetch(`${getBackendUrl()}/api/auth-youtube/status`, {
+      headers,
+    });
     if (res.ok) {
       return await res.json();
     }
@@ -635,8 +739,15 @@ export async function runMasterPipeline(
 }
 
 export async function getSchedulerStatus(): Promise<SchedulerStatusResponse | null> {
+  const secret = getAdminSecret();
+  const headers: Record<string, string> = {};
+  if (secret) {
+    headers["X-Admin-Secret"] = secret;
+  }
   try {
-    const res = await fetch(`${getBackendUrl()}/api/scheduler/status`);
+    const res = await fetch(`${getBackendUrl()}/api/scheduler/status`, {
+      headers,
+    });
     if (res.ok) {
       return await res.json();
     }
@@ -646,16 +757,35 @@ export async function getSchedulerStatus(): Promise<SchedulerStatusResponse | nu
   return null;
 }
 
-export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary | null> {
+export async function fetchAnalyticsSummary(options?: { admin?: boolean }): Promise<AnalyticsSummary | null> {
+  const secret = getAdminSecret();
+  const headers: Record<string, string> = {};
+  if (secret) {
+    headers["X-Admin-Secret"] = secret;
+  }
+
   try {
     const res = await fetch(`${getApiBase()}/api/analytics/summary`, {
       cache: "no-store",
+      headers,
     });
     if (res.ok) {
       return await res.json();
     }
   } catch (err) {
     console.error("Failed to fetch real analytics summary:", err);
+  }
+
+  try {
+    const res = await fetch(`${getBackendUrl()}/api/analytics/summary`, {
+      cache: "no-store",
+      headers,
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn("Backend analytics summary fallback failed:", err);
   }
   return null;
 }

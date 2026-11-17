@@ -39,6 +39,26 @@ def scheduled_pipeline_job():
         gc.collect()
 
 
+def scheduled_video_cleanup_job():
+    """
+    Scheduled job callback invoked by APScheduler to purge old generated videos
+    and free up disk space.
+    """
+    print(f"\n[Scheduler] Video retention cleanup triggered at {datetime.now(timezone.utc).isoformat()}")
+    try:
+        try:
+            from .video_cleanup import cleanup_old_videos
+        except (ImportError, ValueError):
+            from backend.services.video_cleanup import cleanup_old_videos
+
+        cleanup_old_videos()
+    except Exception as e:
+        print(f"[Scheduler] Error during scheduled video cleanup job: {e}")
+    finally:
+        import gc
+        gc.collect()
+
+
 def start_scheduler() -> BackgroundScheduler:
     """
     Initialize and start the 24/7 Background Automation Scheduler.
@@ -83,6 +103,19 @@ def start_scheduler() -> BackgroundScheduler:
         max_instances=1,  # Prevent overlapping executions
     )
 
+    # Register automatic video retention cleanup: runs every 6 hours, plus 1 run ~2 minutes after startup
+    cleanup_initial_run = datetime.now(timezone.utc) + timedelta(minutes=2)
+    scheduler.add_job(
+        scheduled_video_cleanup_job,
+        trigger=IntervalTrigger(hours=6),
+        next_run_time=cleanup_initial_run,
+        id="video_retention_cleanup",
+        name="GlobalPulse AI Video Retention & Disk Cleanup",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+
     scheduler.start()
     print(f"============================================================")
     print(f"[Scheduler] 24/7 BACKGROUND AUTOMATION ACTIVE ({interval_desc})")
@@ -108,11 +141,15 @@ def get_scheduler_status() -> Dict[str, Any]:
 
     is_running = scheduler is not None and scheduler.running
     next_run = None
+    cleanup_next_run = None
 
     if is_running:
         job = scheduler.get_job("master_news_video_youtube_pipeline")
         if job and job.next_run_time:
             next_run = job.next_run_time.isoformat()
+        cleanup_job = scheduler.get_job("video_retention_cleanup")
+        if cleanup_job and cleanup_job.next_run_time:
+            cleanup_next_run = cleanup_job.next_run_time.isoformat()
 
     interval_hours = float(os.getenv("AUTO_PIPELINE_INTERVAL_HOURS")) if os.getenv("AUTO_PIPELINE_INTERVAL_HOURS") else None
     interval_minutes = float(os.getenv("AUTO_PIPELINE_INTERVAL_MINUTES", "15"))
@@ -123,6 +160,7 @@ def get_scheduler_status() -> Dict[str, Any]:
         "interval_hours": interval_hours,
         "interval_minutes": interval_minutes,
         "next_run_time": next_run,
+        "video_cleanup_next_run": cleanup_next_run,
         "last_run_time": last_run_info["last_run_time"],
         "last_run_status": last_run_info["last_run_status"],
         "last_run_summary": last_run_info["last_run_summary"],

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBackendBaseUrl } from "@/lib/backendUrl";
+import { isAdminRequest } from "@/lib/adminAuth";
 
 const NEON_CONNECTION_STRING = process.env.DATABASE_URL || "";
 
@@ -39,11 +40,67 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const isAdmin = isAdminRequest(request);
+
+    // 1. Determine sanitized status filter:
+    // Public callers always get 'PUBLISHED' only (ignore any status parameter).
+    // If isAdminRequest is true, status may be DRAFT, VIDEO_READY, PUBLISHED, or ALL.
+    let statusFilter: string | null = "PUBLISHED";
+    if (isAdmin) {
+      const requestedStatus = (searchParams.get("status") || "ALL").toUpperCase();
+      if (requestedStatus === "ALL") {
+        statusFilter = null;
+      } else if (["DRAFT", "VIDEO_READY", "PUBLISHED"].includes(requestedStatus)) {
+        statusFilter = requestedStatus;
+      } else {
+        statusFilter = null;
+      }
+    }
+
+    const rawCategory = searchParams.get("category");
+    const category =
+      rawCategory && !["All", "All Stories", "ALL"].includes(rawCategory.trim())
+        ? rawCategory.trim()
+        : null;
+
+    const rawSearch = searchParams.get("search");
+    const search = rawSearch && rawSearch.trim() ? rawSearch.trim() : null;
+
+    // Parse limit and skip with Number, clamp limit to 1..100 and skip to 0..100000, fallback on NaN
+    const rawLimit = Number(searchParams.get("limit"));
+    const limit = isNaN(rawLimit) ? 20 : Math.max(1, Math.min(100, Math.floor(rawLimit)));
+
+    const rawSkip = Number(searchParams.get("skip"));
+    const skip = isNaN(rawSkip) ? 0 : Math.max(0, Math.min(100000, Math.floor(rawSkip)));
+
+    // Prepare sanitized searchParams and headers for backend proxy calls
+    const backendParams = new URLSearchParams();
+    if (statusFilter) {
+      backendParams.set("status", statusFilter);
+    } else if (isAdmin) {
+      backendParams.set("status", "ALL");
+    } else {
+      backendParams.set("status", "PUBLISHED");
+    }
+    if (category) backendParams.set("category", category);
+    if (search) backendParams.set("search", search);
+    backendParams.set("limit", limit.toString());
+    backendParams.set("skip", skip.toString());
+
+    const backendHeaders: Record<string, string> = {};
+    const adminHeader = request.headers.get("x-admin-secret");
+    if (isAdmin && adminHeader) {
+      backendHeaders["X-Admin-Secret"] = adminHeader;
+    }
+
     const backendUrl = getBackendBaseUrl();
 
     // 1. Primary: Fetch directly from high-speed Oracle VM Cloud Backend
     try {
-      const bRes = await fetch(`${backendUrl}/api/articles?${searchParams.toString()}`, { cache: "no-store" });
+      const bRes = await fetch(`${backendUrl}/api/articles?${backendParams.toString()}`, {
+        headers: backendHeaders,
+        cache: "no-store",
+      });
       if (bRes.ok) {
         return NextResponse.json(await bRes.json());
       }
@@ -51,37 +108,37 @@ export async function GET(request: NextRequest) {
       console.warn("[API Articles] Oracle backend fetch failed:", bErr);
     }
 
-    const category = searchParams.get("category");
-    const status = searchParams.get("status") || "PUBLISHED";
-    const search = searchParams.get("search");
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
-    const skip = parseInt(searchParams.get("skip") || "0", 10);
-
+    // 2. Neon Database parameterized query
     const conditions: string[] = [];
+    const params: any[] = [];
+    let pIdx = 1;
 
-    if (status && status !== "ALL") {
-      const cleanStatus = status.replace(/'/g, "''");
-      conditions.push(`status = '${cleanStatus}'`);
+    if (statusFilter) {
+      conditions.push(`status = $${pIdx++}`);
+      params.push(statusFilter);
     }
 
-    if (category && category !== "All" && category !== "All Stories" && category !== "ALL") {
-      const cleanCat = category.replace(/'/g, "''");
-      conditions.push(`category = '${cleanCat}'`);
+    if (category) {
+      conditions.push(`category = $${pIdx++}`);
+      params.push(category);
     }
 
     if (search) {
-      const cleanSearch = search.replace(/'/g, "''");
-      conditions.push(`(title ILIKE '%${cleanSearch}%' OR summary ILIKE '%${cleanSearch}%')`);
+      const escaped = search.replace(/([%_\\])/g, "\\$1");
+      conditions.push(`(title ILIKE $${pIdx} ESCAPE '\\' OR summary ILIKE $${pIdx} ESCAPE '\\')`);
+      params.push(`%${escaped}%`);
+      pIdx++;
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const countSql = `SELECT count(*)::int as total FROM articles ${whereClause};`;
-    const countRows = await queryNeon<{ total: number }>(countSql);
+    const countRows = await queryNeon<{ total: number }>(countSql, params);
     const total = countRows[0]?.total || 0;
 
-    const fetchSql = `SELECT * FROM articles ${whereClause} ORDER BY id DESC LIMIT ${limit} OFFSET ${skip};`;
-    const items = await queryNeon(fetchSql);
+    const fetchParams = [...params, limit, skip];
+    const fetchSql = `SELECT * FROM articles ${whereClause} ORDER BY id DESC LIMIT $${pIdx++} OFFSET $${pIdx++};`;
+    const items = await queryNeon(fetchSql, fetchParams);
 
     if (items.length > 0) {
       return NextResponse.json({
@@ -92,10 +149,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Seamless fallback to Render backend API
+    // 3. Seamless fallback to Render backend API
     try {
-      const backendUrl = getBackendBaseUrl();
-      const bRes = await fetch(`${backendUrl}/api/articles?${searchParams.toString()}`, { cache: "no-store" });
+      const bRes = await fetch(`${backendUrl}/api/articles?${backendParams.toString()}`, {
+        headers: backendHeaders,
+        cache: "no-store",
+      });
       if (bRes.ok) {
         return NextResponse.json(await bRes.json());
       }
@@ -117,4 +176,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getBackendBaseUrl } from "@/lib/backendUrl";
+import { isAdminRequest } from "@/lib/adminAuth";
 
 const NEON_CONNECTION_STRING = process.env.DATABASE_URL || "";
 
@@ -60,12 +61,26 @@ function formatTimeAgo(dateStr: string): string {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Require admin authentication for analytics summary
+    if (!isAdminRequest(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const backendUrl = getBackendBaseUrl();
+    const backendHeaders: Record<string, string> = {};
+    const adminSecret = request.headers.get("x-admin-secret");
+    if (adminSecret) {
+      backendHeaders["X-Admin-Secret"] = adminSecret;
+    }
+
     // 1. Primary: Fetch from Oracle VM Cloud Backend
     try {
-      const bRes = await fetch(`${backendUrl}/api/analytics/summary`, { cache: "no-store" });
+      const bRes = await fetch(`${backendUrl}/api/analytics/summary`, {
+        headers: backendHeaders,
+        cache: "no-store",
+      });
       if (bRes.ok) {
         const bData = await bRes.json();
         return NextResponse.json(bData);
@@ -74,7 +89,7 @@ export async function GET() {
       console.warn("[API Analytics Summary] Oracle backend fetch failed:", bErr);
     }
 
-    // 2. Try Neon database query directly if connection string is configured
+    // 2. Query Neon database directly if connection string is configured
     if (NEON_CONNECTION_STRING) {
       const statsRows = await queryNeon<any>(`
         SELECT 
@@ -86,7 +101,7 @@ export async function GET() {
       const totalViews = statsRows[0]?.total_views || 0;
       const viewsToday = statsRows[0]?.views_today || 0;
       const uniqueToday = statsRows[0]?.unique_today || 0;
-      const totalVisits = statsRows[0]?.total_visits || 1;
+      const totalVisits = statsRows[0]?.total_visits || 0;
 
       const sourceRows = await queryNeon<{ source: string; count: number }>(`
         SELECT 
@@ -100,13 +115,13 @@ export async function GET() {
       const sources = sourceRows.map((s) => ({
         source: s.source,
         count: s.count,
-        percent: Math.round((s.count / Math.max(totalVisits, 1)) * 100),
+        percent: totalVisits > 0 ? Math.round((s.count / totalVisits) * 100) : 0,
       }));
 
       const countryRows = await queryNeon<{ country_name: string; country_code: string; count: number }>(`
         SELECT 
           coalesce(country_name, 'Unknown') as country_name,
-          coalesce(country_code, 'UN') as country_code,
+          coalesce(country_code, 'UN') as country_code, 
           count(*)::int as count 
         FROM analytics_visits 
         GROUP BY country_name, country_code 
@@ -118,7 +133,7 @@ export async function GET() {
         country_code: c.country_code,
         flag: getCountryFlag(c.country_code),
         count: c.count,
-        percent: Math.round((c.count / Math.max(totalVisits, 1)) * 100),
+        percent: totalVisits > 0 ? Math.round((c.count / totalVisits) * 100) : 0,
       }));
 
       const deviceRows = await queryNeon<any>(`
@@ -128,9 +143,9 @@ export async function GET() {
           count(*)::int as total
         FROM analytics_visits;
       `);
-      const totalDev = deviceRows[0]?.total || 1;
-      const mobilePercent = Math.round(((deviceRows[0]?.mobile_count || 0) / totalDev) * 100);
-      const desktopPercent = 100 - mobilePercent;
+      const totalDev = deviceRows[0]?.total || 0;
+      const mobilePercent = totalDev > 0 ? Math.round(((deviceRows[0]?.mobile_count || 0) / totalDev) * 100) : 0;
+      const desktopPercent = totalDev > 0 ? Math.round(((deviceRows[0]?.desktop_count || 0) / totalDev) * 100) : 0;
 
       const topArticleRows = await queryNeon<any>(`
         SELECT id, title, slug, category, views 
@@ -167,8 +182,8 @@ export async function GET() {
       }));
 
       if (sources.length > 0 || totalViews > 0 || countries.length > 0) {
-        const topSource = sources.length > 0 ? sources[0].source : "Direct / Bio Link";
-        const topCountry = countries.length > 0 ? countries[0].country_name : "United States";
+        const topSource = sources.length > 0 ? sources[0].source : "";
+        const topCountry = countries.length > 0 ? countries[0].country_name : "";
 
         return NextResponse.json({
           total_views: totalViews,
@@ -192,10 +207,12 @@ export async function GET() {
       }
     }
 
-    // 2. Seamless fallback to Render backend API
+    // 3. Seamless fallback to Render backend API
     try {
-      const backendUrl = getBackendBaseUrl();
-      const bRes = await fetch(`${backendUrl}/api/analytics/summary`, { cache: "no-store" });
+      const bRes = await fetch(`${backendUrl}/api/analytics/summary`, {
+        headers: backendHeaders,
+        cache: "no-store",
+      });
       if (bRes.ok) {
         const bData = await bRes.json();
         return NextResponse.json(bData);
@@ -204,14 +221,15 @@ export async function GET() {
       console.warn("[API Analytics Summary] Backend fallback fetch failed:", bErr);
     }
 
+    // Real zeros/empty arrays fallback - no made-up numbers
     return NextResponse.json({
       total_views: 0,
       views_today: 0,
       unique_visitors_today: 0,
       mobile_percent: 0,
-      desktop_percent: 100,
-      top_source: "Direct / Bio Link",
-      top_country: "United States",
+      desktop_percent: 0,
+      top_source: "",
+      top_country: "",
       sources: [],
       countries: [],
       top_articles: [],

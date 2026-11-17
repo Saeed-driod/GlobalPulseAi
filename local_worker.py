@@ -49,6 +49,8 @@ from dotenv import load_dotenv
 load_dotenv(BACKEND_DIR / ".env")
 load_dotenv(ROOT_DIR / ".env")
 
+ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY")
+
 try:
     from database import SessionLocal, engine, Base
     from models import Article, ArticleStatus, ArticleCategory, WorkerHeartbeat, YouTubeDailyUpload
@@ -877,9 +879,9 @@ def sync_token_to_render():
     load_dotenv(BACKEND_DIR / ".env")
     load_dotenv(ROOT_DIR / ".env")
 
-    admin_secret = os.getenv("ADMIN_SECRET_KEY")
+    admin_secret = os.getenv("ADMIN_SECRET_KEY") or ADMIN_SECRET_KEY
     if not admin_secret:
-        print("[Cloud Sync Notice] ADMIN_SECRET_KEY environment variable is missing. Skipping cloud token synchronization to Render.")
+        print("[Cloud Sync Notice] ADMIN_SECRET_KEY environment variable is not configured. Skipping cloud token synchronization to Render gracefully.")
         return
 
     try:

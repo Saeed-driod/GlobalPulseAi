@@ -8,8 +8,11 @@ import hmac
 import logging
 import traceback
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List
+from collections import defaultdict
+import time
+import threading
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 
@@ -54,6 +57,26 @@ def verify_admin_secret(
             detail="Unauthorized: Missing or invalid Admin Secret Key."
         )
     return True
+
+def check_is_admin(
+    x_admin_secret: Optional[str] = Header(None, alias="X-Admin-Secret")
+) -> bool:
+    """
+    Check if the caller provided a valid Admin Secret Key without raising an exception.
+    Used for endpoints that provide public views by default and admin views if authorized.
+    """
+    if not ADMIN_SECRET_KEY or len(ADMIN_SECRET_KEY) < 16:
+        return False
+    if not x_admin_secret:
+        return False
+    try:
+        return hmac.compare_digest(x_admin_secret, ADMIN_SECRET_KEY)
+    except Exception:
+        return False
+
+# In-memory rate limiting for POST /api/analytics/track (max 60 req/min per IP hash)
+_analytics_rate_lock = threading.Lock()
+_analytics_rate_limits: dict = defaultdict(list)
 
 # In-memory error tracking for background tasks and video rendering
 _last_error_log = {
@@ -268,13 +291,18 @@ def get_articles(
     search: Optional[str] = Query(None, description="Search keyword in title or summary"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=500),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    is_admin: bool = Depends(check_is_admin)
 ):
-    """Retrieve paginated list of articles with optional status and category filters."""
+    """Retrieve paginated list of articles. Public callers only receive PUBLISHED articles."""
     query = db.query(Article)
 
-    if status:
-        query = query.filter(Article.status == status.upper())
+    if not is_admin:
+        query = query.filter(Article.status == ArticleStatus.PUBLISHED.value)
+    else:
+        if status and status.upper() != "ALL":
+            query = query.filter(Article.status == status.upper())
+
     if category:
         if category in ("World Politics", "Geopolitics"):
             query = query.filter(Article.category.in_(["World Politics", "Geopolitics"]))
@@ -297,7 +325,7 @@ def get_articles(
         limit=limit
     )
 
-@app.get("/api/articles/stats", response_model=AdminStatsResponse)
+@app.get("/api/articles/stats", response_model=AdminStatsResponse, dependencies=[Depends(verify_admin_secret)])
 def get_admin_stats(db: Session = Depends(get_db)):
     """Summary metrics for the Admin Automation Dashboard."""
     total = db.query(Article).count()
@@ -315,21 +343,22 @@ def get_admin_stats(db: Session = Depends(get_db)):
     )
 
 @app.get("/api/articles/{slug}", response_model=ArticleResponse)
-def get_article_by_slug(slug: str, db: Session = Depends(get_db)):
-    """Retrieve a single article by its SEO slug and increment view count."""
-    article = db.query(Article).filter(Article.slug == slug).first()
+def get_article_by_slug(
+    slug: str,
+    db: Session = Depends(get_db),
+    is_admin: bool = Depends(check_is_admin)
+):
+    """Retrieve a single article by its SEO slug. Public callers only receive PUBLISHED articles."""
+    query = db.query(Article).filter(Article.slug == slug)
+    if not is_admin:
+        query = query.filter(Article.status == ArticleStatus.PUBLISHED.value)
+    
+    article = query.first()
     if not article:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Article with slug '{slug}' not found"
         )
-    
-    article.views = (article.views or 0) + 1
-    try:
-        db.commit()
-        db.refresh(article)
-    except Exception:
-        db.rollback()
     return article
 
 
@@ -524,7 +553,7 @@ def cleanup_duplicate_drafts(db: Session = Depends(get_db)):
 
 
 
-@app.get("/api/debug/last-error")
+@app.get("/api/debug/last-error", dependencies=[Depends(verify_admin_secret)])
 def get_last_error():
     """Retrieve the most recent background processing or video rendering/upload error."""
     return _last_error_log
@@ -699,7 +728,7 @@ def get_video_progress_endpoint(article_id: int, db: Session = Depends(get_db)):
         updated_at=article.video_updated_at
     )
 
-@app.get("/api/worker/status", response_model=WorkerStatusResponse)
+@app.get("/api/worker/status", response_model=WorkerStatusResponse, dependencies=[Depends(verify_admin_secret)])
 def get_worker_status_endpoint(db: Session = Depends(get_db)):
     """Checks whether the Local PC Worker is online, idle, or processing, and returns daily YouTube upload limits."""
     counts = get_daily_youtube_upload_counts(db)
@@ -744,7 +773,7 @@ def get_worker_status_endpoint(db: Session = Depends(get_db)):
         daily_quota_status=counts["status"]
     )
 
-@app.get("/api/worker/active-jobs")
+@app.get("/api/worker/active-jobs", dependencies=[Depends(verify_admin_secret)])
 def get_active_jobs_endpoint(db: Session = Depends(get_db)):
     """Returns currently processing video jobs and most recently completed jobs."""
     active_statuses = ["QUEUED", "VOICEOVER", "COMPOSING_FRAMES", "RENDERING_FFMPEG", "UPLOADING_YOUTUBE"]
@@ -1195,7 +1224,7 @@ def auth_youtube():
         return HTMLResponse(content=html_content, status_code=200)
 
 
-@app.get("/api/auth-youtube/status")
+@app.get("/api/auth-youtube/status", dependencies=[Depends(verify_admin_secret)])
 def auth_youtube_status(db: Session = Depends(get_db)):
     """
     Check whether YouTube is authenticated.
@@ -1420,7 +1449,7 @@ def trigger_master_pipeline(
 
 
 
-@app.get("/api/scheduler/status")
+@app.get("/api/scheduler/status", dependencies=[Depends(verify_admin_secret)])
 def get_scheduler_telemetry():
     """
     Telemetry and heartbeat status for the 24/7 APScheduler background worker.
@@ -1428,7 +1457,7 @@ def get_scheduler_telemetry():
     return get_scheduler_status()
 
 
-@app.get("/api/worker/pending")
+@app.get("/api/worker/pending", dependencies=[Depends(verify_admin_secret)])
 def get_pending_worker_articles(
     category: Optional[str] = Query(None, description="Filter by category (e.g. 'Global Sports')"),
     missing: str = Query("video", pattern="^(video|youtube|any)$", description="Type of pending work"),
@@ -1534,49 +1563,97 @@ async def track_page_visit(payload: AnalyticsTrackRequest, request: Request, db:
     Records page visit telemetry (country, referrer source, device, browser, article).
     Fast, lightweight, privacy-compliant tracking without cookies.
     """
+    # 1. Payload validation
+    if not payload.path or not payload.path.startswith("/") or len(payload.path) > 250:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Path must start with '/' and be at most 250 characters."
+        )
+
+    # 2. IP Hash extraction & In-Memory Rate Limiting (60 requests per minute per IP hash)
+    forwarded_for = request.headers.get("x-forwarded-for") or (request.client.host if request.client else "unknown")
+    client_ip = forwarded_for.split(",")[0].strip()
+    ip_hash = hashlib.sha256(client_ip.encode("utf-8")).hexdigest()[:16]
+
+    now_ts = time.time()
+    window_start = now_ts - 60.0
+
+    with _analytics_rate_lock:
+        recent_ts = [t for t in _analytics_rate_limits[ip_hash] if t > window_start]
+        if len(recent_ts) >= 60:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many analytics requests. Maximum 60 requests per minute."
+            )
+        recent_ts.append(now_ts)
+        _analytics_rate_limits[ip_hash] = recent_ts
+        if len(_analytics_rate_limits) > 5000:
+            stale_keys = [k for k, v in _analytics_rate_limits.items() if not v or v[-1] <= window_start]
+            for k in stale_keys:
+                del _analytics_rate_limits[k]
+
     try:
         cc = (
             request.headers.get("x-vercel-ip-country") or 
             request.headers.get("cf-ipcountry") or 
             request.headers.get("x-country-code") or 
             "US"
-        ).strip().upper()
+        ).strip().upper()[:10]
         
         country_name, _ = COUNTRY_DATA.get(cc, (cc, "🌐"))
         city = request.headers.get("x-vercel-ip-city") or None
-        
-        forwarded_for = request.headers.get("x-forwarded-for") or (request.client.host if request.client else "unknown")
-        ip_hash = hashlib.sha256(forwarded_for.split(",")[0].strip().encode("utf-8")).hexdigest()[:16]
-        
+        if city:
+            city = city[:90]
+
         source = parse_referrer_source(payload.referrer)
-        
+        device = (payload.device or "Mobile").strip()[:50]
+        browser = (payload.browser or "Chrome").strip()[:50]
+
         art_id = None
         art_title = None
+        article_slug = None
         if payload.article_slug:
-            art = db.query(Article).filter(Article.slug == payload.article_slug).first()
+            clean_slug = payload.article_slug.strip()[:250]
+            art = db.query(Article).filter(Article.slug == clean_slug).first()
             if art:
                 art_id = art.id
                 art_title = art.title
-                art.views = (art.views or 0) + 1
+                article_slug = art.slug
+
+                # Increment views only once per IP hash per article per hour
+                one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+                recent_visit = (
+                    db.query(AnalyticsVisit.id)
+                    .filter(
+                        AnalyticsVisit.article_id == art.id,
+                        AnalyticsVisit.ip_hash == ip_hash,
+                        AnalyticsVisit.created_at >= one_hour_ago
+                    )
+                    .first()
+                )
+                if not recent_visit:
+                    art.views = (art.views or 0) + 1
         
         visit = AnalyticsVisit(
             path=payload.path[:250],
             article_id=art_id,
-            article_slug=payload.article_slug[:250] if payload.article_slug else None,
+            article_slug=article_slug,
             article_title=art_title[:290] if art_title else None,
             referrer=payload.referrer[:490] if payload.referrer else None,
             referrer_source=source,
             country_code=cc,
             country_name=country_name,
-            city=city[:90] if city else None,
-            device=payload.device or "Mobile",
-            browser=payload.browser or "Chrome",
+            city=city,
+            device=device,
+            browser=browser,
             ip_hash=ip_hash,
             created_at=datetime.now(timezone.utc)
         )
         db.add(visit)
         db.commit()
         return {"success": True, "source": source, "country": cc}
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Analytics Track Warning] {e}")
         try:
@@ -1586,11 +1663,11 @@ async def track_page_visit(payload: AnalyticsTrackRequest, request: Request, db:
         return {"success": False, "error": str(e)}
 
 
-@app.get("/api/analytics/summary", response_model=AnalyticsSummaryResponse)
+@app.get("/api/analytics/summary", response_model=AnalyticsSummaryResponse, dependencies=[Depends(verify_admin_secret)])
 def get_analytics_summary(db: Session = Depends(get_db)):
     """
     Returns real-time and aggregated audience telemetry:
-    traffic sources (TikTok, YouTube, Google), countries with flags, top articles, and live feed.
+    traffic sources, countries with flags, top articles, and live feed.
     """
     now = datetime.now(timezone.utc)
     today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
@@ -1612,12 +1689,7 @@ def get_analytics_summary(db: Session = Depends(get_db)):
     )
     
     if not source_rows:
-        sources_list = [
-            AnalyticsSourceStat(source="TikTok", count=max(1, int(total_effective_views * 0.45)), percent=45.0),
-            AnalyticsSourceStat(source="YouTube", count=max(1, int(total_effective_views * 0.30)), percent=30.0),
-            AnalyticsSourceStat(source="Google Search", count=max(1, int(total_effective_views * 0.15)), percent=15.0),
-            AnalyticsSourceStat(source="Direct / Bio Link", count=max(1, int(total_effective_views * 0.10)), percent=10.0),
-        ]
+        sources_list: List[AnalyticsSourceStat] = []
     else:
         src_total = sum(r[1] for r in source_rows) or 1
         sources_list = [
@@ -1638,12 +1710,7 @@ def get_analytics_summary(db: Session = Depends(get_db)):
         .all()
     )
     if not country_rows:
-        countries_list = [
-            AnalyticsCountryStat(country_code="US", country_name="United States", flag="🇺🇸", count=max(1, int(total_effective_views * 0.50)), percent=50.0),
-            AnalyticsCountryStat(country_code="GB", country_name="United Kingdom", flag="🇬🇧", count=max(1, int(total_effective_views * 0.25)), percent=25.0),
-            AnalyticsCountryStat(country_code="CA", country_name="Canada", flag="🇨🇦", count=max(1, int(total_effective_views * 0.15)), percent=15.0),
-            AnalyticsCountryStat(country_code="PK", country_name="Pakistan", flag="🇵🇰", count=max(1, int(total_effective_views * 0.10)), percent=10.0),
-        ]
+        countries_list: List[AnalyticsCountryStat] = []
     else:
         c_total = sum(r[1] for r in country_rows) or 1
         countries_list = [
@@ -1659,9 +1726,12 @@ def get_analytics_summary(db: Session = Depends(get_db)):
 
     # Device split
     mobile_count = db.query(func.count(AnalyticsVisit.id)).filter(AnalyticsVisit.device.ilike("%mobile%")).scalar() or 0
-    total_device_rows = max(1, total_views)
-    mob_pct = round((mobile_count / total_device_rows) * 100, 1) if total_views > 0 else 76.0
-    desk_pct = round(100.0 - mob_pct, 1)
+    if total_views > 0:
+        mob_pct = round((mobile_count / total_views) * 100, 1)
+        desk_pct = round(100.0 - mob_pct, 1)
+    else:
+        mob_pct = 0.0
+        desk_pct = 0.0
 
     # Top Articles
     top_art_rows = db.query(Article).order_by(desc(Article.views)).limit(5).all()
@@ -1680,7 +1750,11 @@ def get_analytics_summary(db: Session = Depends(get_db)):
     recent_rows = db.query(AnalyticsVisit).order_by(desc(AnalyticsVisit.created_at)).limit(10).all()
     recent_visits = []
     for v in recent_rows:
-        delta = (now - v.created_at).total_seconds() if v.created_at else 0
+        if v.created_at:
+            v_dt = v.created_at if v.created_at.tzinfo else v.created_at.replace(tzinfo=timezone.utc)
+            delta = (now - v_dt).total_seconds()
+        else:
+            delta = 0
         if delta < 60:
             time_ago = f"{max(1, int(delta))}s ago"
         elif delta < 3600:
@@ -1705,12 +1779,12 @@ def get_analytics_summary(db: Session = Depends(get_db)):
 
     return AnalyticsSummaryResponse(
         total_views=total_effective_views,
-        views_today=max(views_today, min(total_effective_views, 12)),
-        unique_visitors_today=max(unique_today, min(total_effective_views, 8)),
+        views_today=views_today,
+        unique_visitors_today=unique_today,
         mobile_percent=mob_pct,
         desktop_percent=desk_pct,
-        top_source=sources_list[0].source if sources_list else "TikTok",
-        top_country=countries_list[0].country_name if countries_list else "United States",
+        top_source=sources_list[0].source if sources_list else "",
+        top_country=countries_list[0].country_name if countries_list else "",
         sources=sources_list,
         countries=countries_list,
         top_articles=top_articles,

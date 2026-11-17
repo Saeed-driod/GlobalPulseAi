@@ -88,7 +88,7 @@ export default function AdminPage() {
 
   const loadAnalytics = async () => {
     setLoadingAnalytics(true);
-    const data = await fetchAnalyticsSummary();
+    const data = await fetchAnalyticsSummary({ admin: true });
     if (data) {
       setAnalyticsData(data);
     }
@@ -128,8 +128,8 @@ export default function AdminPage() {
   const loadDashboardData = async () => {
     try {
       const [statsData, articlesData, schedulerData, ytAuth] = await Promise.all([
-        fetchAdminStats(),
-        fetchArticles({ limit: 100 }),
+        fetchAdminStats({ admin: true }),
+        fetchArticles({ limit: 100, admin: true }),
         getSchedulerStatus(),
         checkYouTubeAuthStatus(),
       ]);
@@ -188,7 +188,7 @@ export default function AdminPage() {
         }
 
         if (jobsData.active_jobs && jobsData.active_jobs.length > 0) {
-          const list = await fetchArticles({ limit: 50 });
+          const list = await fetchArticles({ limit: 50, admin: true });
           if (isMounted) setArticles(list.items);
         }
       } catch {
