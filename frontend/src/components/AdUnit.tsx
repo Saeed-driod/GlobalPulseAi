@@ -8,6 +8,7 @@ import {
   ARTICLE_MODAL_300x250_SCRIPT_URL,
   TOP_LEADERBOARD_728x90_KEY,
 } from "../config/adsConfig";
+import { useAdSettings } from "../lib/useAdSettings";
 
 export type AdUnitType =
   | "leaderboard"
@@ -48,6 +49,7 @@ export const AdUnit: React.FC<AdUnitProps> = ({
   height: customHeight,
 }) => {
   const pathname = usePathname();
+  const { showDisplayAds } = useAdSettings();
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const checkTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -276,8 +278,8 @@ export const AdUnit: React.FC<AdUnitProps> = ({
     };
   }, [effectiveKey]);
 
-  // If excluded, ads globally disabled, or key missing, collapse cleanly with zero DOM space
-  if (isExcludedRoute || !ADS_CONFIG.ENABLE_ADS || !hasKey) {
+  // If excluded, ads globally disabled, key missing, or display ads disabled by ads_mode, collapse cleanly
+  if (isExcludedRoute || !ADS_CONFIG.ENABLE_ADS || !hasKey || !showDisplayAds) {
     return null;
   }
 

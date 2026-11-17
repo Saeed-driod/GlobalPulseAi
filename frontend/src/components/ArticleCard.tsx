@@ -57,7 +57,10 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
               src={imgSrc}
               alt={article.title}
               className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+              width={600}
+              height={338}
               loading="lazy"
+              decoding="async"
               onError={() => {
                 if (imgSrc !== fallbackUrl) {
                   setImgSrc(fallbackUrl);

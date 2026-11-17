@@ -47,6 +47,22 @@ function formatIsoWithTimezone(dateStr?: string | null): string {
   return clean;
 }
 
+function getCategorySlug(categoryName?: string | null): string {
+  const norm = (categoryName || "").toLowerCase();
+  if (norm.includes("ai") || norm.includes("tech")) return "ai-tech";
+  if (norm.includes("market") || norm.includes("econom")) return "markets";
+  if (norm.includes("politic") || norm.includes("geopolitic")) return "world-politics";
+  if (norm.includes("science")) return "science";
+  if (norm.includes("sport")) return "sports";
+  if (norm.includes("entertainment") || norm.includes("movie") || norm.includes("cinema")) return "entertainment";
+  return "ai-tech";
+}
+
+// Safely serialize JSON-LD by escaping '<' to prevent XSS and premature tag closing
+function safeJsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
 // Formats a complete grammatical sentence between 140-155 characters for meta description
 function buildCompleteMetaDescription(title: string, summary: string, content?: string, existingMeta?: string | null): string {
   if (existingMeta && existingMeta.length >= 135 && existingMeta.length <= 160) {
@@ -116,7 +132,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app").replace(/\/$/, "");
   const metaDescription = buildCompleteMetaDescription(article.title, article.summary, article.content, article.meta_description);
   const articleUrl = `${siteUrl}/news/${article.slug}`;
-  const imageUrl = article.image_url ? getHdImageUrl(article.image_url) : `${siteUrl}/default-thumbnail.jpg`;
+  const imageUrl = article.image_url ? getHdImageUrl(article.image_url) : `${siteUrl}/api/og`;
   const authorName = "GlobalPulse AI Desk";
 
   // Single brand mention in title format: "{headline} | GlobalPulse AI"
@@ -151,7 +167,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: metaDescription,
       siteName: "GlobalPulse AI",
       publishedTime: formatIsoWithTimezone(article.published_at || article.created_at),
-      modifiedTime: formatIsoWithTimezone(article.published_at || article.created_at),
+      modifiedTime: formatIsoWithTimezone(article.updated_at || article.published_at || article.created_at),
       authors: [authorName],
       images: [
         {
@@ -183,8 +199,50 @@ export default async function Page({ params }: PageProps) {
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app").replace(/\/$/, "");
   const articleUrl = `${siteUrl}/news/${resolvedParams.slug}`;
   const metaDescription = buildCompleteMetaDescription(article.title, article.summary, article.content, article.meta_description);
+  const cleanHeadline = article.title.replace(/\s*\|\s*GlobalPulse AI/gi, "").trim();
+  const categorySlug = getCategorySlug(article.category);
 
-  // NewsArticle JSON-LD Schema (author: GlobalPulse AI Desk)
+  // Server-side fetch 6 related articles (same category prioritized first)
+  let relatedArticles: any[] = [];
+  try {
+    const relatedRes = await fetchArticles({ limit: 30, revalidate: 300 });
+    const candidates = (relatedRes.items || []).filter(
+      (a) => a.id !== article.id && a.slug !== article.slug
+    );
+    const sameCat = candidates.filter((a) => a.category === article.category);
+    const otherCat = candidates.filter((a) => a.category !== article.category);
+    relatedArticles = [...sameCat, ...otherCat].slice(0, 6);
+  } catch {
+    relatedArticles = [];
+  }
+
+  // 1. BreadcrumbList JSON-LD Schema (Home > Category > Article title)
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: article.category || "News",
+        item: `${siteUrl}/category/${categorySlug}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: cleanHeadline,
+        item: articleUrl,
+      },
+    ],
+  };
+
+  // 2. NewsArticle JSON-LD Schema (with articleSection, inLanguage, isAccessibleForFree, dateModified)
   const newsArticleSchema = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
@@ -192,11 +250,14 @@ export default async function Page({ params }: PageProps) {
       "@type": "WebPage",
       "@id": articleUrl,
     },
-    headline: article.title.replace(/\s*\|\s*GlobalPulse AI/gi, "").trim(),
+    headline: cleanHeadline,
     description: metaDescription,
-    image: [article.image_url || `${siteUrl}/default-thumbnail.jpg`],
+    image: [article.image_url ? getHdImageUrl(article.image_url) : `${siteUrl}/api/og`],
     datePublished: formatIsoWithTimezone(article.published_at || article.created_at),
-    dateModified: formatIsoWithTimezone(article.published_at || article.created_at),
+    dateModified: formatIsoWithTimezone(article.updated_at || article.published_at || article.created_at),
+    articleSection: article.category,
+    inLanguage: "en",
+    isAccessibleForFree: true,
     author: {
       "@type": "Organization",
       name: "GlobalPulse AI Desk",
@@ -208,12 +269,14 @@ export default async function Page({ params }: PageProps) {
       url: siteUrl,
       logo: {
         "@type": "ImageObject",
-        url: `${siteUrl}/logo.png`,
+        url: `${siteUrl}/logo_wide_light.png`,
+        width: 400,
+        height: 50,
       },
     },
   };
 
-  // VideoObject Schema (when youtube_video_id is present)
+  // 3. VideoObject Schema (when youtube_video_id is present)
   const videoObjectSchema = article.youtube_video_id
     ? {
         "@context": "https://schema.org",
@@ -223,7 +286,7 @@ export default async function Page({ params }: PageProps) {
         thumbnailUrl: [
           `https://img.youtube.com/vi/${article.youtube_video_id}/maxresdefault.jpg`,
           `https://img.youtube.com/vi/${article.youtube_video_id}/hqdefault.jpg`,
-          article.image_url || `${siteUrl}/default-thumbnail.jpg`,
+          article.image_url || `${siteUrl}/api/og`,
         ],
         uploadDate: formatIsoWithTimezone(article.published_at || article.created_at),
         contentUrl: `https://www.youtube.com/watch?v=${article.youtube_video_id}`,
@@ -233,7 +296,9 @@ export default async function Page({ params }: PageProps) {
           name: "GlobalPulse AI",
           logo: {
             "@type": "ImageObject",
-            url: `${siteUrl}/logo.png`,
+            url: `${siteUrl}/logo_wide_light.png`,
+            width: 400,
+            height: 50,
           },
         },
       }
@@ -241,23 +306,18 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <>
-      <link rel="canonical" href={articleUrl} />
-      <meta
-        name="robots"
-        content={
-          article.is_noindex
-            ? "noindex, follow"
-            : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
-        }
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(newsArticleSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(newsArticleSchema) }}
       />
       {videoObjectSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(videoObjectSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(videoObjectSchema) }}
         />
       )}
       <Suspense
@@ -270,7 +330,11 @@ export default async function Page({ params }: PageProps) {
           </div>
         }
       >
-        <ArticleDetailClient initialArticle={article} slug={resolvedParams.slug} />
+        <ArticleDetailClient
+          initialArticle={article}
+          slug={resolvedParams.slug}
+          initialRelatedArticles={relatedArticles}
+        />
       </Suspense>
     </>
   );

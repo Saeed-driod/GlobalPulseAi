@@ -154,6 +154,19 @@ async def lifespan(app: FastAPI):
 
     # Ensure database schema is created on startup (never auto-insert dummy seed articles)
     Base.metadata.create_all(bind=engine)
+
+    # Lightweight migration: ensure ads_mode column exists on ad_settings table
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(engine)
+        if "ad_settings" in inspector.get_table_names():
+            columns = [c["name"] for c in inspector.get_columns("ad_settings")]
+            if "ads_mode" not in columns:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE ad_settings ADD COLUMN ads_mode VARCHAR(16) NOT NULL DEFAULT 'full'"))
+                print("[Lifespan] Migration: added ads_mode column to ad_settings table.")
+    except Exception as e:
+        print(f"[Lifespan Warning] Failed to migrate ads_mode on ad_settings: {e}")
     # Refresh missing or placeholder images on startup
     refresh_missing_images()
     # Auto-cleanup duplicate DRAFT articles on startup
@@ -333,6 +346,7 @@ def get_ad_settings(db: Session = Depends(get_db)):
     if not setting:
         setting = AdSetting(
             master_enabled=True,
+            ads_mode="full",
             monetag_global_script="",
             direct_link_url="",
             adsterra_header_banner="",

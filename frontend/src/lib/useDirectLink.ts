@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { fetchAdSettings, AdSettings } from "./api";
+import { useCallback } from "react";
+import { useAdSettings } from "./useAdSettings";
 
 const COOLDOWN_KEY = "gp_smartlink_last_timestamp";
 const COOLDOWN_DURATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -16,7 +16,7 @@ export function triggerDirectLink(targetUrl: string, configuredSmartlink?: strin
 
   const smartlink = configuredSmartlink?.trim();
 
-  // If no smartlink configured, open destination cleanly
+  // If no smartlink configured or aggressive ads disabled, open destination cleanly
   if (!smartlink) {
     window.open(targetUrl, "_blank", "noopener,noreferrer");
     return;
@@ -59,33 +59,23 @@ export function triggerDirectLink(targetUrl: string, configuredSmartlink?: strin
 
 /**
  * React hook to access active direct link settings and helper trigger.
+ * Opens smartlink ONLY when showAggressiveAds is true; otherwise opens destination normally.
  */
 export function useDirectLink() {
-  const [adSettings, setAdSettings] = useState<AdSettings | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    fetchAdSettings().then((settings) => {
-      if (isMounted) setAdSettings(settings);
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const { showAggressiveAds, settings } = useAdSettings();
 
   const handleActionClick = useCallback(
     (e: React.MouseEvent<any>, targetUrl: string) => {
       e.preventDefault();
-      const smartlink = adSettings?.master_enabled ? adSettings?.direct_link_url : undefined;
+      const smartlink = showAggressiveAds ? settings?.direct_link_url : undefined;
       triggerDirectLink(targetUrl, smartlink);
     },
-    [adSettings]
+    [showAggressiveAds, settings]
   );
 
   return {
-    smartlinkUrl: adSettings?.direct_link_url,
-    masterEnabled: adSettings?.master_enabled ?? true,
+    smartlinkUrl: settings?.direct_link_url,
+    masterEnabled: showAggressiveAds,
     handleActionClick,
   };
 }
-

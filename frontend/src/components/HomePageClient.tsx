@@ -9,8 +9,6 @@ import { ViralPoll } from "./ViralPoll";
 import { Header, CATEGORIES } from "./Header";
 import { HeroFeatured } from "./HeroFeatured";
 import { ArticleCard } from "./ArticleCard";
-import { AdBanner } from "./AdBanner";
-import { AdSlot } from "./AdSlot";
 import { AdUnit } from "./AdUnit";
 import { Footer } from "./Footer";
 import { Sparkles, RefreshCw, ShieldCheck, Briefcase, ExternalLink } from "./Icons";

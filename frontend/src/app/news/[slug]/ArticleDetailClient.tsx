@@ -31,11 +31,23 @@ import { getHdImageUrl, getPollinationsFallback } from "../../../lib/imageOptimi
 interface ArticleDetailClientProps {
   initialArticle?: Article | null;
   slug: string;
+  initialRelatedArticles?: Article[];
 }
 
-export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClientProps) {
+function getCategorySlug(categoryName?: string | null): string {
+  const norm = (categoryName || "").toLowerCase();
+  if (norm.includes("ai") || norm.includes("tech")) return "ai-tech";
+  if (norm.includes("market") || norm.includes("econom")) return "markets";
+  if (norm.includes("politic") || norm.includes("geopolitic")) return "world-politics";
+  if (norm.includes("science")) return "science";
+  if (norm.includes("sport")) return "sports";
+  if (norm.includes("entertainment") || norm.includes("movie") || norm.includes("cinema")) return "entertainment";
+  return "ai-tech";
+}
+
+export function ArticleDetailClient({ initialArticle, slug, initialRelatedArticles }: ArticleDetailClientProps) {
   const [article, setArticle] = useState<Article | null>(initialArticle || null);
-  const [allArticles, setAllArticles] = useState<Article[]>([]);
+  const [allArticles, setAllArticles] = useState<Article[]>(initialRelatedArticles || []);
   const [copied, setCopied] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(!initialArticle);
   const [scrollProgress, setScrollProgress] = useState<number>(0);
@@ -103,14 +115,16 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
     );
   }
 
-  // 3 related articles from the same category
+  // 6 related articles prioritized by same category first
   const sameCategoryArticles = allArticles.filter(
     (a) => a.id !== article.id && a.category === article.category
   );
   const otherCategoryArticles = allArticles.filter(
     (a) => a.id !== article.id && a.category !== article.category
   );
-  const relatedArticles = [...sameCategoryArticles, ...otherCategoryArticles].slice(0, 3);
+  const relatedArticles = initialRelatedArticles && initialRelatedArticles.length > 0
+    ? initialRelatedArticles
+    : [...sameCategoryArticles, ...otherCategoryArticles].slice(0, 6);
   const sidebarTrending = allArticles.filter((a) => a.id !== article.id).slice(0, 4);
 
   // Extract Key Points (3 bullets) from summary
@@ -336,6 +350,11 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                     src={getHdImageUrl(article.image_url, cleanHeadline, article.category)}
                     alt={cleanHeadline}
                     className="w-full h-full object-cover"
+                    width={1200}
+                    height={675}
+                    loading="eager"
+                    fetchPriority="high"
+                    decoding="async"
                     onError={(e) => {
                       const seed = typeof article.id === "number" ? article.id : 100;
                       (e.target as HTMLImageElement).src = getPollinationsFallback(cleanHeadline, article.category, seed);
@@ -469,7 +488,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
               .
             </div>
 
-            {/* 7. 3 Related Articles from the Same Category */}
+            {/* 7. 6 Related Articles from the Same Category (Server-Rendered Links) */}
             {relatedArticles.length > 0 && (
               <div className="my-10 pt-6 border-t border-white/10">
                 <div className="flex items-center justify-between mb-5">
@@ -477,43 +496,72 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                     Related Stories in {article.category}
                   </h3>
                   <Link
-                    href={`/category/${article.category.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`}
+                    href={`/category/${getCategorySlug(article.category)}`}
                     className="text-xs text-slate-400 hover:text-cyan-300 font-mono transition"
                   >
-                    View all {article.category} →
+                    More in {article.category} →
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {relatedArticles.map((rel) => (
-                    <Link
-                      key={rel.id}
-                      href={`/news/${rel.slug}`}
-                      className="group flex flex-col justify-between rounded-xl neu-sm p-3 border border-white/5 transition hover:-translate-y-0.5"
-                    >
-                      {rel.image_url && (
-                        <div className="aspect-[16/9] w-full rounded-lg overflow-hidden bg-slate-900 mb-2.5">
-                          <img
-                            src={getHdImageUrl(rel.image_url, rel.title, rel.category)}
-                            alt={rel.title}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            loading="lazy"
-                          />
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {relatedArticles.map((rel) => {
+                    const cleanRelTitle = rel.title.replace(/\s*\|\s*GlobalPulse AI/gi, "").trim();
+                    const cleanExcerpt = (rel.summary || rel.content || "")
+                      .replace(/^[•▸*-\s]+/gm, "")
+                      .replace(/\s+/g, " ")
+                      .split(".")[0]
+                      .trim();
+                    const excerptText = cleanExcerpt ? `${cleanExcerpt}.` : "";
+
+                    return (
+                      <Link
+                        key={rel.id}
+                        href={`/news/${rel.slug}`}
+                        className="group flex flex-col justify-between rounded-xl neu-sm p-3.5 border border-white/5 transition hover:-translate-y-0.5"
+                      >
+                        <div>
+                          {rel.image_url && (
+                            <div className="aspect-[16/9] w-full rounded-lg overflow-hidden bg-slate-900 mb-2.5 relative">
+                              <img
+                                src={getHdImageUrl(rel.image_url, cleanRelTitle, rel.category)}
+                                alt={cleanRelTitle}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                width={400}
+                                height={225}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            </div>
+                          )}
+                          <span className="text-[10px] uppercase font-mono text-cyan-400 font-semibold">
+                            {rel.category}
+                          </span>
+                          <h4 className="text-xs sm:text-sm font-semibold text-white line-clamp-2 mt-1 leading-snug group-hover:text-cyan-300 transition">
+                            {cleanRelTitle}
+                          </h4>
+                          {excerptText && (
+                            <p className="text-xs text-slate-400 font-sans line-clamp-2 mt-1.5 leading-relaxed">
+                              {excerptText}
+                            </p>
+                          )}
                         </div>
-                      )}
-                      <div>
-                        <span className="text-[10px] uppercase font-mono text-cyan-400 font-semibold">
-                          {rel.category}
-                        </span>
-                        <h4 className="text-xs sm:text-sm font-semibold text-white line-clamp-2 mt-1 leading-snug group-hover:text-cyan-300 transition">
-                          {rel.title.replace(/\s*\|\s*GlobalPulse AI/gi, "")}
-                        </h4>
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-mono mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
-                        <span>Read story →</span>
-                      </div>
-                    </Link>
-                  ))}
+                        <div className="text-[10px] text-slate-400 font-mono mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                          <span className="text-cyan-400 font-semibold group-hover:translate-x-0.5 transition">
+                            Read story →
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 text-center">
+                  <Link
+                    href={`/category/${getCategorySlug(article.category)}`}
+                    className="neu-sm inline-flex items-center gap-2 px-5 py-2.5 text-xs font-mono font-bold text-cyan-300 hover:text-white transition rounded-xl border border-white/5"
+                  >
+                    <span>More in {article.category} →</span>
+                  </Link>
                 </div>
               </div>
             )}

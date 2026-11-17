@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { fetchAdSettings, updateAdSettings, AdSettings } from "../lib/api";
-import { Sparkles, ShieldCheck, CheckCircle2, Lock, ExternalLink } from "./Icons";
+import { fetchAdSettings, updateAdSettings, AdSettings, AdsMode } from "../lib/api";
+import { Sparkles, ShieldCheck, CheckCircle2 } from "./Icons";
 
 interface AdManagerModalProps {
   isOpen: boolean;
@@ -10,11 +10,31 @@ interface AdManagerModalProps {
   onSuccessToast?: (msg: string) => void;
 }
 
+const ADS_MODE_OPTIONS: { id: AdsMode; title: string; badge: string; desc: string }[] = [
+  {
+    id: "full",
+    title: "Full",
+    badge: "Maximum Revenue",
+    desc: "Full: all ads (display banners, popunders, vignette, in-page push, social bar, and smartlink).",
+  },
+  {
+    id: "review",
+    title: "AdSense review",
+    badge: "Review Safe",
+    desc: "AdSense review: banners only, no popunders/vignette/push/social bar/smartlink.",
+  },
+  {
+    id: "off",
+    title: "Off",
+    badge: "AdSense Only",
+    desc: "Off: no third-party ads (AdSense only).",
+  },
+];
+
 export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerModalProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
-  const [masterEnabled, setMasterEnabled] = useState<boolean>(true);
-  const [monetagGlobalScript, setMonetagGlobalScript] = useState<string>("");
+  const [adsMode, setAdsMode] = useState<AdsMode>("full");
   const [directLinkUrl, setDirectLinkUrl] = useState<string>("");
   const [adsterraHeaderBanner, setAdsterraHeaderBanner] = useState<string>("");
   const [adsterraInfeedBanner, setAdsterraInfeedBanner] = useState<string>("");
@@ -25,10 +45,12 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
     if (!isOpen) return;
     setLoading(true);
     setSaveStatus(null);
-    fetchAdSettings()
+    fetchAdSettings(true)
       .then((settings) => {
-        setMasterEnabled(settings.master_enabled ?? true);
-        setMonetagGlobalScript(settings.monetag_global_script || "");
+        const mode: AdsMode = (!settings.master_enabled || settings.ads_mode === "off")
+          ? "off"
+          : (settings.ads_mode === "review" ? "review" : "full");
+        setAdsMode(mode);
         setDirectLinkUrl(settings.direct_link_url || "");
         setAdsterraHeaderBanner(settings.adsterra_header_banner || "");
         setAdsterraInfeedBanner(settings.adsterra_infeed_banner || "");
@@ -50,8 +72,8 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
     setSaveStatus(null);
 
     const payload: Partial<AdSettings> = {
-      master_enabled: masterEnabled,
-      monetag_global_script: monetagGlobalScript.trim(),
+      master_enabled: adsMode !== "off",
+      ads_mode: adsMode,
       direct_link_url: directLinkUrl.trim(),
       adsterra_header_banner: adsterraHeaderBanner.trim(),
       adsterra_infeed_banner: adsterraInfeedBanner.trim(),
@@ -64,7 +86,7 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
     if (res.success) {
       setSaveStatus("success");
       if (onSuccessToast) {
-        onSuccessToast("Ad settings saved and applied instantly across all slots!");
+        onSuccessToast(`Ad configuration saved: ${adsMode.toUpperCase()} mode active.`);
       }
       setTimeout(() => setSaveStatus(null), 3500);
     } else {
@@ -85,7 +107,7 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
               </h2>
             </div>
             <p className="text-xs text-slate-400 font-mono mt-1">
-              Dual-Network Architecture (Monetag + Adsterra Golden Combo) • Zero Layout Shift (CLS Safe) • Real-time DB Sync
+              Multi-Network Ad Controls • Google AdSense Compliance • Zero Layout Shift (CLS Safe)
             </p>
           </div>
           <button
@@ -103,71 +125,73 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
           </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-6 mt-6">
-            {/* Master Switch */}
-            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-              <div>
-                <label className="text-sm font-bold text-slate-200 flex items-center gap-2">
-                  <span>Enable All Ads (Master Switch)</span>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider ${
-                      masterEnabled
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                        : "bg-red-500/20 text-red-400 border border-red-500/30"
-                    }`}
-                  >
-                    {masterEnabled ? "Active & Serving" : "Paused / Disabled"}
-                  </span>
+            {/* 3-Choice Ads Mode Selector */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider block">
+                  Ads Mode (Single Master Control)
                 </label>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Turn off instantly to pause all ad units and scripts without removing code. Ads are automatically hidden on /admin and /dashboard routes.
-                </p>
+                <span className="text-[10px] font-mono text-slate-400">
+                  Current: <strong className="text-cyan-300 uppercase">{adsMode}</strong>
+                </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setMasterEnabled(!masterEnabled)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  masterEnabled ? "bg-cyan-500" : "bg-slate-700"
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                    masterEnabled ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {ADS_MODE_OPTIONS.map((opt) => {
+                  const isSelected = adsMode === opt.id;
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => setAdsMode(opt.id)}
+                      className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+                        isSelected
+                          ? "bg-cyan-950/40 border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.25)] ring-1 ring-cyan-500"
+                          : "bg-slate-900/70 border-slate-800 hover:border-slate-700 hover:bg-slate-900"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-sm font-bold ${isSelected ? "text-cyan-300 font-serif" : "text-slate-200"}`}>
+                            {opt.title}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider ${
+                              opt.id === "full"
+                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                : opt.id === "review"
+                                ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                : "bg-red-500/20 text-red-400 border border-red-500/30"
+                            }`}
+                          >
+                            {opt.badge}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                          {opt.desc}
+                        </p>
+                      </div>
+                      <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center gap-1.5 text-[11px] font-mono">
+                        <span className={`w-2 h-2 rounded-full ${isSelected ? "bg-cyan-400 animate-pulse" : "bg-slate-600"}`} />
+                        <span className={isSelected ? "text-cyan-300 font-bold" : "text-slate-500"}>
+                          {isSelected ? "Active" : "Select"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Field 1: Monetag Meta Verification & Global Floating Script */}
+            {/* Field 1: Smart Direct Link / Smartlink URL */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>1. Monetag Global Meta & Floating Script</span>
+                  <span>1. Direct Link (Smartlink) URL</span>
                 </label>
-                <span className="text-[10px] font-mono text-slate-500">In-Page Push & Vignette</span>
+                <span className="text-[10px] font-mono text-emerald-400">Full Mode Only</span>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Paste Monetag domain verification <code>&lt;meta&gt;</code> tags and global SDK scripts. Automatically injected once into <code>&lt;head&gt;</code> / <code>&lt;body&gt;</code> with strict duplicate popunder prevention.
-              </p>
-              <textarea
-                value={monetagGlobalScript}
-                onChange={(e) => setMonetagGlobalScript(e.target.value)}
-                placeholder='<meta name="monetag" content="..."/>&#10;<script src="https://alwingulla.com/..." async></script>'
-                rows={3}
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 font-mono text-xs focus:outline-none focus:border-cyan-500 transition resize-y"
-              />
-            </div>
-
-            {/* Field 2: Smart Direct Link / Smartlink URL */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>2. Monetag / Adsterra Direct Link (Smartlink) URL</span>
-                </label>
-                <span className="text-[10px] font-mono text-emerald-400">Session-Capped (1 click / 30m)</span>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Smart trigger on primary actions (&quot;Apply Now&quot; on Job Portal, &quot;Read the original&quot; on News). The real destination URL is always delivered to the user; smartlink activates once per session to maximize CPM without annoying visitors.
+                Smart trigger on user actions (&quot;Read original&quot; on News). Active only in &quot;Full&quot; mode.
               </p>
               <input
                 type="url"
@@ -178,16 +202,16 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
               />
             </div>
 
-            {/* Field 3: Adsterra Header Banner Script */}
+            {/* Field 2: Adsterra Header Banner Script */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>3. Adsterra Top Leaderboard Banner (728x90 / 320x50)</span>
+                  <span>2. Adsterra Top Leaderboard Banner (728x90 / 320x50)</span>
                 </label>
                 <span className="text-[10px] font-mono text-slate-500">Desktop & Mobile Responsive</span>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Placed cleanly below the top navigation bar with a reserved fixed min-height container to ensure zero Cumulative Layout Shift (CLS).
+                Placed below top navigation. Active in &quot;Full&quot; and &quot;AdSense review&quot; modes.
               </p>
               <textarea
                 value={adsterraHeaderBanner}
@@ -198,16 +222,16 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
               />
             </div>
 
-            {/* Field 4: Adsterra In-Feed Native Banner Script */}
+            {/* Field 3: Adsterra In-Feed Native Banner Script */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>4. Adsterra In-Feed Native Banner Script</span>
+                  <span>3. Adsterra In-Feed Native Banner Script</span>
                 </label>
-                <span className="text-[10px] font-mono text-slate-500">Every 4th/5th Card In-Stream</span>
+                <span className="text-[10px] font-mono text-slate-500">Every 6th Card In-Stream</span>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Injected after every 4th news article (GlobalPulse AI) and every 5th job card (GlobalHire AI) inside a matching native card container with a &quot;Sponsored&quot; badge for high CTR.
+                Injected after every 6th news article card inside a matching card container. Active in &quot;Full&quot; and &quot;AdSense review&quot; modes.
               </p>
               <textarea
                 value={adsterraInfeedBanner}
@@ -218,16 +242,16 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
               />
             </div>
 
-            {/* Field 5: Adsterra Sidebar Banner Script */}
+            {/* Field 4: Adsterra Sidebar Banner Script */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>5. Adsterra Sticky Sidebar Banner (300x250)</span>
+                  <span>4. Adsterra Sticky Sidebar Banner (300x250)</span>
                 </label>
                 <span className="text-[10px] font-mono text-slate-500">Desktop Reading Sidebar</span>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Sticky 300x250 medium rectangle placed alongside full news dispatches and job application briefs.
+                Sticky 300x250 medium rectangle placed alongside full news dispatches. Active in &quot;Full&quot; and &quot;AdSense review&quot; modes.
               </p>
               <textarea
                 value={adsterraSidebarBanner}
@@ -269,7 +293,7 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-cyan-600/30 disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-cyan-600/30 disabled:opacity-50 cursor-pointer"
                 >
                   {saving ? (
                     <>
@@ -292,3 +316,4 @@ export function AdManagerModal({ isOpen, onClose, onSuccessToast }: AdManagerMod
   );
 }
 
+export default AdManagerModal;

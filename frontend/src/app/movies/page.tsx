@@ -108,7 +108,10 @@ function MoviePosterCard({
       src={effectiveSrc}
       alt={alt}
       className={className}
+      width={300}
+      height={450}
       loading="lazy"
+      decoding="async"
       onError={handleImgError}
     />
   );
@@ -347,6 +350,10 @@ export default function MoviesPage() {
                         src={activeMovie.image || `https://img.youtube.com/vi/${currentTrailerId}/hqdefault.jpg`}
                         alt={activeMovie.title}
                         className="w-full h-full object-cover opacity-50 blur-[1px] group-hover:opacity-65 group-hover:scale-105 transition-all duration-700"
+                        width={1280}
+                        height={720}
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           if (currentTrailerId && target.src !== `https://img.youtube.com/vi/${currentTrailerId}/hqdefault.jpg`) {

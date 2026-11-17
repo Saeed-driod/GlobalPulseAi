@@ -18,6 +18,7 @@ export interface Article {
   meta_description?: string | null;
   confidence?: string | null;
   created_at: string;
+  updated_at?: string | null;
   published_at?: string | null;
   video_status?: string | null;
   video_progress?: number | null;

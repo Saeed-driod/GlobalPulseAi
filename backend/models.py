@@ -119,6 +119,7 @@ class AdSetting(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     master_enabled = Column(Boolean, default=True, nullable=False)
+    ads_mode = Column(String(16), nullable=False, default="full", server_default="full")
     monetag_global_script = Column(Text, default="", nullable=True)
     direct_link_url = Column(Text, default="", nullable=True)
     adsterra_header_banner = Column(Text, default="", nullable=True)

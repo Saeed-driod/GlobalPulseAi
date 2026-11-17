@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Literal
 from pydantic import BaseModel, Field
 
 class ArticleBase(BaseModel):
@@ -162,6 +162,7 @@ class AnalyticsSummaryResponse(BaseModel):
 class AdSettingSchema(BaseModel):
     id: Optional[int] = 1
     master_enabled: bool = True
+    ads_mode: Literal["full", "review", "off"] = "full"
     monetag_global_script: Optional[str] = ""
     direct_link_url: Optional[str] = ""
     adsterra_header_banner: Optional[str] = ""
@@ -175,6 +176,7 @@ class AdSettingSchema(BaseModel):
 
 class AdSettingUpdate(BaseModel):
     master_enabled: Optional[bool] = None
+    ads_mode: Optional[Literal["full", "review", "off"]] = None
     monetag_global_script: Optional[str] = None
     direct_link_url: Optional[str] = None
     adsterra_header_banner: Optional[str] = None

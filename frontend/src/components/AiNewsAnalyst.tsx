@@ -1,19 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, ShieldCheck, Zap, RefreshCw, CheckCircle2, Share2 } from "./Icons";
+import { Sparkles, Zap, RefreshCw, Share2 } from "./Icons";
 import { AdUnit } from "./AdUnit";
 
-type AnalysisMode = "executive" | "bias" | "eli5" | "market";
+type AnalysisMode = "executive" | "eli5" | "market";
 
 interface AnalysisResult {
   headline: string;
-  credibility_score: number;
-  credibility_label: string;
-  bias_score: string;
   bullets: string[];
   entities: string[];
   reading_time_saved: string;
+  source?: "ai" | "basic";
 }
 
 export const AiNewsAnalyst: React.FC = () => {
@@ -53,7 +51,8 @@ export const AiNewsAnalyst: React.FC = () => {
 
   const handleCopy = () => {
     if (!result) return;
-    const textToCopy = `🤖 GlobalPulse AI Intelligence Synthesis:\n\n${result.headline}\n\nKey Takeaways:\n${result.bullets.map((b) => `• ${b}`).join("\n")}\n\nCredibility: ${result.credibility_score}/100 | Bias: ${result.bias_score}\n\nAnalyzed free on: https://globalpulseai.vercel.app`;
+    const sourceLabel = result.source === "ai" ? "AI-generated summary" : "Quick summary (basic mode)";
+    const textToCopy = `🤖 GlobalPulse AI Intelligence Synthesis (${sourceLabel}):\n\n${result.headline}\n\nKey Takeaways:\n${result.bullets.map((b) => `• ${b}`).join("\n")}\n\nAnalyzed on: https://globalpulseai.vercel.app`;
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -77,10 +76,10 @@ export const AiNewsAnalyst: React.FC = () => {
             </span>
           </div>
           <h3 className="text-lg sm:text-2xl font-bold font-serif text-white tracking-tight">
-            Instant News Summarizer &amp; Bias Detector
+            Instant News Summarizer &amp; Intelligence Synthesis
           </h3>
           <p className="text-xs text-slate-400 mt-1 font-mono">
-            Paste any article, headline, or claim to generate an instant 30-second executive breakdown, credibility audit, and bias rating.
+            Paste any article, headline, or claim to generate an instant 30-second executive breakdown, key takeaways, and market context.
           </p>
         </div>
 
@@ -123,7 +122,6 @@ export const AiNewsAnalyst: React.FC = () => {
             {(
               [
                 { id: "executive", label: "⚡ 30s Executive Brief" },
-                { id: "bias", label: "🛡️ Bias & Credibility" },
                 { id: "eli5", label: "🧒 ELI5 (Simple Terms)" },
                 { id: "market", label: "📈 Market Impact" },
               ] as const
@@ -168,16 +166,20 @@ export const AiNewsAnalyst: React.FC = () => {
       {/* Analysis Output Result Card */}
       {result && (
         <div className="mt-6 neu-pressed p-5 sm:p-6 rounded-2xl border border-white/10 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300 bg-slate-950/80">
-          {/* Top Score Row */}
+          {/* Top Row: Source Label & Reading Time Saved */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
             <div className="flex items-center gap-2">
-              <span className="neu-sm px-2.5 py-1 text-[11px] font-mono font-bold text-emerald-300 flex items-center gap-1.5 border border-emerald-500/40 bg-emerald-950/50 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Credibility: {result.credibility_score}/100 ({result.credibility_label})
-              </span>
-              <span className="neu-sm px-2.5 py-1 text-[11px] font-mono font-bold text-cyan-300 border border-cyan-500/40 bg-cyan-950/50 shadow-[0_0_10px_rgba(6,182,212,0.25)]">
-                Bias: {result.bias_score}
-              </span>
+              {result.source === "ai" ? (
+                <span className="neu-sm px-2.5 py-1 text-[11px] font-mono font-bold text-cyan-300 flex items-center gap-1.5 border border-cyan-500/40 bg-cyan-950/50 shadow-[0_0_10px_rgba(6,182,212,0.25)]">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  AI-generated summary
+                </span>
+              ) : (
+                <span className="neu-sm px-2.5 py-1 text-[11px] font-mono font-bold text-slate-300 flex items-center gap-1.5 border border-slate-700 bg-slate-900/50">
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  Quick summary (basic mode)
+                </span>
+              )}
             </div>
 
             <span className="text-[11px] font-mono text-slate-400">
@@ -200,7 +202,7 @@ export const AiNewsAnalyst: React.FC = () => {
             ))}
           </div>
 
-          {/* AI Analysis Ad Slot (Adsterra 300x250 High Engagement) */}
+          {/* AI Analysis Ad Slot (Adsterra 300x250) */}
           <AdUnit type="modal" className="w-full max-w-[320px] my-3" />
 
           {/* Detected Entities & Share Button */}
@@ -231,3 +233,4 @@ export const AiNewsAnalyst: React.FC = () => {
   );
 };
 
+export default AiNewsAnalyst;

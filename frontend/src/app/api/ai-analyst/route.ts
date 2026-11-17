@@ -1,32 +1,80 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Best-effort in-memory per-IP rate limiter (10 requests per minute)
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 10;
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const timestamps = (rateLimitMap.get(ip) || []).filter(
+    (t) => now - t < RATE_LIMIT_WINDOW_MS
+  );
+
+  if (timestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
+    rateLimitMap.set(ip, timestamps);
+    return true;
+  }
+
+  timestamps.push(now);
+  rateLimitMap.set(ip, timestamps);
+
+  // Periodic garbage collection
+  if (rateLimitMap.size > 1000) {
+    for (const [key, ts] of rateLimitMap.entries()) {
+      const active = ts.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+      if (active.length === 0) rateLimitMap.delete(key);
+      else rateLimitMap.set(key, active);
+    }
+  }
+
+  return false;
+}
+
 export async function POST(req: NextRequest) {
   try {
+    // 1. In-memory per-IP rate limit check (10 requests / min)
+    const forwarded = req.headers.get("x-forwarded-for");
+    const clientIp = forwarded
+      ? forwarded.split(",")[0].trim()
+      : req.headers.get("x-real-ip") || "anonymous";
+
+    if (isRateLimited(clientIp)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Rate limit exceeded. Maximum 10 analysis requests per minute.",
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const rawText = (body.text || "").trim();
-    const mode = body.mode || "executive";
+    const rawMode = body.mode || "executive";
+    const mode = ["executive", "eli5", "market"].includes(rawMode)
+      ? rawMode
+      : "executive";
 
     if (!rawText || rawText.length < 20) {
       return NextResponse.json(
         {
           success: false,
-          error: "Please enter at least 20 characters of news text, a headline, or a statement to analyze.",
+          error: "Please enter at least 20 characters of news text or a headline to synthesize.",
         },
         { status: 400 }
       );
     }
 
-    // Try Gemini AI if API key is present in environment
+    // 2. Try Gemini AI if API key is present in environment
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey) {
       try {
-        const prompt = `You are GlobalPulse AI Intelligence Engine. Analyze the following news text under mode "${mode}".
+        const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
+        const prompt = `You are GlobalPulse AI Intelligence Engine. Synthesize the following news text under mode "${mode}".
 Return STRICT JSON with these keys:
 {
   "headline": "Short punchy 1-sentence synthesized takeaway",
-  "credibility_score": number between 70 and 99,
-  "credibility_label": "High Integrity" or "Moderate Risk" or "Verified Dispatch",
-  "bias_score": "Center-Objective" or "Slight Commercial Bias" or "Neutral Factual",
   "bullets": ["3 distinct analytical bullet points, max 20 words each"],
   "entities": ["3 to 5 key organizations, entities, or concepts mentioned"],
   "reading_time_saved": "e.g. 2 mins 40 secs"
@@ -37,15 +85,21 @@ Text to analyze:
 `;
 
         const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": geminiKey,
+            },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+              generationConfig: {
+                responseMimeType: "application/json",
+                temperature: 0.2,
+              },
             }),
-            signal: AbortSignal.timeout(4000),
+            signal: AbortSignal.timeout(8000), // 8 seconds timeout
           }
         );
 
@@ -54,15 +108,23 @@ Text to analyze:
           const textResponse = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (textResponse) {
             const parsed = JSON.parse(textResponse);
-            return NextResponse.json({ success: true, mode, ...parsed });
+            return NextResponse.json({
+              success: true,
+              mode,
+              source: "ai",
+              headline: parsed.headline || "Synthesized Intelligence Takeaway",
+              bullets: Array.isArray(parsed.bullets) ? parsed.bullets : [],
+              entities: Array.isArray(parsed.entities) ? parsed.entities : [],
+              reading_time_saved: parsed.reading_time_saved || "1m 30s",
+            });
           }
         }
       } catch {
-        // fall back smoothly to heuristic text analyzer
+        // Fall back cleanly to basic heuristic text analyzer
       }
     }
 
-    // High-Fidelity Heuristic NLP Engine (Always available, instant <50ms response)
+    // 3. Basic Heuristic NLP Engine (Reliable fallback when AI is unavailable or offline)
     const words = rawText.split(/\s+/);
     const wordCount = words.length;
     const readingTimeSavedSec = Math.max(30, Math.round((wordCount / 200) * 60));
@@ -70,7 +132,6 @@ Text to analyze:
     const secondsSaved = readingTimeSavedSec % 60;
     const timeSavedStr = minutesSaved > 0 ? `${minutesSaved}m ${secondsSaved}s` : `${secondsSaved}s`;
 
-    // Extract sentences
     const sentences = rawText
       .split(/(?<=[.?!])\s+/)
       .map((s: string) => s.trim())
@@ -79,32 +140,25 @@ Text to analyze:
     let bullets: string[] = [];
     if (mode === "eli5") {
       bullets = [
-        "In simple terms: A major event just happened that changes how people operate in this field.",
-        "Why it matters: It removes old complicated steps and makes everyday results significantly faster.",
-        "What happens next: Teams are already preparing to adopt this standard worldwide.",
-      ];
-    } else if (mode === "bias") {
-      bullets = [
-        "Sensationalism Assessment: Low to moderate. The core claims rely on measurable metrics and source citations.",
-        "Perspective Balance: Primary emphasis is on efficiency and upside, with standard procedural counterpoints.",
-        "Verification Recommendation: Corroborated with primary source reporting across global wires.",
+        "In simple terms: A major event occurred that changes operations across this area.",
+        "Why it matters: It removes redundant steps and allows faster coordination.",
+        "What happens next: Teams and organizations are preparing to adopt these developments.",
       ];
     } else if (mode === "market") {
       bullets = [
-        "Capital Flow Impact: Analysts and funds are tracking adoption rates across major global financial hubs.",
-        "Cost Arbitrage: Early operational adopters project measurable margin improvements over coming quarters.",
-        "Market Dynamics: Organizations reliant on legacy infrastructure face increasing technical competition.",
+        "Capital Flow Impact: Analysts are tracking sector allocation shifts across major financial hubs.",
+        "Cost Dynamics: Early adopters project measurable efficiency improvements over upcoming quarters.",
+        "Market Structure: Competing entities face increased pressure to modernize legacy operations.",
       ];
     } else {
       // Executive mode
       bullets = [
-        sentences[0] ? sentences[0].slice(0, 160) : "Reporting confirms a notable development across the sector.",
-        sentences[1] ? sentences[1].slice(0, 160) : "Key stakeholders and industry participants are tracking unfolding consequences.",
-        sentences[2] ? sentences[2].slice(0, 160) : "Further updates are anticipated as additional verified dispatches arrive.",
+        sentences[0] ? sentences[0].slice(0, 160) : "Reporting confirms significant developments across the sector.",
+        sentences[1] ? sentences[1].slice(0, 160) : "Key stakeholders and observers are monitoring unfolding operational consequences.",
+        sentences[2] ? sentences[2].slice(0, 160) : "Further official dispatches and metric releases are anticipated shortly.",
       ];
     }
 
-    // Extract capitalized entities
     const detectedEntities = Array.from(
       new Set(
         (rawText.match(/\b[A-Z][a-z]{3,}\b/g) || [
@@ -118,19 +172,16 @@ Text to analyze:
     return NextResponse.json({
       success: true,
       mode,
-      headline: sentences[0] ? sentences[0].slice(0, 120) : "Verified Intelligence Telemetry Synthesis",
-      credibility_score: 94,
-      credibility_label: "Verified Dispatch",
-      bias_score: mode === "bias" ? "Center / Balanced Objective" : "Neutral Factual",
+      source: "basic",
+      headline: sentences[0] ? sentences[0].slice(0, 120) : "Synthesized Intelligence Takeaway",
       bullets,
       entities: detectedEntities.length > 0 ? detectedEntities : ["Global Intelligence", "Enterprise", "AI Systems"],
       reading_time_saved: timeSavedStr,
     });
   } catch (err: any) {
     return NextResponse.json(
-      { success: false, error: err?.message || "Failed to analyze intelligence dispatch." },
+      { success: false, error: err?.message || "Failed to synthesize news text." },
       { status: 500 }
     );
   }
 }
-

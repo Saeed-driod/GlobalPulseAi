@@ -32,14 +32,15 @@ export async function GET() {
 
   let articles: any[] = [];
   try {
-    const res = await fetchArticles({ limit: 100, revalidate: 300 });
+    const res = await fetchArticles({ limit: 500, revalidate: 300 });
     articles = res.items || [];
   } catch (err) {
     console.error("[News Sitemap] Error fetching articles:", err);
   }
 
   // Google News Sitemap rules:
-  // Only include articles published in the last 48 hours
+  // 1. Only include articles published in the last 48 hours
+  // 2. Strict cap of at most 1000 URLs
   const now = Date.now();
   const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
 
@@ -51,9 +52,9 @@ export async function GET() {
     return now - pubTime <= FORTY_EIGHT_HOURS;
   });
 
-  // Fallback: If no articles in the last 48h (e.g. fresh environment), include the 10 most recent indexable articles
-  if (newsArticles.length === 0 && articles.length > 0) {
-    newsArticles = articles.filter((art) => !art.is_noindex).slice(0, 10);
+  // Strict cap: at most 1000 URLs
+  if (newsArticles.length > 1000) {
+    newsArticles = newsArticles.slice(0, 1000);
   }
 
   const xmlEntries = newsArticles
@@ -90,4 +91,3 @@ ${xmlEntries}
     },
   });
 }
-

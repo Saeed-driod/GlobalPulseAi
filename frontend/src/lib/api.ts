@@ -660,8 +660,11 @@ export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary | null> 
   return null;
 }
 
+export type AdsMode = "full" | "review" | "off";
+
 export interface AdSettings {
   master_enabled: boolean;
+  ads_mode?: AdsMode;
   monetag_global_script?: string;
   direct_link_url?: string;
   adsterra_header_banner?: string;
@@ -670,25 +673,58 @@ export interface AdSettings {
   updated_at?: string;
 }
 
-export async function fetchAdSettings(): Promise<AdSettings> {
-  try {
-    const res = await fetch(`${getBackendUrl()}/api/settings/ads`, {
-      cache: "no-store",
-    });
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (err) {
-    console.warn("Failed to fetch ad settings from backend, using default fallback:", err);
+let cachedAdSettings: AdSettings | null = null;
+let cachedAdSettingsTime = 0;
+let inFlightAdSettingsPromise: Promise<AdSettings> | null = null;
+const AD_SETTINGS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+export function clearAdSettingsCache(): void {
+  cachedAdSettings = null;
+  cachedAdSettingsTime = 0;
+  inFlightAdSettingsPromise = null;
+}
+
+export async function fetchAdSettings(forceRefresh = false): Promise<AdSettings> {
+  const now = Date.now();
+  if (!forceRefresh && cachedAdSettings && now - cachedAdSettingsTime < AD_SETTINGS_CACHE_TTL_MS) {
+    return cachedAdSettings;
   }
-  return {
-    master_enabled: true,
-    monetag_global_script: "",
-    direct_link_url: "",
-    adsterra_header_banner: "",
-    adsterra_infeed_banner: "",
-    adsterra_sidebar_banner: "",
-  };
+  if (!forceRefresh && inFlightAdSettingsPromise) {
+    return inFlightAdSettingsPromise;
+  }
+
+  inFlightAdSettingsPromise = (async () => {
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/settings/ads`, {
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        cachedAdSettings = data;
+        cachedAdSettingsTime = Date.now();
+        return data;
+      }
+    } catch (err) {
+      console.warn("Failed to fetch ad settings from backend, using default fallback:", err);
+    } finally {
+      inFlightAdSettingsPromise = null;
+    }
+
+    const fallback: AdSettings = {
+      master_enabled: true,
+      ads_mode: "review",
+      monetag_global_script: "",
+      direct_link_url: "",
+      adsterra_header_banner: "",
+      adsterra_infeed_banner: "",
+      adsterra_sidebar_banner: "",
+    };
+    cachedAdSettings = fallback;
+    cachedAdSettingsTime = Date.now();
+    return fallback;
+  })();
+
+  return inFlightAdSettingsPromise;
 }
 
 export async function updateAdSettings(payload: Partial<AdSettings>): Promise<{ success: boolean; data?: AdSettings; message?: string }> {
@@ -703,6 +739,8 @@ export async function updateAdSettings(payload: Partial<AdSettings>): Promise<{ 
     });
     if (res.ok) {
       const data = await res.json();
+      cachedAdSettings = data;
+      cachedAdSettingsTime = Date.now();
       return { success: true, data };
     }
     const err = await res.json().catch(() => ({}));

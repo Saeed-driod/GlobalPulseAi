@@ -313,6 +313,24 @@ export const ArrowLeft = ({ className = "w-5 h-5", size, ...props }: IconProps) 
   </svg>
 );
 
+export const ChevronLeft = ({ className = "w-5 h-5", size, ...props }: IconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size || 24}
+    height={size || 24}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="m15 18-6-6 6-6" />
+  </svg>
+);
+
 export const ChevronRight = ({ className = "w-5 h-5", size, ...props }: IconProps) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"

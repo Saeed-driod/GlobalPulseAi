@@ -93,31 +93,50 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  try {
-    const res1 = await fetchArticles({ limit: 100, skip: 0, revalidate: 3600 });
-    let allArticles = [...(res1.items || [])];
+  const HARD_CAP = 5000;
+  const PAGE_LIMIT = 500;
+  const allArticles: any[] = [];
+  let skip = 0;
+  let totalArticles = Infinity;
 
-    if (res1.total > 100) {
-      const res2 = await fetchArticles({ limit: 100, skip: 100, revalidate: 3600 });
-      allArticles = [...allArticles, ...(res2.items || [])];
+  while (skip < totalArticles && allArticles.length < HARD_CAP) {
+    try {
+      const fetchLimit = Math.min(PAGE_LIMIT, HARD_CAP - allArticles.length);
+      const res = await fetchArticles({
+        status: "PUBLISHED",
+        limit: fetchLimit,
+        skip,
+        revalidate: 3600,
+      });
+
+      const items = res.items || [];
+      if (items.length === 0) break;
+
+      allArticles.push(...items);
+      totalArticles = typeof res.total === "number" ? res.total : allArticles.length;
+      skip += items.length;
+
+      // If backend returned fewer items than requested, we reached the end
+      if (items.length < fetchLimit) break;
+    } catch (err) {
+      console.warn(`[Sitemap Warning] Error fetching articles page at skip ${skip}:`, err);
+      // Keep what was already collected and stop looping
+      break;
     }
-
-    const dynamicRoutes: MetadataRoute.Sitemap = allArticles
-      .filter((article) => article && article.slug && !article.is_noindex)
-      .map((article) => ({
-        url: `${siteUrl}/news/${article.slug}`,
-        lastModified: article.published_at
-          ? new Date(article.published_at)
-          : article.created_at
-          ? new Date(article.created_at)
-          : currentDate,
-        changeFrequency: "daily",
-        priority: 0.9,
-      }));
-
-    return [...staticRoutes, ...dynamicRoutes];
-  } catch (err) {
-    console.error("[Sitemap Error] Could not load dynamic articles:", err);
-    return staticRoutes;
   }
+
+  const dynamicRoutes: MetadataRoute.Sitemap = allArticles
+    .filter((article) => article && article.slug && !article.is_noindex)
+    .map((article) => ({
+      url: `${siteUrl}/news/${article.slug}`,
+      lastModified: article.published_at
+        ? new Date(article.published_at)
+        : article.created_at
+        ? new Date(article.created_at)
+        : currentDate,
+      changeFrequency: "daily",
+      priority: 0.9,
+    }));
+
+  return [...staticRoutes, ...dynamicRoutes];
 }

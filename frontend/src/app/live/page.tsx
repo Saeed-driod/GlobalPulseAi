@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Header } from "../../components/Header";
 import { Footer } from "../../components/Footer";
-import { AdBanner } from "../../components/AdBanner";
 import { AdUnit } from "../../components/AdUnit";
 import {
   Video,
@@ -357,9 +356,7 @@ export default function LiveStreamPage() {
             </div>
 
             {/* Adsterra Leaderboard Banner below stream */}
-            <div className="my-4">
-              <AdUnit type="leaderboard" />
-            </div>
+            <AdUnit type="leaderboard" className="my-4" />
           </div>
 
           {/* Right Column: Live Community Wire & Recent Video Dispatches */}
@@ -436,6 +433,10 @@ export default function LiveStreamPage() {
                           src={art.image_url}
                           alt={art.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition"
+                          width={56}
+                          height={56}
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white">

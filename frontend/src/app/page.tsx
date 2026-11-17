@@ -4,6 +4,10 @@ import { getBackendBaseUrl } from "../lib/backendUrl";
 
 export const revalidate = 60;
 
+function safeJsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
 async function getInitialArticles(): Promise<Article[]> {
   const backendUrl = getBackendBaseUrl();
   try {
@@ -23,5 +27,35 @@ async function getInitialArticles(): Promise<Article[]> {
 
 export default async function HomePage() {
   const initialArticles = await getInitialArticles();
-  return <HomePageClient initialArticles={initialArticles} />;
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app").replace(/\/$/, "");
+
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "GlobalPulse AI",
+    url: siteUrl,
+    logo: `${siteUrl}/logo_wide_light.png`,
+    sameAs: ["https://www.youtube.com/@GlobalPulseAI"],
+  };
+
+  const webSiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "GlobalPulse AI",
+    url: siteUrl,
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(webSiteSchema) }}
+      />
+      <HomePageClient initialArticles={initialArticles} />
+    </>
+  );
 }

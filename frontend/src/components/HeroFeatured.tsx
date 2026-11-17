@@ -95,6 +95,11 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ articles }) => {
                   src={primaryImgSrc}
                   alt={primary.title}
                   className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/img:scale-105"
+                  width={1200}
+                  height={675}
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
                   onError={() => {
                     if (primaryImgSrc !== primaryFallback) {
                       setPrimaryImgSrc(primaryFallback);
