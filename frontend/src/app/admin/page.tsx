@@ -559,7 +559,7 @@ export default function AdminPage() {
               className="neu-btn px-3.5 py-2 text-xs flex items-center gap-1.5 font-bold text-cyan-600 hover:text-cyan-700 cursor-pointer"
             >
               <Video className="w-3.5 h-3.5 text-cyan-500" />
-              <span>AI Video Studio (Sarah / David)</span>
+              <span>AI Video Studio</span>
             </button>
 
             {/* Run Full Master Pipeline */}

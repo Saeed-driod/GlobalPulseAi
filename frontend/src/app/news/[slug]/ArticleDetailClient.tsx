@@ -373,7 +373,7 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
               author="GlobalPulse AI Desk"
             />
 
-            {/* AI News Anchor Studio Briefing */}
+            {/* AI Video Studio Briefing */}
             <div className="my-6">
               <button
                 type="button"
@@ -387,14 +387,14 @@ export function ArticleDetailClient({ initialArticle, slug }: ArticleDetailClien
                   <div className="text-left">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm text-white group-hover:text-cyan-400 transition-colors">
-                        Watch AI Anchor Briefing (35s)
+                        Watch AI Video Briefing (35s)
                       </span>
                       <span className="text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full">
-                        TV Studio
+                        Studio Mode
                       </span>
                     </div>
                     <p className="text-xs text-slate-400">
-                      Watch Anchor Sarah or David present this story with live dynamic B-roll & synced captions
+                      Watch fast-paced video briefing with dynamic news B-roll & synced captions
                     </p>
                   </div>
                 </div>
