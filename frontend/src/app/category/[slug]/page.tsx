@@ -13,8 +13,7 @@ import { getHdImageUrl, getPollinationsFallback } from "../../../lib/imageOptimi
 import { getCategoryTheme } from "../../../lib/categoryTheme";
 import { ArrowLeft, Clock, Eye, Sparkles } from "../../../components/Icons";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 interface CategoryMeta {
   name: string;
@@ -53,6 +52,10 @@ const CATEGORY_MAP: Record<string, CategoryMeta> = {
       "Timely news covering cinema, streaming, television productions, and gaming industry developments. We deliver accurate dispatches on releases, box office results, and creative talent.",
   },
 };
+
+export function generateStaticParams() {
+  return Object.keys(CATEGORY_MAP).map((slug) => ({ slug }));
+}
 
 interface PageProps {
   params: Promise<{ slug: string }> | { slug: string };
@@ -123,7 +126,7 @@ export default async function CategoryPage({ params }: PageProps) {
   // Fetch articles and filter for this category
   let categoryArticles: any[] = [];
   try {
-    const res = await fetchArticles({ limit: 60 });
+    const res = await fetchArticles({ limit: 60, revalidate: 60 });
     const all = res.items || [];
     categoryArticles = all.filter((a) => matchesCategory(a.category, cat.name));
   } catch (err) {

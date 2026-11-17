@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { fetchArticles } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = (
@@ -94,11 +94,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const res1 = await fetchArticles({ limit: 100, skip: 0 });
+    const res1 = await fetchArticles({ limit: 100, skip: 0, revalidate: 3600 });
     let allArticles = [...(res1.items || [])];
 
     if (res1.total > 100) {
-      const res2 = await fetchArticles({ limit: 100, skip: 100 });
+      const res2 = await fetchArticles({ limit: 100, skip: 100, revalidate: 3600 });
       allArticles = [...allArticles, ...(res2.items || [])];
     }
 

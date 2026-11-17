@@ -79,6 +79,7 @@ export async function fetchArticles(params?: {
   search?: string;
   skip?: number;
   limit?: number;
+  revalidate?: number;
 }): Promise<ArticleListResponse> {
   try {
     const searchParams = new URLSearchParams();
@@ -88,9 +89,12 @@ export async function fetchArticles(params?: {
     if (params?.skip !== undefined) searchParams.set("skip", params.skip.toString());
     if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 
-    const res = await fetch(`${getApiBase()}/api/articles?${searchParams.toString()}`, {
-      cache: "no-store",
-    });
+    const fetchOptions: RequestInit =
+      typeof window === "undefined" && params?.revalidate !== undefined
+        ? { next: { revalidate: params.revalidate } }
+        : { cache: "no-store" };
+
+    const res = await fetch(`${getApiBase()}/api/articles?${searchParams.toString()}`, fetchOptions);
 
     if (!res.ok) {
       throw new Error(`API returned status ${res.status}`);
@@ -152,9 +156,12 @@ export async function fetchArticles(params?: {
       if (params?.skip !== undefined) searchParams.set("skip", params.skip.toString());
       if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 
-      const bRes = await fetch(`${getBackendUrl()}/api/articles?${searchParams.toString()}`, {
-        cache: "no-store",
-      });
+      const fetchOptions: RequestInit =
+        typeof window === "undefined" && params?.revalidate !== undefined
+          ? { next: { revalidate: params.revalidate } }
+          : { cache: "no-store" };
+
+      const bRes = await fetch(`${getBackendUrl()}/api/articles?${searchParams.toString()}`, fetchOptions);
       if (bRes.ok) {
         return await bRes.json();
       }
@@ -184,11 +191,17 @@ export async function fetchArticles(params?: {
   }
 }
 
-export async function fetchArticleBySlug(slug: string): Promise<Article | null> {
+export async function fetchArticleBySlug(
+  slug: string,
+  options?: { revalidate?: number }
+): Promise<Article | null> {
+  const fetchOptions: RequestInit =
+    typeof window === "undefined" && options?.revalidate !== undefined
+      ? { next: { revalidate: options.revalidate } }
+      : { cache: "no-store" };
+
   try {
-    const res = await fetch(`${getApiBase()}/api/articles/${slug}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(`${getApiBase()}/api/articles/${slug}`, fetchOptions);
     if (res.ok) {
       return await res.json();
     }
@@ -213,9 +226,7 @@ export async function fetchArticleBySlug(slug: string): Promise<Article | null> 
 
   // Fallback to Render backend API
   try {
-    const backendRes = await fetch(`${getBackendUrl()}/api/articles/${slug}`, {
-      cache: "no-store",
-    });
+    const backendRes = await fetch(`${getBackendUrl()}/api/articles/${slug}`, fetchOptions);
     if (backendRes.ok) {
       return await backendRes.json();
     }

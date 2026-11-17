@@ -13,23 +13,26 @@ const nextConfig: NextConfig = {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
           },
-        ],
-      },
-      {
-        source: "/robots.txt",
-        headers: [
           {
-            key: "Cache-Control",
-            value: "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), geolocation=(), payment=()",
           },
         ],
       },
       {
-        source: "/sitemap.xml",
+        source: "/assets/:path*",
         headers: [
           {
             key: "Cache-Control",
-            value: "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
           },
         ],
       },

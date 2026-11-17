@@ -2,14 +2,13 @@ import { HomePageClient } from "../components/HomePageClient";
 import { Article } from "../types/article";
 import { getBackendBaseUrl } from "../lib/backendUrl";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 async function getInitialArticles(): Promise<Article[]> {
   const backendUrl = getBackendBaseUrl();
   try {
     const res = await fetch(`${backendUrl}/api/articles?limit=30`, {
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (res.ok) {
       const data = await res.json();

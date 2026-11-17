@@ -1,20 +1,33 @@
 import React, { Suspense, cache } from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { fetchArticleBySlug } from "../../../lib/api";
+import { fetchArticleBySlug, fetchArticles } from "../../../lib/api";
 import { getHdImageUrl } from "../../../lib/imageOptimizer";
 import { ArticleDetailClient } from "./ArticleDetailClient";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  try {
+    const res = await fetchArticles({ limit: 30, revalidate: 300 });
+    return (res.items || []).filter((a) => a && a.slug).map((a) => ({ slug: a.slug }));
+  } catch {
+    return [];
+  }
+}
 
 interface PageProps {
   params: Promise<{ slug: string }> | { slug: string };
 }
 
-// Request-scoped memoization
+// Request-scoped memoization (shares one cached fetch between generateMetadata and Page)
 const getCachedArticleBySlug = cache(async (slug: string) => {
-  return await fetchArticleBySlug(slug);
+  try {
+    return await fetchArticleBySlug(slug, { revalidate: 300 });
+  } catch (err) {
+    console.warn(`[news/[slug]] Error loading article ${slug}:`, err);
+    return null;
+  }
 });
 
 // Ensures dates are compliant with Google Structured Data ISO 8601 with explicit timezone

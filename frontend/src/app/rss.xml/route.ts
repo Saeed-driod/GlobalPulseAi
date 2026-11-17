@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchArticles } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
 export const revalidate = 1800;
 
 function escapeXml(unsafe: string): string {
@@ -29,7 +28,7 @@ export async function GET(request: Request) {
 
   let articles: any[] = [];
   try {
-    const res = await fetchArticles({ limit: 100, category });
+    const res = await fetchArticles({ limit: 100, category, revalidate: 1800 });
     articles = res.items || [];
   } catch (err) {
     console.error("[RSS Feed] Failed to fetch articles:", err);

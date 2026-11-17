@@ -20,7 +20,7 @@ function escapeXml(unsafe: string): string {
   });
 }
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function GET() {
   const siteUrl = (
@@ -32,7 +32,7 @@ export async function GET() {
 
   let articles: any[] = [];
   try {
-    const res = await fetchArticles({ limit: 100 });
+    const res = await fetchArticles({ limit: 100, revalidate: 300 });
     articles = res.items || [];
   } catch (err) {
     console.error("[News Sitemap] Error fetching articles:", err);
