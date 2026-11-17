@@ -4,6 +4,8 @@ import json
 import re
 import html
 import hashlib
+import hmac
+import logging
 import traceback
 from pathlib import Path
 from datetime import datetime, timezone
@@ -28,19 +30,25 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "saeed-admin-2026")
+ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 
+logger = logging.getLogger("admin_security")
+
 def verify_admin_secret(
-    x_admin_secret: Optional[str] = Header(None, alias="X-Admin-Secret"),
-    admin_key: Optional[str] = Query(None)
+    x_admin_secret: Optional[str] = Header(None, alias="X-Admin-Secret")
 ):
     """
     Security gate for administrative actions.
-    Checks X-Admin-Secret header or admin_key query parameter.
+    Accepts X-Admin-Secret header only (query parameters are rejected to prevent logging secrets in URLs).
+    Requires a configured ADMIN_SECRET_KEY of at least 16 characters in the environment.
     """
-    provided = x_admin_secret or admin_key
-    if not provided or provided != ADMIN_SECRET_KEY:
+    if not ADMIN_SECRET_KEY or len(ADMIN_SECRET_KEY) < 16:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Admin endpoints are disabled: ADMIN_SECRET_KEY is not configured or is shorter than 16 characters."
+        )
+    if not x_admin_secret or not hmac.compare_digest(x_admin_secret, ADMIN_SECRET_KEY):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized: Missing or invalid Admin Secret Key."
@@ -131,6 +139,19 @@ except (ImportError, ValueError):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Verify Admin Secret Security Configuration
+    if not ADMIN_SECRET_KEY or len(ADMIN_SECRET_KEY) < 16:
+        warning_msg = (
+            "\n" + "=" * 80 + "\n"
+            "CRITICAL SECURITY WARNING: ADMIN_SECRET_KEY is missing or shorter than 16 characters!\n"
+            "All administrative endpoints are DISABLED with HTTP 503 (Service Unavailable).\n"
+            "Public site features and news feeds remain fully accessible.\n"
+            "Set ADMIN_SECRET_KEY (min 16 chars) in your environment to enable admin actions.\n"
+            + "=" * 80 + "\n"
+        )
+        logger.warning(warning_msg)
+        print(warning_msg, file=sys.stderr, flush=True)
+
     # Ensure database schema is created on startup (never auto-insert dummy seed articles)
     Base.metadata.create_all(bind=engine)
     # Refresh missing or placeholder images on startup

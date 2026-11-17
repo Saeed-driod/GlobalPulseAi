@@ -873,6 +873,15 @@ def reauthenticate_youtube() -> bool:
 
 def sync_token_to_render():
     """Uploads the local token.json to Render so the cloud dashboard remains authenticated 24/7."""
+    from dotenv import load_dotenv
+    load_dotenv(BACKEND_DIR / ".env")
+    load_dotenv(ROOT_DIR / ".env")
+
+    admin_secret = os.getenv("ADMIN_SECRET_KEY")
+    if not admin_secret:
+        print("[Cloud Sync Notice] ADMIN_SECRET_KEY environment variable is missing. Skipping cloud token synchronization to Render.")
+        return
+
     try:
         import urllib.request
         import json
@@ -883,12 +892,16 @@ def sync_token_to_render():
         with open(token_path, "r", encoding="utf-8") as f:
             token_content = f.read()
         payload = json.dumps({"token_json": token_content}).encode("utf-8")
+
+        render_url = os.getenv("RENDER_URL", "https://globlepluseai.onrender.com").rstrip("/")
+        sync_endpoint = f"{render_url}/api/auth-youtube/sync-token"
+
         req = urllib.request.Request(
-            "https://globlepluseai.onrender.com/api/auth-youtube/sync-token",
+            sync_endpoint,
             data=payload,
             headers={
                 "Content-Type": "application/json",
-                "X-Admin-Secret": "saeed-admin-2026"
+                "X-Admin-Secret": admin_secret
             },
             method="POST"
         )

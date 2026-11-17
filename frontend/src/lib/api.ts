@@ -308,16 +308,9 @@ export async function verifyAdminSecret(key: string): Promise<{ success: boolean
     if (res.ok) {
       return { success: true, message: "Authorized" };
     }
-    // If dev key is used, always allow pass even if backend proxy reports error/404
-    if (key === "saeed-admin-2026") {
-      return { success: true, message: "Authorized (Development Pass)" };
-    }
     const err = await res.json().catch(() => ({}));
     return { success: false, message: err.detail || "Invalid Admin Secret Key." };
   } catch {
-    if (key === "saeed-admin-2026") {
-      return { success: true, message: "Authorized (Development Pass)" };
-    }
     return { success: false, message: "Authentication service offline." };
   }
 }

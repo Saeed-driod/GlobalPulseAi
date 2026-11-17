@@ -444,9 +444,6 @@ export default function AdminPage() {
                 className="w-full neu-input px-4 py-3 text-sm font-mono placeholder:text-[#a0aec0]"
                 autoFocus
               />
-              <p className="text-[11px] text-[#718096] font-mono mt-2">
-                Default Dev Key: <code className="text-[#1a8cff] font-bold">saeed-admin-2026</code>
-              </p>
             </div>
 
             {authError && (
