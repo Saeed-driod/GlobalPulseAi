@@ -8,9 +8,11 @@ and finds corroborating reporting from other RSS items in the same run.
 import os
 import re
 import json
+import socket
 import urllib.request
 import urllib.parse
 import urllib.robotparser
+import urllib.error
 import html
 from pathlib import Path
 from datetime import datetime, timezone
@@ -21,11 +23,12 @@ try:
 except ImportError:
     BeautifulSoup = None
 
-# Polite User-Agent identifying GlobalPulse editorial research
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 GlobalPulseBot/1.0"
+# Honest bot identity referencing site /about page
+_SITE_URL = (os.getenv("SITE_URL") or os.getenv("NEXT_PUBLIC_SITE_URL") or "https://globalpulseai.vercel.app").rstrip("/")
+USER_AGENT = f"GlobalPulseBot/1.0 (+{_SITE_URL}/about)"
 
 # In-memory robots.txt cache: netloc -> Optional[RobotFileParser]
-_ROBOTS_CACHE: Dict[str, Optional[urllib.robotparser.RobotFileParser]] = {}
+_ROBOTS_CACHE: Dict[str, Any] = {}
 
 # In-memory extracted page text cache for current cycle: url -> Optional[str]
 _PAGE_CACHE: Dict[str, Optional[str]] = {}
@@ -89,7 +92,12 @@ def record_deep_research_done():
 # ==============================================================================
 
 def is_allowed_by_robots(url: str) -> bool:
-    """Checks if robots.txt allows fetching url. Defaults to True on failure."""
+    """
+    Checks if robots.txt allows fetching url:
+    - If robots.txt returns 5xx or times out, treat as NOT allowed for this cycle (skip it).
+    - A 404 or other 4xx still means "allowed".
+    - Uses in-memory cache for the cycle.
+    """
     try:
         parsed = urllib.parse.urlparse(url)
         if not parsed.scheme or not parsed.netloc:
@@ -105,22 +113,42 @@ def is_allowed_by_robots(url: str) -> bool:
                     robots_url,
                     headers={"User-Agent": USER_AGENT, "Accept": "text/plain"}
                 )
-                with urllib.request.urlopen(req, timeout=3) as resp:
-                    if resp.status == 200:
+                with urllib.request.urlopen(req, timeout=4) as resp:
+                    status_code = getattr(resp, "status", 200)
+                    if status_code == 200:
                         content = resp.read().decode("utf-8", errors="ignore")
                         rp.parse(content.splitlines())
                         _ROBOTS_CACHE[netloc] = rp
+                    elif 400 <= status_code < 500:
+                        # 404 or other 4xx means allowed
+                        _ROBOTS_CACHE[netloc] = True
                     else:
-                        _ROBOTS_CACHE[netloc] = None
+                        # 5xx or other non-200/non-4xx means NOT allowed for this cycle
+                        _ROBOTS_CACHE[netloc] = False
+            except urllib.error.HTTPError as he:
+                if 400 <= he.code < 500:
+                    # 404 or other 4xx means allowed
+                    _ROBOTS_CACHE[netloc] = True
+                else:
+                    # 5xx server error -> treat as NOT allowed for this cycle
+                    _ROBOTS_CACHE[netloc] = False
+            except (urllib.error.URLError, socket.timeout, TimeoutError):
+                # Timeout or connection failure -> treat as NOT allowed for this cycle
+                _ROBOTS_CACHE[netloc] = False
             except Exception:
-                _ROBOTS_CACHE[netloc] = None
+                # Any other unexpected error -> treat as NOT allowed
+                _ROBOTS_CACHE[netloc] = False
 
-        cached_rp = _ROBOTS_CACHE.get(netloc)
-        if cached_rp:
-            return cached_rp.can_fetch(USER_AGENT, url)
-        return True
+        cached_entry = _ROBOTS_CACHE.get(netloc)
+        if cached_entry is False:
+            return False
+        if cached_entry is True:
+            return True
+        if isinstance(cached_entry, urllib.robotparser.RobotFileParser):
+            return cached_entry.can_fetch(USER_AGENT, url)
+        return False
     except Exception:
-        return True
+        return False
 
 
 # ==============================================================================

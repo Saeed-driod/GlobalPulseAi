@@ -993,8 +993,8 @@ def parse_and_format_deep_json(
     raw_conf = str(data.get("confidence", "full")).strip().lower()
     sources_agree = data.get("sources_agree", True)
 
-    # Deep research requirements: at least 2 sources, sources agree, and >= 400 words
-    if raw_conf != "full" or body_words < 400 or len(source_pack) < 2 or not sources_agree:
+    # Deep research requirements: at least 2 sources, sources agree, and >= 300 words
+    if raw_conf != "full" or body_words < 300 or len(source_pack) < 2 or not sources_agree:
         confidence = "thin"
     else:
         confidence = "full"
@@ -1055,14 +1055,14 @@ def process_deep_research_news(
     trending_terms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
-    Synthesizes a multi-source deep research article (400-700 words) using a source pack.
+    Synthesizes a multi-source deep research article (300-700 words) using a source pack.
     Complies with strict editorial requirements:
-    - 400 to 700 words in plain English with short sections (### What Happened / ### Key Details / ### What We Don't Know Yet).
+    - 300 to 700 words in plain English with short sections (### What Happened / ### Key Details / ### What We Don't Know Yet).
     - Paraphrases in own words, max 1 short quote (<15 words).
     - When sources disagree or are silent, says so explicitly.
     - Headline max 60 characters with main subject first.
     - Ends with 'Sources:' line listing outlets and dates.
-    - Confidence 'full' only when at least 2 sources agree on core facts and words >= 400.
+    - Confidence 'full' only when at least 2 sources agree on core facts and words >= 300.
     - Verifies all numbers, dates, scores against COMBINED source text.
     - Source field names all outlets used and links to main one.
     - Uses existing Gemini model list, pacing, and cooldown.
@@ -1122,8 +1122,8 @@ Rules for trending search terms:
 You have been provided with a SOURCE PACK containing verified reports from multiple news outlets.
 
 STRICT EDITORIAL REQUIREMENTS:
-1. WORD COUNT: The article body MUST contain between 400 and 700 words (do not write under 400 words). Thoroughly explain the background, timelines, factual numbers, and corroborated statements from the sources.
-2. STRUCTURE: Write comprehensive, well-developed paragraphs for each section (approximately 130 to 180 words each) using these exact Markdown headings:
+1. WORD COUNT: The article body MUST contain between 300 and 700 words (do not write under 300 words). Thoroughly explain the background, timelines, factual numbers, and corroborated statements from the sources.
+2. STRUCTURE: Write comprehensive, well-developed paragraphs for each section (approximately 100 to 180 words each) using these exact Markdown headings:
    ### What Happened
    ### Key Details
    ### What We Don't Know Yet
@@ -1132,7 +1132,7 @@ STRICT EDITORIAL REQUIREMENTS:
 5. DISAGREEMENTS & GAPS: When sources disagree or are silent on an aspect, state that explicitly instead of guessing or speculating.
 6. HEADLINE: Maximum 60 characters. Place the main subject (product, person, company, or event) first. Clear, plain English, zero clickbait.
 7. SOURCES LINE: The very last line of the body MUST be a single line starting with "Sources: " listing the outlets and dates used (e.g. "{default_sources_line}").
-8. CONFIDENCE: Set confidence to "full" ONLY if at least 2 sources in the source pack agree on the core facts and the body contains at least 400 words. If sources conflict unresolvably, fewer than 2 sources agree, or facts are insufficient for 400 words, set confidence to "thin".
+8. CONFIDENCE: Set confidence to "full" ONLY if at least 2 sources in the source pack agree on the core facts and the body contains at least 300 words. If sources conflict unresolvably, fewer than 2 sources agree, or facts are insufficient for 300 words, set confidence to "thin".
 9. FORBIDDEN ADJECTIVES & BUZZWORDS: Never use unsupported adjectives like 'brilliant', 'crucial', 'major', 'dominant', 'stunning', 'historic' unless directly quoting. Banned words: tier-1, neural, dossier, telemetry, high-stakes, landmark, intelligence report, synthesized.
 {trending_prompt_block}
 Fixed categories list: {fixed_categories_str}
@@ -1151,10 +1151,10 @@ Return JSON:
     "concrete fact 2 corroborated by sources",
     "concrete fact 3 corroborated by sources"
   ],
-  "body": "400 to 700 words with sections (### What Happened, ### Key Details, ### What We Don't Know Yet), ending with the Sources line",
+  "body": "300 to 700 words with sections (### What Happened, ### Key Details, ### What We Don't Know Yet), ending with the Sources line",
   "why_it_matters": "2-3 sentences of analysis based strictly on the reported facts",
   "sources_agree": true,
-  "confidence": "\"full\" only if at least 2 sources agree on core facts and body is 400-700 words; otherwise \"thin\""
+  "confidence": "\"full\" only if at least 2 sources agree on core facts and body is 300-700 words; otherwise \"thin\""
 }}"""
 
     if gemini_api_key:
@@ -1195,7 +1195,7 @@ Your previous output invented the following numbers, scores, dates, weekdays, or
 
 You must rewrite the JSON using ONLY facts, numbers, and scores directly confirmed in the SOURCE PACK.
 - Never invent weekdays, months, dates, points, or scores unless explicitly written in the SOURCE PACK.
-- Keep body between 400 and 700 words, structured into ### What Happened, ### Key Details, ### What We Don't Know Yet.
+- Keep body between 300 and 700 words, structured into ### What Happened, ### Key Details, ### What We Don't Know Yet.
 - End with the Sources: line.
 - If a detail is not in the source text, omit it completely."""
 
@@ -1220,7 +1220,7 @@ You must rewrite the JSON using ONLY facts, numbers, and scores directly confirm
                                 )
                                 retry_valid, retry_unverified = verify_output_facts(formatted_retry, combined_source_text)
 
-                                if retry_valid and formatted_retry["word_count"] >= 400 and len(source_pack) >= 2:
+                                if retry_valid and formatted_retry["word_count"] >= 300 and len(source_pack) >= 2:
                                     print("[Deep Research] Fact Check Passed on Retry.")
                                     formatted_retry["generation_path"] = "gemini"
                                     formatted_retry["gemini_error"] = None
