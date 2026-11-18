@@ -11,7 +11,8 @@ try:
     from ..database import get_db, SessionLocal
     from ..models import Article, ArticleStatus
     from .scraper import fetch_breaking_rss_news
-    from .ai_service import process_raw_news, get_gemini_cooldown_remaining
+    from .ai_service import process_raw_news, get_gemini_cooldown_remaining, process_deep_research_news
+    from .research import build_source_pack, can_do_deep_research_today, record_deep_research_done
     from .video_generator import compose_short_video, compose_video
     from .youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
     from .youtube_quota import can_post_now, record_youtube_upload
@@ -22,7 +23,8 @@ except (ImportError, ValueError):
         from database import get_db, SessionLocal
         from models import Article, ArticleStatus
         from services.scraper import fetch_breaking_rss_news
-        from services.ai_service import process_raw_news, get_gemini_cooldown_remaining
+        from services.ai_service import process_raw_news, get_gemini_cooldown_remaining, process_deep_research_news
+        from services.research import build_source_pack, can_do_deep_research_today, record_deep_research_done
         from services.video_generator import compose_short_video, compose_video
         from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
         from services.youtube_quota import can_post_now, record_youtube_upload
@@ -32,7 +34,8 @@ except (ImportError, ValueError):
         from backend.database import get_db, SessionLocal
         from backend.models import Article, ArticleStatus
         from backend.services.scraper import fetch_breaking_rss_news
-        from backend.services.ai_service import process_raw_news, get_gemini_cooldown_remaining
+        from backend.services.ai_service import process_raw_news, get_gemini_cooldown_remaining, process_deep_research_news
+        from backend.services.research import build_source_pack, can_do_deep_research_today, record_deep_research_done
         from backend.services.video_generator import compose_short_video, compose_video
         from backend.services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
         from backend.services.youtube_quota import can_post_now, record_youtube_upload
@@ -78,6 +81,17 @@ def are_titles_duplicate(title1: str, title2: str) -> bool:
         return True
     if len(common) >= 4:
         return True
+    return False
+
+
+def is_item_trending(c_item: Dict[str, Any], t_terms: List[str]) -> bool:
+    """Checks if a raw story candidate matches any active trending search terms."""
+    if not t_terms:
+        return False
+    text = f"{c_item.get('raw_title', '')} {c_item.get('raw_summary', '')}"
+    for term in t_terms:
+        if len(term) >= 2 and re.search(r'\b' + re.escape(term) + r'\b', text, re.IGNORECASE):
+            return True
     return False
 
 
@@ -236,8 +250,9 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
             candidate_items.append(item)
 
         # Priority boost for items containing trending search terms
+        trending_terms: List[str] = []
         try:
-            trending_terms = get_trending_terms()
+            trending_terms = get_trending_terms() or []
             if trending_terms and candidate_items:
                 def trending_priority_score(c_item: Dict[str, Any]) -> int:
                     text = f"{c_item.get('raw_title', '')} {c_item.get('raw_summary', '')}"
@@ -273,6 +288,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
         except ValueError:
             max_gemini_stories_per_run = 5
         gemini_stories_attempted = 0
+        deep_stories_run_count = 0
 
         # Check today's published count against DAILY_PUBLISHING_CAP
         now_utc = datetime.now(timezone.utc)
@@ -309,42 +325,88 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
             gemini_stories_attempted += 1
 
             try:
-                print(f"\n[Step 2/5] Synthesizing with Gemini AI: '{item['raw_title'][:60]}...'")
-                ai_data = process_raw_news(
-                    raw_title=item["raw_title"],
-                    raw_summary=item["raw_summary"],
-                    source_name=item["source_name"],
-                    suggested_category=item.get("suggested_category"),
-                    source_url=item.get("source_url", ""),
-                    raw_image_url=item.get("raw_image_url")
+                # Check eligibility for Deep Research mode (trending items, max 3 per run, max 5/day)
+                is_trending = is_item_trending(item, trending_terms)
+                is_deep_eligible = (
+                    is_trending
+                    and deep_stories_run_count < 3
+                    and can_do_deep_research_today()
                 )
 
+                source_pack = []
+                if is_deep_eligible:
+                    print(f"\n[Deep Research] Story matched trending term. Building multi-source pack: '{item['raw_title'][:60]}...'")
+                    try:
+                        source_pack = build_source_pack(candidate=item, all_raw_items=raw_items, trending_terms=trending_terms)
+                    except Exception as sp_err:
+                        print(f"[Deep Research Error] Failed building source pack: {sp_err}")
+                        source_pack = []
+
+                if is_deep_eligible and len(source_pack) >= 2:
+                    deep_stories_run_count += 1
+                    outlets_preview = [s.get("outlet") for s in source_pack]
+                    print(f"[Deep Research] Sourced {len(source_pack)} outlets for deep dive: {outlets_preview}. Synthesizing with Gemini (400-700 words)...")
+                    ai_data = process_deep_research_news(
+                        raw_title=item["raw_title"],
+                        source_pack=source_pack,
+                        suggested_category=item.get("suggested_category", "AI & Tech"),
+                        raw_image_url=item.get("raw_image_url"),
+                        trending_terms=trending_terms
+                    )
+                else:
+                    if is_deep_eligible:
+                        print(f"[Deep Research] Insufficient corroborating sources ({len(source_pack)} found). Falling back to standard short flow.")
+                    print(f"\n[Step 2/5] Synthesizing with Gemini AI: '{item['raw_title'][:60]}...'")
+                    ai_data = process_raw_news(
+                        raw_title=item["raw_title"],
+                        raw_summary=item["raw_summary"],
+                        source_name=item["source_name"],
+                        suggested_category=item.get("suggested_category"),
+                        source_url=item.get("source_url", ""),
+                        raw_image_url=item.get("raw_image_url")
+                    )
+
+                is_deep = bool(ai_data.get("is_deep_research", False))
+                sources_count = ai_data.get("sources_count", 1)
+                outlets_str = ai_data.get("source_name") or item.get("source_name", "Unknown")
+                body_text = ai_data.get("body") or ""
+                body_words = ai_data.get("word_count") or len(body_text.split())
+                title_for_log = ai_data.get("title") or item.get("raw_title", "")
                 gen_path = ai_data.get("generation_path", "unknown")
                 gem_err = ai_data.get("gemini_error")
                 err_info = f" | gemini_error='{gem_err}'" if gem_err else ""
 
                 # The fallback synthesizer must NEVER publish an article by itself
                 if gen_path == "fallback":
-                    print(f"[Master Pipeline] Story '{ai_data.get('title', '')[:50]}' was generated by fallback path{err_info}. Fallback articles cannot be published live. Skipping.")
+                    print(f"[Master Pipeline] Story '{title_for_log[:50]}' was generated by fallback path{err_info}. Fallback articles cannot be published live. Skipping.")
                     continue
 
                 is_genuine_gemini = (gen_path == "gemini" and not gem_err)
 
-                # Quality Gate 1: Check confidence and body word count (must be "full" and >= 120 words)
+                # Quality Gate 1: Check confidence and body word count
+                # Deep research requires confidence == "full" and body_words >= 400
+                # Standard short flow requires confidence == "full" and body_words >= 120
                 confidence = str(ai_data.get("confidence") or "").strip().lower()
-                body_text = ai_data.get("body") or ""
-                body_words = len(body_text.split())
-                if confidence != "full" or body_words < 120:
-                    print(f"[Master Pipeline] Quality Gate: Article '{ai_data.get('title', '')[:50]}' rejected | path='{gen_path}' | confidence='{confidence}' | body_words={body_words} < 120{err_info}. Skipping publication.")
+                min_required_words = 400 if is_deep else 120
+                if confidence != "full" or body_words < min_required_words:
+                    reason = f"confidence='{confidence}', words={body_words} < {min_required_words}"
+                    if is_deep:
+                        print(f"[Deep Story Log] Headline: '{title_for_log}' | Sources: {sources_count} ({outlets_str}) | Words: {body_words} | Published: False | Result: REJECTED | Reason: {reason}{err_info}")
+                    else:
+                        print(f"[Master Pipeline] Quality Gate: Article '{title_for_log[:50]}' rejected | path='{gen_path}' | {reason}{err_info}. Skipping publication.")
                     if is_genuine_gemini:
-                        record_rejected_story(item.get("source_url"), item.get("raw_title", ""), reason=f"confidence={confidence}, words={body_words}, path={gen_path}")
+                        record_rejected_story(item.get("source_url"), item.get("raw_title", ""), reason=f"{reason}, path={gen_path}")
                     else:
                         print(f"[Master Pipeline] Rejection not cached: generated by path='{gen_path}' or had error ('{gem_err}'). Will re-try when Gemini is available.")
                     continue
 
                 # Quality Gate 2: Check CATEGORY_FOCUS
                 if CATEGORY_FOCUS and ai_data["category"] not in CATEGORY_FOCUS:
-                    print(f"[Master Pipeline] Quality Gate: Category '{ai_data['category']}' not in active CATEGORY_FOCUS {CATEGORY_FOCUS} | path='{gen_path}'{err_info}. Skipping.")
+                    reason = f"category '{ai_data['category']}' not in active CATEGORY_FOCUS {CATEGORY_FOCUS}"
+                    if is_deep:
+                        print(f"[Deep Story Log] Headline: '{title_for_log}' | Sources: {sources_count} ({outlets_str}) | Words: {body_words} | Published: False | Result: REJECTED | Reason: {reason}")
+                    else:
+                        print(f"[Master Pipeline] Quality Gate: {reason} | path='{gen_path}'{err_info}. Skipping.")
                     if is_genuine_gemini:
                         record_rejected_story(item.get("source_url"), item.get("raw_title", ""), reason=f"category={ai_data['category']}")
                     continue
@@ -352,14 +414,20 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 # Secondary check: verify synthesized title doesn't already exist
                 existing_synth = db.query(Article).filter(Article.title == ai_data["title"]).first()
                 if existing_synth:
-                    print(f"[Master Pipeline] Synthesized story '{ai_data['title'][:50]}' already in DB. Skipping duplicate.")
+                    if is_deep:
+                        print(f"[Deep Story Log] Headline: '{title_for_log}' | Sources: {sources_count} ({outlets_str}) | Words: {body_words} | Published: False | Result: REJECTED | Reason: duplicate headline in DB")
+                    else:
+                        print(f"[Master Pipeline] Synthesized story '{ai_data['title'][:50]}' already in DB. Skipping duplicate.")
                     continue
 
                 # Generate unique SEO slug
                 base_slug = slugify(ai_data["title"])
                 slug = base_slug
                 if db.query(Article).filter(Article.slug == slug).first():
-                    print(f"[Master Pipeline] Slug '{slug}' already exists. Skipping duplicate story.")
+                    if is_deep:
+                        print(f"[Deep Story Log] Headline: '{title_for_log}' | Sources: {sources_count} ({outlets_str}) | Words: {body_words} | Published: False | Result: REJECTED | Reason: slug '{slug}' already exists")
+                    else:
+                        print(f"[Master Pipeline] Slug '{slug}' already exists. Skipping duplicate story.")
                     continue
 
                 # Save initial article as IMMEDIATELY PUBLISHED in DB so it goes live on website first!
@@ -369,8 +437,8 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     category=ai_data["category"],
                     summary=ai_data["summary"],
                     content=ai_data["content"],
-                    source_url=item.get("source_url"),
-                    source_name=item.get("source_name"),
+                    source_url=ai_data.get("source_url") or item.get("source_url"),
+                    source_name=ai_data.get("source_name") or item.get("source_name"),
                     image_url=ai_data.get("image_url"),
                     youtube_script=ai_data.get("youtube_script"),
                     author_name=ai_data.get("author_name") or EDITORIAL_BYLINE,
@@ -384,6 +452,10 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 db.refresh(article)
                 published_articles.append(article)
                 print(f"[Master Pipeline] Article #{article.id} PUBLISHED live on portal (slug: {slug})")
+
+                if is_deep:
+                    record_deep_research_done()
+                    print(f"[Deep Story Log] Headline: '{article.title}' | Sources: {sources_count} ({outlets_str}) | Words: {body_words} | Published: True | Result: PUBLISHED")
 
                 # Log headline and trending search term used for owner review
                 trending_term = ai_data.get("trending_term_used") or "none"

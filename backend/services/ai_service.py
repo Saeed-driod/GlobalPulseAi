@@ -940,3 +940,330 @@ You must rewrite the JSON using ONLY facts, numbers, and scores directly stated 
     fallback_dict["trending_term_used"] = extract_used_trending_term(fallback_dict, trending_in_source)
 
     return fallback_dict
+
+
+# ==============================================================================
+# DEEP RESEARCH SYNTHESIZER (Multi-Source Comprehensive Reporting)
+# ==============================================================================
+
+def parse_and_format_deep_json(
+    data: Dict[str, Any],
+    raw_title: str,
+    source_pack: List[Dict[str, Any]],
+    suggested_category: str,
+    raw_image_url: Optional[str] = None
+) -> Dict[str, Any]:
+    """Helper to format and clean generated deep research article dictionary."""
+    headline = sanitize_banned_phrases(data.get("headline", raw_title).strip())
+    if len(headline) > HEADLINE_MAX_LENGTH:
+        truncated = headline[:HEADLINE_MAX_LENGTH]
+        headline = truncated.rsplit(" ", 1)[0].rstrip() if " " in truncated else truncated
+
+    category = normalize_category(data.get("category", suggested_category))
+
+    key_points = [sanitize_banned_phrases(p) for p in data.get("key_points", []) if p]
+    if len(key_points) < 3:
+        key_points.append("Reporting corroborated across multiple independent dispatches.")
+    key_points = key_points[:3]
+
+    body = sanitize_banned_phrases(data.get("body", "").strip())
+    why_it_matters = sanitize_banned_phrases(data.get("why_it_matters", "").strip())
+
+    outlets = [s.get("outlet", "Primary Source").strip() for s in source_pack if s.get("outlet")]
+    unique_outlets = list(dict.fromkeys(outlets))
+    outlets_str = ", ".join(unique_outlets)[:140]
+    main_url = source_pack[0].get("url", "") if source_pack else ""
+
+    sources_items = [f"{s.get('outlet', 'Wire')} ({s.get('date', 'Recent')})" for s in source_pack]
+    default_sources_line = f"Sources: {', '.join(sources_items)}."
+
+    # Ensure Sources line is present at the end of the body
+    if "Sources:" not in body:
+        body = f"{body}\n\n{default_sources_line}"
+
+    first_fact = key_points[0] if key_points else (body.split(".")[0] + ".")
+    meta_desc = format_first_fact_meta_description(
+        candidate=data.get("meta_description", ""),
+        first_fact=first_fact,
+        source_name=outlets_str,
+        headline=headline
+    )
+
+    body_words = len(body.split())
+    raw_conf = str(data.get("confidence", "full")).strip().lower()
+    sources_agree = data.get("sources_agree", True)
+
+    # Deep research requirements: at least 2 sources, sources agree, and >= 400 words
+    if raw_conf != "full" or body_words < 400 or len(source_pack) < 2 or not sources_agree:
+        confidence = "thin"
+    else:
+        confidence = "full"
+
+    # Assemble full content: place Analysis section before the concluding Sources line
+    if "Sources:" in body:
+        parts = body.rsplit("Sources:", 1)
+        main_body = parts[0].strip()
+        sources_line = "Sources:" + parts[1].strip()
+        if why_it_matters:
+            full_content = f"{main_body}\n\n### Why It Matters (Analysis)\n\n{why_it_matters}\n\n{sources_line}"
+        else:
+            full_content = f"{main_body}\n\n{sources_line}"
+    else:
+        full_content = body
+        if why_it_matters:
+            full_content += f"\n\n### Why It Matters (Analysis)\n\n{why_it_matters}"
+        full_content += f"\n\n{default_sources_line}"
+
+    summary_bullets = "\n".join(f"• {kp}" for kp in key_points)
+
+    resolved_image = resolve_article_image(
+        entry=None,
+        title=headline,
+        source_url=main_url,
+        category=category,
+        current_image_url=raw_image_url
+    )
+
+    return {
+        "title": headline,
+        "headline": headline,
+        "category": category,
+        "summary": summary_bullets,
+        "key_points": key_points,
+        "body": body,
+        "why_it_matters": why_it_matters,
+        "meta_description": meta_desc,
+        "content": full_content,
+        "author_name": EDITORIAL_BYLINE,
+        "source_name": outlets_str,
+        "source_url": main_url,
+        "confidence": confidence,
+        "image_url": resolved_image,
+        "trending_term_used": "none",
+        "is_deep_research": True,
+        "sources_count": len(source_pack),
+        "outlets": unique_outlets,
+        "word_count": body_words,
+    }
+
+
+def process_deep_research_news(
+    raw_title: str,
+    source_pack: List[Dict[str, Any]],
+    suggested_category: str = "AI & Tech",
+    raw_image_url: Optional[str] = None,
+    trending_terms: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Synthesizes a multi-source deep research article (400-700 words) using a source pack.
+    Complies with strict editorial requirements:
+    - 400 to 700 words in plain English with short sections (### What Happened / ### Key Details / ### What We Don't Know Yet).
+    - Paraphrases in own words, max 1 short quote (<15 words).
+    - When sources disagree or are silent, says so explicitly.
+    - Headline max 60 characters with main subject first.
+    - Ends with 'Sources:' line listing outlets and dates.
+    - Confidence 'full' only when at least 2 sources agree on core facts and words >= 400.
+    - Verifies all numbers, dates, scores against COMBINED source text.
+    - Source field names all outlets used and links to main one.
+    - Uses existing Gemini model list, pacing, and cooldown.
+    """
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    gemini_error: Optional[str] = None
+
+    outlets = [s.get("outlet", "Primary Source").strip() for s in source_pack if s.get("outlet")]
+    unique_outlets = list(dict.fromkeys(outlets))
+    outlets_str = ", ".join(unique_outlets)[:140]
+    main_url = source_pack[0].get("url", "") if source_pack else ""
+    sources_items = [f"{s.get('outlet', 'Wire')} ({s.get('date', 'Recent')})" for s in source_pack]
+    default_sources_line = f"Sources: {', '.join(sources_items)}."
+
+    # Build combined texts
+    combined_sources_str = "\n\n".join([
+        f"=== SOURCE {idx+1}: {s.get('outlet', 'Wire')} ({s.get('url', '')}) ===\n"
+        f"Title: {s.get('title', '')}\n"
+        f"Date: {s.get('date', 'Recent')}\n"
+        f"Text:\n{s.get('text', '')}"
+        for idx, s in enumerate(source_pack)
+    ])
+
+    combined_source_text = f"Title: {raw_title}\n\n" + "\n\n".join([
+        f"Source: {s.get('outlet', '')}\nTitle: {s.get('title', '')}\n{s.get('text', '')}"
+        for s in source_pack
+    ])
+
+    fixed_categories_str = ", ".join(FIXED_CATEGORIES)
+
+    # Check trending terms in combined text
+    active_trending = trending_terms or []
+    if not active_trending:
+        try:
+            active_trending = get_trending_terms()
+        except Exception:
+            active_trending = []
+
+    trending_in_source: List[str] = []
+    if active_trending:
+        try:
+            trending_in_source = find_trending_terms_in_text(combined_source_text, trending_terms=active_trending, max_terms=3)
+        except Exception:
+            pass
+
+    if trending_in_source:
+        trending_prompt_block = f"""
+TRENDING SEARCH TERM INTEGRATION:
+The following search term(s) are currently trending and literally appear in the SOURCE PACK: {trending_in_source}
+Rules for trending search terms:
+1. Start the headline with the most relevant trending term from this list (or as close to the start as natural English allows), keeping headline max 60 characters.
+2. Use this trending term naturally in the first sentence of the body and in the meta description.
+3. The trending term may appear at most 2 times in total throughout the article body (never keyword-stuff).
+4. CRITICAL FACTUAL RULE: NEVER add, invent, or imply any term, entity, or fact that is not explicitly supported by the SOURCE PACK.
+"""
+    else:
+        trending_prompt_block = ""
+
+    deep_prompt = f"""You are a senior investigative news editor writing a comprehensive deep-dive report for US and UK readers in clear, plain English.
+You have been provided with a SOURCE PACK containing verified reports from multiple news outlets.
+
+STRICT EDITORIAL REQUIREMENTS:
+1. WORD COUNT: The article body must contain between 400 and 700 words. Never write under 400 words.
+2. STRUCTURE: Use short, clearly demarcated sections with the following exact Markdown headings:
+   ### What Happened
+   ### Key Details
+   ### What We Don't Know Yet
+3. FACTUAL GROUNDING: Use ONLY facts, figures, dates, and statements present in the SOURCE PACK. Never invent anything. Paraphrase everything in our own words; NEVER copy sentences directly.
+4. QUOTES: At most ONE short direct quote (under 15 words) in quotation marks, strictly attributed to the named speaker.
+5. DISAGREEMENTS & GAPS: When sources disagree or are silent on an aspect, state that explicitly instead of guessing or speculating.
+6. HEADLINE: Maximum 60 characters. Place the main subject (product, person, company, or event) first. Clear, plain English, zero clickbait.
+7. SOURCES LINE: The very last line of the body MUST be a single line starting with "Sources: " listing the outlets and dates used (e.g. "{default_sources_line}").
+8. CONFIDENCE: Set confidence to "full" ONLY if at least 2 sources in the source pack agree on the core facts and the body contains at least 400 words. If sources conflict unresolvably, fewer than 2 sources agree, or facts are insufficient for 400 words, set confidence to "thin".
+9. FORBIDDEN ADJECTIVES & BUZZWORDS: Never use unsupported adjectives like 'brilliant', 'crucial', 'major', 'dominant', 'stunning', 'historic' unless directly quoting. Banned words: tier-1, neural, dossier, telemetry, high-stakes, landmark, intelligence report, synthesized.
+{trending_prompt_block}
+Fixed categories list: {fixed_categories_str}
+Select the single most accurate category for this story from the fixed list.
+
+SOURCE PACK:
+\"\"\"{combined_sources_str}\"\"\"
+
+Return JSON:
+{{
+  "headline": "max 60 characters, main subject first, plain English, no clickbait",
+  "meta_description": "A single real sentence stating the story's core fact from the sources, strictly 140-155 characters. Must end with a period.",
+  "category": "one of the fixed list",
+  "key_points": [
+    "concrete fact 1 corroborated by sources",
+    "concrete fact 2 corroborated by sources",
+    "concrete fact 3 corroborated by sources"
+  ],
+  "body": "400 to 700 words with sections (### What Happened, ### Key Details, ### What We Don't Know Yet), ending with the Sources line",
+  "why_it_matters": "2-3 sentences of analysis based strictly on the reported facts",
+  "sources_agree": true,
+  "confidence": "\"full\" only if at least 2 sources agree on core facts and body is 400-700 words; otherwise \"thin\""
+}}"""
+
+    if gemini_api_key:
+        try:
+            raw_response, api_err = call_gemini_api(deep_prompt, gemini_api_key)
+            if api_err:
+                gemini_error = api_err
+            if raw_response:
+                cleaned = clean_json_text(raw_response)
+                data = None
+                try:
+                    data = json.loads(cleaned, strict=False)
+                except Exception as json_err:
+                    sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', lambda m: ' ' if m.group(0) in '\t\r\n' else '', cleaned)
+                    try:
+                        data = json.loads(sanitized, strict=False)
+                    except Exception as json_err2:
+                        gemini_error = f"Invalid JSON response: {json_err2}"
+                        data = None
+
+                if data:
+                    formatted = parse_and_format_deep_json(
+                        data, raw_title, source_pack, suggested_category, raw_image_url=raw_image_url
+                    )
+                    formatted["generation_path"] = "gemini"
+                    formatted["gemini_error"] = None
+
+                    # Strict Number, Score, Date, Weekday, and Ranking Verification against COMBINED sources
+                    is_valid, unverified = verify_output_facts(formatted, combined_source_text)
+
+                    if not is_valid:
+                        print(f"[Deep Research] Output contained unverified facts: {unverified}. Regenerating once with strict correction...")
+                        correction_prompt = f"""{deep_prompt}
+
+CRITICAL CORRECTION REQUIRED:
+Your previous output invented the following numbers, scores, dates, weekdays, or rankings not present in the SOURCE PACK:
+{', '.join(unverified)}
+
+You must rewrite the JSON using ONLY facts, numbers, and scores directly confirmed in the SOURCE PACK.
+- Never invent weekdays, months, dates, points, or scores unless explicitly written in the SOURCE PACK.
+- Keep body between 400 and 700 words, structured into ### What Happened, ### Key Details, ### What We Don't Know Yet.
+- End with the Sources: line.
+- If a detail is not in the source text, omit it completely."""
+
+                        retry_raw, retry_err = call_gemini_api(correction_prompt, gemini_api_key)
+                        if retry_err:
+                            gemini_error = retry_err
+                        if retry_raw:
+                            cleaned_retry = clean_json_text(retry_raw)
+                            retry_data = None
+                            try:
+                                retry_data = json.loads(cleaned_retry, strict=False)
+                            except Exception:
+                                sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', lambda m: ' ' if m.group(0) in '\t\r\n' else '', cleaned_retry)
+                                try:
+                                    retry_data = json.loads(sanitized, strict=False)
+                                except Exception:
+                                    pass
+
+                            if retry_data:
+                                formatted_retry = parse_and_format_deep_json(
+                                    retry_data, raw_title, source_pack, suggested_category, raw_image_url=raw_image_url
+                                )
+                                retry_valid, retry_unverified = verify_output_facts(formatted_retry, combined_source_text)
+
+                                if retry_valid and formatted_retry["word_count"] >= 400 and len(source_pack) >= 2:
+                                    print("[Deep Research] Fact Check Passed on Retry.")
+                                    formatted_retry["generation_path"] = "gemini"
+                                    formatted_retry["gemini_error"] = None
+                                    formatted_retry["trending_term_used"] = extract_used_trending_term(formatted_retry, trending_in_source)
+                                    return formatted_retry
+                                else:
+                                    print(f"[Deep Research] Still unverified on retry: {retry_unverified} (words: {formatted_retry['word_count']}). Marking confidence 'thin'.")
+                                    formatted_retry["generation_path"] = "gemini"
+                                    formatted_retry["confidence"] = "thin"
+                                    formatted_retry["gemini_error"] = f"Failed factual verification on retry: {', '.join(retry_unverified)}"
+                                    formatted_retry["trending_term_used"] = extract_used_trending_term(formatted_retry, trending_in_source)
+                                    return formatted_retry
+                    else:
+                        formatted["trending_term_used"] = extract_used_trending_term(formatted, trending_in_source)
+                        return formatted
+        except Exception as e:
+            gemini_error = str(e)
+            print(f"[Deep Research Error] Exception during generation: {e}")
+
+    # Fallback / Failed generation
+    return {
+        "title": raw_title[:HEADLINE_MAX_LENGTH],
+        "headline": raw_title[:HEADLINE_MAX_LENGTH],
+        "category": suggested_category,
+        "summary": "Deep research synthesis could not be completed.",
+        "key_points": ["Reporting from " + outlets_str],
+        "body": "",
+        "why_it_matters": "",
+        "meta_description": "",
+        "content": "",
+        "author_name": EDITORIAL_BYLINE,
+        "source_name": outlets_str,
+        "source_url": main_url,
+        "confidence": "thin",
+        "image_url": None,
+        "trending_term_used": "none",
+        "generation_path": "gemini",
+        "gemini_error": gemini_error or "Deep research synthesis failed or empty response",
+        "is_deep_research": True,
+        "sources_count": len(source_pack),
+        "outlets": unique_outlets,
+        "word_count": 0,
+    }

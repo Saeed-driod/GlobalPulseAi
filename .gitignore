@@ -90,6 +90,8 @@ yarn-error.log*
 .pnpm-debug.log*
 rejected_stories.json
 backend/rejected_stories.json
+.deep_research_daily.json
+backend/.deep_research_daily.json
 .gemini_cooldown
 backend/.gemini_cooldown
 .gemini_last_call
