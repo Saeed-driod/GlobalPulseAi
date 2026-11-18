@@ -11,6 +11,7 @@ import { NewsletterBox } from "./NewsletterBox";
 import { getHdImageUrl } from "../lib/imageOptimizer";
 import { getCategoryTheme } from "../lib/categoryTheme";
 import { Eye, Sparkles, ChevronLeft, ChevronRight } from "./Icons";
+import { formatPublishedUtc, parseIsoUtc } from "../lib/formatDate";
 
 export const CATEGORY_MAP: Record<string, { name: string; intro: string }> = {
   "ai-tech": {
@@ -239,13 +240,8 @@ export async function CategoryView({ slug, pageNumber }: CategoryViewProps) {
               {categoryArticles.map((article) => {
                 const cleanHeadline = (article.title || "").replace(/\s*\|\s*GlobalPulse AI/gi, "").trim();
                 const publishedDate = article.published_at || article.created_at;
-                const formattedDate = publishedDate
-                  ? new Date(publishedDate).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "Recent";
+                const formattedDate = formatPublishedUtc(publishedDate) || "Recent";
+                const isoDateTime = parseIsoUtc(publishedDate)?.toISOString() || "";
 
                 const firstSentence = (article.summary || article.content || "")
                   .replace(/^[•▸*-\s]+/gm, "")
@@ -277,7 +273,11 @@ export async function CategoryView({ slug, pageNumber }: CategoryViewProps) {
                       <div className="flex items-center gap-2 mb-2 text-[11px] font-mono text-slate-400">
                         <span className="text-cyan-400 font-semibold">{cat.name}</span>
                         <span>•</span>
-                        <span>{formattedDate}</span>
+                        {isoDateTime ? (
+                          <time dateTime={isoDateTime}>{formattedDate}</time>
+                        ) : (
+                          <span>{formattedDate}</span>
+                        )}
                       </div>
                       <h2 className="text-base sm:text-lg font-bold font-serif text-white leading-snug line-clamp-2 group-hover:text-cyan-300 transition mb-2">
                         {cleanHeadline}

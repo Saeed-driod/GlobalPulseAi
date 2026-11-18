@@ -1,6 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
+
+def to_utc_iso_string(dt: Optional[datetime]) -> Optional[str]:
+    """Ensures datetime strings are serialized as valid ISO 8601 with explicit UTC 'Z' indicator."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    iso = dt.isoformat()
+    if iso.endswith("+00:00"):
+        return iso[:-6] + "Z"
+    return iso if iso.endswith("Z") else iso + "Z"
 
 class ArticleBase(BaseModel):
     title: str
@@ -22,6 +35,10 @@ class ArticleBase(BaseModel):
     video_updated_at: Optional[datetime] = None
     status: Optional[str] = "DRAFT"
     is_noindex: Optional[bool] = False
+
+    @field_serializer("video_updated_at", check_fields=False)
+    def serialize_video_updated_at(self, dt: Optional[datetime]) -> Optional[str]:
+        return to_utc_iso_string(dt)
 
 class ArticleCreate(ArticleBase):
     slug: Optional[str] = None
@@ -51,9 +68,14 @@ class ArticleResponse(ArticleBase):
     views: int
     created_at: datetime
     published_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+    @field_serializer("created_at", "published_at", "updated_at", check_fields=False)
+    def serialize_article_dates(self, dt: Optional[datetime]) -> Optional[str]:
+        return to_utc_iso_string(dt)
 
 class ArticleListResponse(BaseModel):
     items: List[ArticleResponse]
@@ -87,6 +109,10 @@ class VideoProgressResponse(BaseModel):
     video_path: Optional[str] = None
     updated_at: Optional[datetime] = None
 
+    @field_serializer("updated_at", check_fields=False)
+    def serialize_vprogress_dt(self, dt: Optional[datetime]) -> Optional[str]:
+        return to_utc_iso_string(dt)
+
 class WorkerStatusResponse(BaseModel):
     online: bool
     worker_name: str
@@ -101,6 +127,10 @@ class WorkerStatusResponse(BaseModel):
     max_shorts: int = 3
     max_longs: int = 1
     daily_quota_status: str = "ACTIVE"
+
+    @field_serializer("last_seen", check_fields=False)
+    def serialize_worker_dt(self, dt: Optional[datetime]) -> Optional[str]:
+        return to_utc_iso_string(dt)
 
 
 class AnalyticsTrackRequest(BaseModel):
@@ -172,6 +202,10 @@ class AdSettingSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @field_serializer("updated_at", check_fields=False)
+    def serialize_adsetting_dt(self, dt: Optional[datetime]) -> Optional[str]:
+        return to_utc_iso_string(dt)
 
 
 class AdSettingUpdate(BaseModel):

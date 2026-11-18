@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import enum
-from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, Boolean, event
 try:
     from .database import Base
 except (ImportError, ValueError):
@@ -65,6 +65,20 @@ class Article(Base):
     
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     published_at = Column(DateTime(timezone=True), nullable=True)
+
+
+@event.listens_for(Article, "before_insert")
+def set_article_published_at_before_insert(mapper, connection, target):
+    """Guarantees published_at is set to current UTC time upon article publication."""
+    if target.status == ArticleStatus.PUBLISHED.value and not target.published_at:
+        target.published_at = datetime.now(timezone.utc)
+
+
+@event.listens_for(Article, "before_update")
+def set_article_published_at_before_update(mapper, connection, target):
+    """Guarantees published_at is set to current UTC time upon article publication status update."""
+    if target.status == ArticleStatus.PUBLISHED.value and not target.published_at:
+        target.published_at = datetime.now(timezone.utc)
 
 
 class WorkerHeartbeat(Base):

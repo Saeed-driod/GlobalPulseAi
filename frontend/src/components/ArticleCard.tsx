@@ -7,6 +7,7 @@ import { Eye, Clock, Video, ChevronRight } from "./Icons";
 import { getCategoryTheme } from "../lib/categoryTheme";
 import { getHdImageUrl, getPollinationsFallback } from "../lib/imageOptimizer";
 import { getCleanExcerpt } from "../lib/excerptHelper";
+import { formatPublishedUtc, parseIsoUtc } from "../lib/formatDate";
 
 interface ArticleCardProps {
   article: Article;
@@ -14,12 +15,9 @@ interface ArticleCardProps {
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
   const catTheme = getCategoryTheme(article.category);
-  const formattedDate = article.published_at
-    ? new Date(article.published_at).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      })
-    : "Live Wire";
+  const rawDate = article.published_at || article.created_at;
+  const formattedDate = formatPublishedUtc(rawDate) || "Live Wire";
+  const isoDateTime = parseIsoUtc(rawDate)?.toISOString() || "";
 
   // Extract clean 110-140 char narrative snippet without boilerplate filler templates
   const bulletSnippet = getCleanExcerpt(article);
@@ -91,7 +89,11 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
 
         {/* Article Metadata Row */}
         <div className="flex items-center gap-2 sm:gap-2.5 text-[10px] sm:text-[11px] text-slate-400 font-mono mt-3 sm:mt-4 mb-2">
-          <span>{formattedDate}</span>
+          {isoDateTime ? (
+            <time dateTime={isoDateTime}>{formattedDate}</time>
+          ) : (
+            <span>{formattedDate}</span>
+          )}
           <span className="text-slate-600">•</span>
           <span className="flex items-center gap-1 text-emerald-400 font-semibold">
             <Eye className="w-3 h-3 text-emerald-400" /> {article.views.toLocaleString()} reads

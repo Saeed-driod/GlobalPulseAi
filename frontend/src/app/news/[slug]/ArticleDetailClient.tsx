@@ -27,6 +27,7 @@ import {
 } from "../../../components/Icons";
 import { getCategoryTheme } from "../../../lib/categoryTheme";
 import { getHdImageUrl, getPollinationsFallback } from "../../../lib/imageOptimizer";
+import { formatPublishedUtc, parseIsoUtc } from "../../../lib/formatDate";
 
 interface ArticleDetailClientProps {
   initialArticle?: Article | null;
@@ -261,13 +262,21 @@ export function ArticleDetailClient({ initialArticle, slug, initialRelatedArticl
   };
 
   const publishedDate = article.published_at || article.created_at;
-  const formattedPublished = publishedDate
-    ? new Date(publishedDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "Recently published";
+  const formattedPublished = formatPublishedUtc(publishedDate) || "Recently published";
+  const isoPublished = parseIsoUtc(publishedDate)?.toISOString() || "";
+
+  // Show "Updated: ..." only when updated_at is more than 1 hour after published_at
+  const showUpdated = React.useMemo(() => {
+    if (!article.updated_at || !publishedDate) return false;
+    const pubD = parseIsoUtc(publishedDate);
+    const updD = parseIsoUtc(article.updated_at);
+    if (!pubD || !updD) return false;
+    const ONE_HOUR_MS = 60 * 60 * 1000;
+    return updD.getTime() - pubD.getTime() > ONE_HOUR_MS;
+  }, [article.updated_at, publishedDate]);
+
+  const formattedUpdated = showUpdated ? formatPublishedUtc(article.updated_at) : "";
+  const isoUpdated = showUpdated ? parseIsoUtc(article.updated_at)?.toISOString() || "" : "";
 
   const cleanHeadline = article.title.replace(/\s*\|\s*GlobalPulse AI/gi, "").trim();
 
@@ -353,10 +362,30 @@ export function ArticleDetailClient({ initialArticle, slug, initialRelatedArticl
 
             {/* 2. Byline + Published/Updated Date */}
             <div className="flex flex-wrap items-center justify-between gap-3 py-3 border-y border-white/10 mb-6 text-xs text-slate-300 font-mono">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span>By <strong className="text-white">GlobalPulse AI Desk</strong></span>
                 <span>•</span>
-                <span>Published {formattedPublished}</span>
+                <span>
+                  Published{" "}
+                  {isoPublished ? (
+                    <time dateTime={isoPublished}>{formattedPublished}</time>
+                  ) : (
+                    formattedPublished
+                  )}
+                </span>
+                {showUpdated && (
+                  <>
+                    <span>•</span>
+                    <span>
+                      Updated{" "}
+                      {isoUpdated ? (
+                        <time dateTime={isoUpdated}>{formattedUpdated}</time>
+                      ) : (
+                        formattedUpdated
+                      )}
+                    </span>
+                  </>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button

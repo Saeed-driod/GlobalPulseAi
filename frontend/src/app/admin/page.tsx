@@ -27,6 +27,7 @@ import {
 } from "../../lib/api";
 import { AnalyticsModal } from "../../components/AnalyticsModal";
 import { AdManagerModal } from "../../components/AdManagerModal";
+import { formatAdminPkt } from "../../lib/formatDate";
 
 import {
   Sparkles,
@@ -929,6 +930,16 @@ export default function AdminPage() {
                       <td className="py-4 px-4 whitespace-nowrap">
                         <div className="flex flex-col gap-1 items-start">
                           {getStatusBadge(art.status)}
+                          {art.status === "PUBLISHED" ? (
+                            <span className="text-[10px] text-[#4a5568] font-mono">
+                              Published: {formatAdminPkt(art.published_at || art.created_at)}
+                            </span>
+                          ) : (
+                            <div className="flex flex-col text-[10px] font-mono leading-tight">
+                              <span className="text-[#4a5568]">Created: {formatAdminPkt(art.created_at)}</span>
+                              <span className="text-amber-700 font-medium">Not published yet</span>
+                            </div>
+                          )}
                           {art.youtube_video_id && art.youtube_video_id !== "dQw4w9WgXcQ" ? (
                             <span className="neu-sm inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-red-600 font-mono">
                               <Youtube className="w-2.5 h-2.5 text-red-600" /> YouTube Live
@@ -1044,9 +1055,20 @@ export default function AdminPage() {
             {/* Modal Header */}
             <div className="p-5 border-b border-[#b8bec7]/40 flex items-center justify-between">
               <div>
-                <span className="neu-sm px-2.5 py-0.5 text-[10px] font-mono uppercase font-bold text-[#1a8cff]">
-                  {selectedArticle.category} • {selectedArticle.status}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="neu-sm px-2.5 py-0.5 text-[10px] font-mono uppercase font-bold text-[#1a8cff]">
+                    {selectedArticle.category} • {selectedArticle.status}
+                  </span>
+                  {selectedArticle.status === "PUBLISHED" ? (
+                    <span className="text-[11px] text-[#4a5568] font-mono">
+                      Published: {formatAdminPkt(selectedArticle.published_at || selectedArticle.created_at)}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-[#4a5568] font-mono">
+                      Created: {formatAdminPkt(selectedArticle.created_at)} • <span className="text-amber-700 font-medium">Not published yet</span>
+                    </span>
+                  )}
+                </div>
                 <h3 className="text-lg font-bold text-[#2d3748] font-serif mt-1.5 line-clamp-1">
                   {selectedArticle.title}
                 </h3>
@@ -1143,6 +1165,14 @@ export default function AdminPage() {
 
               {previewTab === "metadata" && (
                 <div className="space-y-3 font-mono text-xs">
+                  <div className="p-3 neu-pressed rounded-xl">
+                    <span className="text-[#718096]">Publication Timing:</span>{" "}
+                    <span className="text-[#2d3748] font-bold">
+                      {selectedArticle.status === "PUBLISHED"
+                        ? `Published: ${formatAdminPkt(selectedArticle.published_at || selectedArticle.created_at)}`
+                        : `Created: ${formatAdminPkt(selectedArticle.created_at)} (Not published yet)`}
+                    </span>
+                  </div>
                   <div className="p-3 neu-pressed rounded-xl">
                     <span className="text-[#718096]">SEO Slug:</span>{" "}
                     <span className="text-[#2d3748] font-bold">{selectedArticle.slug}</span>

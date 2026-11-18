@@ -1074,6 +1074,8 @@ def auto_publish_pipeline(
             )
             art.youtube_video_id = upload_res.get("video_id") or upload_res.get("youtube_video_id") or "dQw4w9WgXcQ"
             art.status = ArticleStatus.PUBLISHED.value
+            if not art.published_at:
+                art.published_at = datetime.now(timezone.utc)
             bg_db.commit()
             print(f"[Auto Publish] Completed article #{art_id}: {art.youtube_video_id}")
         except Exception as e:

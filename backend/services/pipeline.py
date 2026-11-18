@@ -511,7 +511,10 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     "youtube_video_id": a.youtube_video_id,
                     "youtube_url": f"https://www.youtube.com/shorts/{a.youtube_video_id}",
                     "status": a.status,
-                    "published_at": a.published_at.isoformat() if a.published_at else None
+                    "published_at": (
+                        (a.published_at.replace(tzinfo=timezone.utc).isoformat() if a.published_at.tzinfo is None else a.published_at.astimezone(timezone.utc).isoformat()).replace("+00:00", "Z")
+                        if a.published_at else None
+                    )
                 }
                 for a in published_articles
             ]
