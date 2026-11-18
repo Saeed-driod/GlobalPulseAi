@@ -212,6 +212,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
         mins = int(cooldown_secs // 60)
         secs = int(cooldown_secs % 60)
         print(f"[Master Pipeline] Gemini 429 cooldown active ({mins}m {secs}s remaining). Halting pipeline run early.")
+        print(f"[Pipeline Run Summary] Deep tried: 0 | Deep published: 0 | Deep rejected: 0 (top reason: none) | Standard published: 0 | Standard rejected: 0")
         if close_session:
             db.close()
         return {
@@ -227,6 +228,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
         raw_items = fetch_breaking_rss_news(limit=max(limit * 5, 15))
         if not raw_items:
             print("[Master Pipeline] No raw items fetched from RSS feeds.")
+            print(f"[Pipeline Run Summary] Deep tried: 0 | Deep published: 0 | Deep rejected: 0 (top reason: none) | Standard published: 0 | Standard rejected: 0")
             return {
                 "success": False,
                 "message": "No news items available from RSS sources.",
@@ -273,6 +275,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
         # If all stories from this fetch cycle already exist in DB, STOP. NEVER re-publish duplicate stories!
         if not candidate_items:
             print("[Master Pipeline] All active wires previously indexed. Zero duplicates generated.")
+            print(f"[Pipeline Run Summary] Deep tried: 0 | Deep published: 0 | Deep rejected: 0 (top reason: none) | Standard published: 0 | Standard rejected: 0")
             return {
                 "success": True,
                 "message": "All current RSS news items are already published. No duplicates generated.",
@@ -306,6 +309,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
 
         if published_today >= DAILY_PUBLISHING_CAP:
             print(f"[Master Pipeline] Daily publishing cap of {DAILY_PUBLISHING_CAP} reached for today ({published_today} published). Halting further publishing.")
+            print(f"[Pipeline Run Summary] Deep tried: 0 | Deep published: 0 | Deep rejected: 0 (top reason: none) | Standard published: 0 | Standard rejected: 0")
             return {
                 "success": True,
                 "message": f"Daily publishing cap of {DAILY_PUBLISHING_CAP} stories reached for today.",
