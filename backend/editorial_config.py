@@ -35,21 +35,20 @@ CATEGORY_TO_SLUG: Dict[str, str] = {v: k for k, v in CATEGORY_SLUG_MAP.items()}
 
 # Optional category focus to narrow site to 1-2 niches in the future.
 # If empty, all FIXED_CATEGORIES are enabled.
-# Example: CATEGORY_FOCUS = ["AI & Tech", "Markets"]
-CATEGORY_FOCUS: List[str] = []
+CATEGORY_FOCUS: List[str] = ["AI & Tech", "Sports", "Entertainment"]
 
 # Canonical byline for all automated news articles
 EDITORIAL_BYLINE: str = "GlobalPulse AI Desk"
 
 # Headline length constraint
-HEADLINE_MAX_LENGTH: int = 65
+HEADLINE_MAX_LENGTH: int = 60
 
 # Meta description length constraints (must be complete sentence)
 META_DESC_MIN_LENGTH: int = 140
 META_DESC_MAX_LENGTH: int = 155
 
-# Article body word count bounds (allows 80-200 word briefs for short sources)
-BODY_WORD_COUNT_MIN: int = 80
+# Article body word count bounds (minimum 120 words for quality gate)
+BODY_WORD_COUNT_MIN: int = 120
 BODY_WORD_COUNT_MAX: int = 400
 
 # Strictly banned buzzwords, jargon, unsupported adjectives, and generic filler

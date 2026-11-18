@@ -22,6 +22,19 @@ IF EXIST "backend\venv\Scripts\python.exe" (
 
 echo.
 echo [Done] If successful, your token.json is renewed!
-echo You can now restart START_VIDEO_WORKER.bat to continue uploads.
+
+if exist "%USERPROFILE%\.ssh\oracle_globalpulse.key" (
+    echo.
+    echo -------------------------------------------------------------------------------
+    echo Syncing renewed token to Oracle Cloud VM (150.136.214.192)...
+    echo -------------------------------------------------------------------------------
+    scp -i "%USERPROFILE%\.ssh\oracle_globalpulse.key" -o StrictHostKeyChecking=no backend\token.json ubuntu@150.136.214.192:/home/ubuntu/globalpulse-ai/backend/token.json
+    ssh -i "%USERPROFILE%\.ssh\oracle_globalpulse.key" -o StrictHostKeyChecking=no ubuntu@150.136.214.192 "sudo systemctl restart globalpulse-worker.service"
+    echo.
+    echo [Oracle VM] Worker service restarted with fresh token! Auto-uploads resumed.
+)
+
+echo.
+echo You can now restart START_VIDEO_WORKER.bat if running locally as well.
 echo.
 pause

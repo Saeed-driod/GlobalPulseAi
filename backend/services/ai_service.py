@@ -51,11 +51,14 @@ except (ImportError, ValueError):
 
 try:
     from .image_resolver import resolve_article_image, is_generic_placeholder, upgrade_image_url_to_hd, is_low_res_thumbnail
+    from .trends import get_trending_terms, find_trending_terms_in_text
 except (ImportError, ValueError):
     try:
         from services.image_resolver import resolve_article_image, is_generic_placeholder, upgrade_image_url_to_hd, is_low_res_thumbnail
+        from services.trends import get_trending_terms, find_trending_terms_in_text
     except (ImportError, ValueError):
         from backend.services.image_resolver import resolve_article_image, is_generic_placeholder, upgrade_image_url_to_hd, is_low_res_thumbnail
+        from backend.services.trends import get_trending_terms, find_trending_terms_in_text
 
 
 # ==========================================
@@ -413,11 +416,12 @@ def call_gemini_api(prompt: str, api_key: str) -> str:
     return ""
 
 
-def parse_and_format_article_json(data: Dict[str, Any], raw_title: str, source_name: str, source_url: str, suggested_category: str) -> Dict[str, Any]:
+def parse_and_format_article_json(data: Dict[str, Any], raw_title: str, source_name: str, source_url: str, suggested_category: str, raw_image_url: Optional[str] = None) -> Dict[str, Any]:
     """Helper to format and clean generated article dictionary."""
     headline = sanitize_banned_phrases(data.get("headline", raw_title).strip())
     if len(headline) > HEADLINE_MAX_LENGTH:
-        headline = headline[:HEADLINE_MAX_LENGTH - 3].rstrip() + "..."
+        truncated = headline[:HEADLINE_MAX_LENGTH]
+        headline = truncated.rsplit(" ", 1)[0].rstrip() if " " in truncated else truncated
 
     category = normalize_category(data.get("category", suggested_category))
 
@@ -437,9 +441,12 @@ def parse_and_format_article_json(data: Dict[str, Any], raw_title: str, source_n
         headline=headline
     )
 
-    confidence = data.get("confidence", "full").lower()
-    if confidence not in ("full", "thin"):
-        confidence = "full" if len(body.split()) >= 70 else "thin"
+    body_words = len(body.split())
+    raw_conf = str(data.get("confidence", "full")).strip().lower()
+    if raw_conf != "full" or body_words < 120:
+        confidence = "thin"
+    else:
+        confidence = "full"
 
     full_content = body
     if why_it_matters:
@@ -470,7 +477,19 @@ def parse_and_format_article_json(data: Dict[str, Any], raw_title: str, source_n
         "source_url": source_url,
         "confidence": confidence,
         "image_url": resolved_image,
+        "trending_term_used": "none",
     }
+
+
+def extract_used_trending_term(art_dict: Dict[str, Any], trending_in_source: List[str]) -> str:
+    """Finds which trending term from trending_in_source was actually used in the generated article."""
+    if not trending_in_source:
+        return "none"
+    full_text = f"{art_dict.get('headline', '')} {art_dict.get('body', '')} {art_dict.get('meta_description', '')}"
+    for t in trending_in_source:
+        if re.search(r'\b' + re.escape(t) + r'\b', full_text, re.IGNORECASE):
+            return t
+    return "none"
 
 
 def process_raw_news(
@@ -495,11 +514,35 @@ def process_raw_news(
     source_text = f"Title: {raw_title}\n\nSummary/Excerpt: {raw_summary}\n\nSource: {source_name}\nURL: {source_url}"
     fixed_categories_str = ", ".join(FIXED_CATEGORIES)
 
+    # Compute TRENDING_IN_SOURCE: trending terms that literally appear in SOURCE_TEXT (maximum 3)
+    trending_in_source: List[str] = []
+    try:
+        trending_terms = get_trending_terms()
+        if trending_terms:
+            trending_in_source = find_trending_terms_in_text(source_text, trending_terms=trending_terms, max_terms=3)
+    except Exception as t_err:
+        print(f"[AI Service Trends Notice] Could not extract trending terms: {t_err}")
+
+    # Build trending instructions block if terms literally present in SOURCE_TEXT
+    if trending_in_source:
+        trending_prompt_block = f"""
+TRENDING SEARCH TERM INTEGRATION:
+The following search term(s) are currently trending and literally appear in SOURCE_TEXT: {trending_in_source}
+Rules for trending search terms:
+1. Start the headline with the most relevant trending term from this list (or as close to the start as natural English allows), keeping headline max 60 characters.
+2. Use this trending term naturally in the first sentence of the body and in the meta description.
+3. The trending term may appear at most 2 times in total throughout the article body (never keyword-stuff).
+4. CRITICAL FACTUAL RULE: NEVER add, invent, or imply any term, entity, or fact that is not explicitly supported by SOURCE_TEXT.
+"""
+    else:
+        trending_prompt_block = ""
+
     base_prompt = f"""You are a news editor writing for US and UK readers in clear, plain English.
 Use ONLY facts found in SOURCE_TEXT. Never invent names, numbers, scores, quotes, ratings, dates, weekdays or statistics. If a fact is not in the source, leave it out.
 Do not copy sentences from the source. Rewrite in your own words. At most one direct quote, under 15 words, in quotation marks and attributed.
-
-NO 250-WORD MINIMUM: If SOURCE_TEXT is short, write an accurate 80-200 word brief. If SOURCE_TEXT contains substantial detail, write 200-350 words. Never invent fluff or filler.
+{trending_prompt_block}
+HEADLINE REQUIREMENT: Maximum 60 characters. Place the main subject (product, team, person or event) at the very start of the headline. Write in clear, plain English with zero clickbait and no keyword stuffing.
+ARTICLE BODY REQUIREMENT: The body must contain at least 120 words (120-200 words if source is brief, 200-350 words if source contains substantial detail). If SOURCE_TEXT lacks sufficient verifiable facts for at least 120 words, return confidence "thin". Never invent fluff or filler.
 STRICT FACTUAL GROUNDING: Every single sentence must be supported by facts in SOURCE_TEXT. Never invent claims about how a match or event unfolded (e.g. do not say a team 'controlled the match', 'dismantled the opposition', or 'took place at [venue]' unless explicitly stated in SOURCE_TEXT).
 FORBIDDEN ADJECTIVES: Never use unsupported adjectives like 'brilliant', 'crucial', 'major', 'dismantling', 'dominant', 'stunning', 'emphatic', or 'masterclass' unless directly quoting the source.
 Banned words/phrases: tier-1, neural, dossier, telemetry, high-stakes, landmark, intelligence report, synthesized, decisive tactical adjustments, accelerating operational transition, brilliant, crucial, major, dismantling, dominant.
@@ -512,7 +555,7 @@ SOURCE_TEXT:
 
 Return JSON:
 {{
- "headline": "max 65 chars, specific, no clickbait",
+ "headline": "max 60 characters, main subject (product, team, person or event) at the very start, plain English, no clickbait, no keyword stuffing",
  "meta_description": "A single real sentence stating the article's first fact from SOURCE_TEXT, strictly 140-155 characters. Never use generic filler like 'Latest reporting on...' or 'key developments'. Must end with a period.",
  "category": "one of the fixed list",
  "key_points": [
@@ -520,13 +563,13 @@ Return JSON:
    "concrete fact 2 from the source",
    "concrete fact 3 from the source"
  ],
- "body": "80-200 words if source is brief (or 200-350 words if source is detailed), inverted pyramid, every sentence strictly supported by SOURCE_TEXT, zero unsupported adjectives",
+ "body": "at least 120 words (120-200 words if source is brief, 200-350 words if detailed), inverted pyramid, every sentence strictly supported by SOURCE_TEXT, zero unsupported adjectives",
  "why_it_matters": "2-3 sentences of reasoning based only on stated facts, labelled as analysis",
  "source_name": "{source_name}",
  "source_url": "{source_url}",
- "confidence": "full" or "thin"
+ "confidence": "\"full\" only if body is at least 120 words and supported by 3+ distinct facts; otherwise \"thin\""
 }}
-If SOURCE_TEXT contains fewer than 3 distinct facts, return confidence "thin" and do not write a full article."""
+If SOURCE_TEXT contains fewer than 3 distinct facts or body is under 120 words, return confidence "thin" and do not write a full article."""
 
     if gemini_api_key:
         try:
@@ -540,7 +583,7 @@ If SOURCE_TEXT contains fewer than 3 distinct facts, return confidence "thin" an
                     sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', lambda m: ' ' if m.group(0) in '\t\r\n' else '', cleaned)
                     data = json.loads(sanitized, strict=False)
 
-                formatted = parse_and_format_article_json(data, raw_title, source_name, source_url, suggested_category)
+                formatted = parse_and_format_article_json(data, raw_title, source_name, source_url, suggested_category, raw_image_url=raw_image_url)
 
                 # Step 2: Strict Number, Score, Date, Weekday, and Ranking Verification
                 is_valid, unverified = verify_output_facts(formatted, source_text)
@@ -567,17 +610,20 @@ You must rewrite the JSON using ONLY facts, numbers, and scores directly stated 
                             sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', lambda m: ' ' if m.group(0) in '\t\r\n' else '', cleaned_retry)
                             retry_data = json.loads(sanitized, strict=False)
 
-                        formatted_retry = parse_and_format_article_json(retry_data, raw_title, source_name, source_url, suggested_category)
+                        formatted_retry = parse_and_format_article_json(retry_data, raw_title, source_name, source_url, suggested_category, raw_image_url=raw_image_url)
                         retry_valid, retry_unverified = verify_output_facts(formatted_retry, source_text)
 
                         if retry_valid:
                             print(f"[Number/Fact Check Passed on Retry] All numbers, scores, and dates confirmed in source text.")
+                            formatted_retry["trending_term_used"] = extract_used_trending_term(formatted_retry, trending_in_source)
                             return formatted_retry
                         else:
                             print(f"[Number/Fact Check Failed on Retry] Still unverified: {retry_unverified}. Marking confidence as 'thin'.")
                             formatted_retry["confidence"] = "thin"
+                            formatted_retry["trending_term_used"] = extract_used_trending_term(formatted_retry, trending_in_source)
                             return formatted_retry
 
+                formatted["trending_term_used"] = extract_used_trending_term(formatted, trending_in_source)
                 return formatted
         except Exception as e:
             print(f"[Gemini API Note] Exception ({e}); utilizing grounded editorial fallback synthesizer.")
@@ -586,12 +632,18 @@ You must rewrite the JSON using ONLY facts, numbers, and scores directly stated 
     category = normalize_category(suggested_category)
     clean_title = sanitize_banned_phrases(raw_title.strip())
     if len(clean_title) > HEADLINE_MAX_LENGTH:
-        clean_title = clean_title[:HEADLINE_MAX_LENGTH - 3].rstrip() + "..."
+        truncated = clean_title[:HEADLINE_MAX_LENGTH]
+        clean_title = truncated.rsplit(" ", 1)[0].rstrip() if " " in truncated else truncated
 
     clean_summary = sanitize_banned_phrases(re.sub(r'<[^>]+>', '', raw_summary or "").strip())
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', clean_summary) if len(s.strip()) > 15]
 
-    is_thin = len(sentences) < 2 or len(clean_summary) < 70
+    lead_para = f"{sentences[0]} {sentences[1]}" if len(sentences) >= 2 else (clean_summary or clean_title)
+    context_para = " ".join(sentences[2:]) if len(sentences) > 2 else f"This development was initially reported by {source_name}."
+    body = f"{lead_para}\n\n{context_para}"
+
+    body_words = len(body.split())
+    is_thin = len(sentences) < 2 or len(clean_summary) < 70 or body_words < 120
     confidence = "thin" if is_thin else "full"
 
     key_points = [
@@ -599,10 +651,6 @@ You must rewrite the JSON using ONLY facts, numbers, and scores directly stated 
         sentences[1] if len(sentences) > 1 else f"Dispatches confirmed by {source_name}.",
         sentences[2] if len(sentences) > 2 else f"Further developments expected as details emerge."
     ]
-
-    lead_para = f"{sentences[0]} {sentences[1]}" if len(sentences) >= 2 else (clean_summary or clean_title)
-    context_para = " ".join(sentences[2:]) if len(sentences) > 2 else f"This development was initially reported by {source_name}."
-    body = f"{lead_para}\n\n{context_para}"
 
     why_it_matters = f"This development provides essential context for observers tracking {category.lower()} news from {source_name}."
     first_fact = sentences[0] if sentences else clean_title
@@ -643,7 +691,9 @@ You must rewrite the JSON using ONLY facts, numbers, and scores directly stated 
 
     # Verify fallback facts as well
     fb_valid, fb_unverified = verify_output_facts(fallback_dict, source_text)
-    if not fb_valid:
+    if not fb_valid or len(body.split()) < 120:
         fallback_dict["confidence"] = "thin"
+
+    fallback_dict["trending_term_used"] = extract_used_trending_term(fallback_dict, trending_in_source)
 
     return fallback_dict

@@ -14,6 +14,7 @@ try:
     from .video_generator import compose_short_video, compose_video
     from .youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
     from .youtube_quota import can_post_now, record_youtube_upload
+    from .trends import get_trending_terms
     from ..editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE
 except (ImportError, ValueError):
     try:
@@ -24,6 +25,7 @@ except (ImportError, ValueError):
         from services.video_generator import compose_short_video, compose_video
         from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
         from services.youtube_quota import can_post_now, record_youtube_upload
+        from services.trends import get_trending_terms
         from editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE
     except (ImportError, ValueError):
         from backend.database import get_db, SessionLocal
@@ -33,14 +35,25 @@ except (ImportError, ValueError):
         from backend.services.video_generator import compose_short_video, compose_video
         from backend.services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
         from backend.services.youtube_quota import can_post_now, record_youtube_upload
+        from backend.services.trends import get_trending_terms
         from backend.editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE
 
 
 def slugify(text: str) -> str:
-    """Generate clean SEO-friendly slug from title."""
+    """Generate clean SEO-friendly slug from title, max 80 chars cut at word boundary."""
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s-]', '', text)
-    return re.sub(r'[\s-]+', '-', text).strip('-')
+    slug = re.sub(r'[\s-]+', '-', text).strip('-')
+    if len(slug) > 80:
+        if slug[80] == '-':
+            slug = slug[:80].strip('-')
+        else:
+            truncated = slug[:80]
+            if '-' in truncated:
+                slug = truncated.rsplit('-', 1)[0].strip('-')
+            else:
+                slug = truncated
+    return slug
 
 
 def are_titles_duplicate(title1: str, title2: str) -> bool:
@@ -129,6 +142,25 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 continue
             candidate_items.append(item)
 
+        # Priority boost for items containing trending search terms
+        try:
+            trending_terms = get_trending_terms()
+            if trending_terms and candidate_items:
+                def trending_priority_score(c_item: Dict[str, Any]) -> int:
+                    text = f"{c_item.get('raw_title', '')} {c_item.get('raw_summary', '')}"
+                    score = 0
+                    for term in trending_terms:
+                        if len(term) >= 2 and re.search(r'\b' + re.escape(term) + r'\b', text, re.IGNORECASE):
+                            score += 1
+                    return score
+
+                candidate_items.sort(key=trending_priority_score, reverse=True)
+                boosted_count = sum(1 for c_item in candidate_items if trending_priority_score(c_item) > 0)
+                if boosted_count > 0:
+                    print(f"[Master Pipeline] Priority boost applied: {boosted_count} story item(s) matched current Google Trending searches.")
+        except Exception as trend_err:
+            print(f"[Master Pipeline Trends Notice] {trend_err}")
+
         # If all stories from this fetch cycle already exist in DB, STOP. NEVER re-publish duplicate stories!
         if not candidate_items:
             print("[Master Pipeline] All active wires previously indexed. Zero duplicates generated.")
@@ -174,9 +206,12 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     raw_image_url=item.get("raw_image_url")
                 )
 
-                # Quality Gate 1: Check confidence
-                if ai_data.get("confidence") == "thin":
-                    print(f"[Master Pipeline] Quality Gate: Article '{ai_data['title'][:50]}' has 'thin' confidence (fewer than 3 distinct facts). Skipping publication.")
+                # Quality Gate 1: Check confidence and body word count (must be "full" and >= 120 words)
+                confidence = str(ai_data.get("confidence") or "").strip().lower()
+                body_text = ai_data.get("body") or ""
+                body_words = len(body_text.split())
+                if confidence != "full" or body_words < 120:
+                    print(f"[Master Pipeline] Quality Gate: Article '{ai_data.get('title', '')[:50]}' rejected (confidence='{confidence}', body_words={body_words} < 120). Skipping publication.")
                     continue
 
                 # Quality Gate 2: Check CATEGORY_FOCUS
@@ -219,6 +254,16 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 db.refresh(article)
                 published_articles.append(article)
                 print(f"[Master Pipeline] Article #{article.id} PUBLISHED live on portal (slug: {slug})")
+
+                # Log headline and trending search term used for owner review
+                trending_term = ai_data.get("trending_term_used") or "none"
+                print(f"[Trends Review] Headline: '{article.title}' | Trending Term: {trending_term}")
+                try:
+                    log_file = Path(__file__).resolve().parent.parent / "trends_published.log"
+                    with open(log_file, "a", encoding="utf-8") as tf:
+                        tf.write(f"{datetime.now(timezone.utc).isoformat()} | ID: {article.id} | Trending Term: {trending_term} | Headline: {article.title}\n")
+                except Exception:
+                    pass
 
                 # Instant Search Engine Indexing (IndexNow + Bing/Google Ping)
                 try:

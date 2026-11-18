@@ -12,7 +12,7 @@ except (ImportError, ValueError):
     except (ImportError, ValueError):
         from backend.services.image_resolver import resolve_article_image
 
-# Curated Tier-1 Global RSS Feeds grouped across all 5 Core Media Categories
+# Curated Tier-1 Global RSS Feeds for Focused Categories: Sports, AI & Tech, Entertainment
 RSS_FEEDS = [
     # 1. Sports (BBC, ESPN, Cricinfo, Sky Sports)
     {
@@ -56,70 +56,7 @@ RSS_FEEDS = [
         "name": "Hacker News",
         "url": "https://news.ycombinator.com/rss",
     },
-    # 3. Markets & Economy
-    {
-        "category": "Markets",
-        "name": "CNBC Markets",
-        "url": "https://search.cnbc.com/rs/search/view.html?partnerId=2000&keywords=markets&sort=date&output=rss",
-    },
-    {
-        "category": "Markets",
-        "name": "CoinDesk",
-        "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
-    },
-    # 4. World Politics & Global Affairs (Elections, World Leaders, Diplomacy, Defense)
-    {
-        "category": "World Politics",
-        "name": "Politico Politics",
-        "url": "https://rss.politico.com/politics-news.xml",
-    },
-    {
-        "category": "World Politics",
-        "name": "The Guardian World",
-        "url": "https://www.theguardian.com/world/rss",
-    },
-    {
-        "category": "World Politics",
-        "name": "BBC World News",
-        "url": "http://feeds.bbci.co.uk/news/world/rss.xml",
-    },
-    {
-        "category": "World Politics",
-        "name": "NPR World",
-        "url": "https://feeds.npr.org/1004/rss.xml",
-    },
-    {
-        "category": "World Politics",
-        "name": "Al Jazeera World",
-        "url": "https://www.aljazeera.com/xml/rss/all.xml",
-    },
-    # 5. Science & Space Exploration
-    {
-        "category": "Science",
-        "name": "ScienceDaily",
-        "url": "https://www.sciencedaily.com/rss/top/science.xml",
-    },
-    {
-        "category": "Science",
-        "name": "Phys.org",
-        "url": "https://phys.org/rss-feed/",
-    },
-    {
-        "category": "Science",
-        "name": "NASA Breaking News",
-        "url": "https://www.nasa.gov/news-release/feed/",
-    },
-    {
-        "category": "Science",
-        "name": "Space.com",
-        "url": "https://www.space.com/feeds/all",
-    },
-    # 6. Entertainment, Cinema & Gaming
-    {
-        "category": "Entertainment",
-        "name": "Variety",
-        "url": "https://variety.com/feed/",
-    },
+    # 3. Entertainment, Cinema & Gaming
     {
         "category": "Entertainment",
         "name": "IGN Gaming & Cinema",
@@ -140,7 +77,7 @@ SPORTS_KEYWORDS = [
     "arteta", "athletics", "olympic", "paralympic"
 ]
 
-ALL_CATEGORIES = ["AI & Tech", "Markets", "World Politics", "Science", "Sports", "Entertainment"]
+ALL_CATEGORIES = ["AI & Tech", "Sports", "Entertainment"]
 
 def clean_html(raw_html: str) -> str:
     """Strip HTML tags and unescape entities."""
@@ -158,15 +95,15 @@ def fetch_breaking_rss_news(
 ) -> List[Dict[str, Any]]:
     """
     Fetch breaking stories from across top Tier-1 RSS feeds.
-    Provides balanced round-robin sampling across all 5 core categories
-    (including Global Sports and World Politics) or focuses on target_category if specified.
+    Provides balanced round-robin sampling across the 3 focused categories
+    (AI & Tech, Sports, Entertainment) or focuses on target_category if specified.
     Deep-scans feed entries and filters out already published stories to prevent duplicates.
     """
     extracted_items: List[Dict[str, Any]] = []
 
     # 1. Filter or organize feeds by category
     if target_category:
-        clean_cat = "World Politics" if target_category.lower() in ("geopolitics", "world politics", "politics") else target_category
+        clean_cat = target_category
         active_feeds = [f for f in RSS_FEEDS if f["category"].lower() == clean_cat.lower()]
         if not active_feeds:
             active_feeds = RSS_FEEDS
@@ -280,28 +217,12 @@ def fetch_breaking_rss_news(
                 "raw_image_url": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80"
             },
             {
-                "raw_title": "Global Sovereign Wealth Funds Reallocate $65B to Infrastructure and Power Grids",
-                "raw_summary": "Top sovereign asset managers in Singapore, Norway, and Abu Dhabi shift capital allocations into clean grid transmission and data center energy interconnects.",
-                "source_name": "CNBC Markets",
-                "source_url": "https://cnbc.com/markets",
-                "suggested_category": "Global Markets",
-                "raw_image_url": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80"
-            },
-            {
-                "raw_title": "European Union and Indo-Pacific Partners Finalize Semiconductor Resilience Corridor",
-                "raw_summary": "Diplomatic agreement pledges joint emergency stockpiles for critical lithography components and chemical precursors against geopolitical disruption.",
-                "source_name": "BBC World News",
-                "source_url": "https://bbc.com/news/world",
-                "suggested_category": "Geopolitics",
-                "raw_image_url": "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1200&q=80"
-            },
-            {
-                "raw_title": "Deep Space Optical Communications Link Streams Terabyte Telemetry from Mars Orbit",
-                "raw_summary": "High-powered laser receiver in California locks onto deep-space optical transceiver, shattering long-distance data transmission bandwidth records.",
-                "source_name": "ScienceDaily",
-                "source_url": "https://sciencedaily.com",
-                "suggested_category": "Future Science",
-                "raw_image_url": "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=1200&q=80"
+                "raw_title": "Sony and Square Enix Showcase Next-Generation Real-Time RPG Visual Pipeline",
+                "raw_summary": "Development directors demonstrate real-time dynamic lighting and performance capture pipelines for upcoming premiere releases on next-gen hardware.",
+                "source_name": "IGN Gaming & Cinema",
+                "source_url": "https://ign.com",
+                "suggested_category": "Entertainment",
+                "raw_image_url": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80"
             },
         ]
 

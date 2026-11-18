@@ -266,10 +266,20 @@ _videos_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/videos-files", StaticFiles(directory=str(_videos_dir)), name="videos-files")
 
 def slugify(text: str) -> str:
-
+    """Generate clean SEO-friendly slug from title, max 80 chars cut at word boundary."""
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s-]', '', text)
-    return re.sub(r'[\s-]+', '-', text).strip('-')
+    slug = re.sub(r'[\s-]+', '-', text).strip('-')
+    if len(slug) > 80:
+        if slug[80] == '-':
+            slug = slug[:80].strip('-')
+        else:
+            truncated = slug[:80]
+            if '-' in truncated:
+                slug = truncated.rsplit('-', 1)[0].strip('-')
+            else:
+                slug = truncated
+    return slug
 
 # -------------------------------------------------------------
 # Endpoints
