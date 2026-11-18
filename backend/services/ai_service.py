@@ -1,4 +1,5 @@
 import os
+import time
 import json
 import re
 import urllib.request
@@ -374,12 +375,47 @@ def clean_json_text(text: str) -> str:
 
 
 COOLDOWN_FILE = Path(__file__).resolve().parent.parent / ".gemini_cooldown"
+MODEL_COOLDOWN_FILE = Path(__file__).resolve().parent.parent / ".gemini_model_status.json"
+PACING_FILE = Path(__file__).resolve().parent.parent / ".gemini_last_call"
 DEFAULT_COOLDOWN_MINUTES = 30
+MIN_CALL_GAP_SECONDS = 6.0  # Max 10 requests per minute across whole backend
+
 _in_memory_cooldown_until: float = 0.0
+_current_model_index: int = 0
+_last_call_time: float = 0.0
+
+
+def wait_for_gemini_pacing() -> None:
+    """Enforces minimum 6-second gap between Gemini requests (max 10 req/min across backend)."""
+    global _last_call_time
+    now = time.time()
+    last_time = _last_call_time
+
+    if PACING_FILE.exists():
+        try:
+            with open(PACING_FILE, "r", encoding="utf-8") as f:
+                f_time = float(f.read().strip())
+                if f_time > last_time:
+                    last_time = f_time
+        except Exception:
+            pass
+
+    elapsed = now - last_time
+    if elapsed < MIN_CALL_GAP_SECONDS:
+        sleep_time = MIN_CALL_GAP_SECONDS - elapsed
+        time.sleep(sleep_time)
+
+    actual_now = time.time()
+    _last_call_time = actual_now
+    try:
+        with open(PACING_FILE, "w", encoding="utf-8") as f:
+            f.write(str(actual_now))
+    except Exception:
+        pass
 
 
 def get_gemini_cooldown_remaining() -> float:
-    """Returns seconds remaining in Gemini 429 cooldown, or 0.0 if not in cooldown."""
+    """Returns seconds remaining in global Gemini 429 cooldown, or 0.0 if not in cooldown."""
     global _in_memory_cooldown_until
     now = datetime.now(timezone.utc).timestamp()
     if _in_memory_cooldown_until > now:
@@ -405,7 +441,7 @@ def get_gemini_cooldown_remaining() -> float:
 
 
 def set_gemini_cooldown(minutes: Optional[int] = None) -> float:
-    """Activates cooldown for Gemini calls after HTTP 429 / quota exhaustion."""
+    """Activates global cooldown for Gemini calls after ALL models returned HTTP 429."""
     global _in_memory_cooldown_until
     if minutes is None:
         try:
@@ -421,89 +457,181 @@ def set_gemini_cooldown(minutes: Optional[int] = None) -> float:
             f.write(str(until))
     except Exception as e:
         print(f"[Gemini Cooldown Warning] Could not persist cooldown timestamp: {e}")
-    print(f"[Gemini Cooldown Activated] HTTP 429 received. Cooldown set for {minutes} minutes ({duration}s).")
+    print(f"[Gemini Cooldown Activated] ALL models exhausted. Global cooldown set for {minutes} minutes ({duration}s).")
     return duration
 
 
 def get_configured_gemini_models() -> List[str]:
-    """Returns list of Gemini model names to try, configurable via GEMINI_MODELS env."""
+    """Returns priority list of Gemini models, configurable via GEMINI_MODELS env."""
     env_models = os.getenv("GEMINI_MODELS")
     if env_models and env_models.strip():
         models = [m.strip().replace("models/", "") for m in env_models.split(",") if m.strip()]
         if models:
             return models
-    return ["gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-flash-latest"]
+    # Default priority: Gemini 3.5 Flash Lite -> Gemini 3.1 Flash Lite (500 req/day each)
+    return ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]
+
+
+def load_model_cooldowns() -> Dict[str, float]:
+    """Loads per-model 429 cooldown timestamps."""
+    now = datetime.now(timezone.utc).timestamp()
+    result: Dict[str, float] = {}
+    if MODEL_COOLDOWN_FILE.exists():
+        try:
+            with open(MODEL_COOLDOWN_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                result = {m: float(ts) for m, ts in data.items() if float(ts) > now}
+        except Exception:
+            pass
+    return result
+
+
+def save_model_cooldowns(data: Dict[str, float]) -> None:
+    """Saves per-model cooldown timestamps."""
+    try:
+        with open(MODEL_COOLDOWN_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
+
+def get_available_model() -> Optional[Tuple[str, int]]:
+    """
+    Finds the next available Gemini model that is not currently in 429 cooldown.
+    Returns (model_name, index) or None if all configured models are in cooldown.
+    """
+    global _current_model_index
+    models = get_configured_gemini_models()
+    if not models:
+        return None
+
+    cooldowns = load_model_cooldowns()
+    now = datetime.now(timezone.utc).timestamp()
+
+    for i in range(len(models)):
+        idx = (_current_model_index + i) % len(models)
+        m = models[idx]
+        if cooldowns.get(m, 0.0) <= now:
+            _current_model_index = idx
+            return m, idx
+
+    return None
+
+
+def record_model_429(model_name: str) -> bool:
+    """
+    Records an HTTP 429 for model_name and switches to the next model for the NEXT story.
+    Starts global cooldown only when ALL models in the list have returned 429.
+    Returns True if all models are now exhausted, False otherwise.
+    """
+    global _current_model_index
+    models = get_configured_gemini_models()
+    try:
+        cooldown_mins = int(os.getenv("GEMINI_COOLDOWN_MINUTES", str(DEFAULT_COOLDOWN_MINUTES)))
+    except ValueError:
+        cooldown_mins = DEFAULT_COOLDOWN_MINUTES
+
+    duration = max(1, cooldown_mins) * 60
+    now = datetime.now(timezone.utc).timestamp()
+    until = now + duration
+
+    cooldowns = load_model_cooldowns()
+    cooldowns[model_name] = until
+    save_model_cooldowns(cooldowns)
+
+    # Advance active index to the next model for the NEXT story
+    if models:
+        curr_idx = models.index(model_name) if model_name in models else _current_model_index
+        _current_model_index = (curr_idx + 1) % len(models)
+        next_model = models[_current_model_index]
+        print(f"[Gemini Model Switch] Model '{model_name}' returned HTTP 429. Switched to '{next_model}' for next story.")
+
+    # Check if ALL models in list have returned 429
+    all_exhausted = all(cooldowns.get(m, 0.0) > now for m in models)
+    if all_exhausted:
+        set_gemini_cooldown(cooldown_mins)
+        return True
+    return False
 
 
 def call_gemini_api(prompt: str, api_key: str) -> Tuple[str, Optional[str]]:
     """
-    Call Google Gemini REST API endpoint with automatic model fallback.
-    Ultra-reliable, zero C-extension conflicts.
+    Call Google Gemini REST API endpoint using the active priority model.
+    - Rate-limited to max 10 calls/min (minimum 6s gap).
+    - If the model returns HTTP 429, switches to next model for NEXT story (does NOT retry same story).
+    - Starts global cooldown only when ALL models have returned 429.
     Returns (raw_response_text, error_message_if_failed).
     """
-    remaining = get_gemini_cooldown_remaining()
-    if remaining > 0:
-        mins = int(remaining // 60)
-        secs = int(remaining % 60)
-        msg = f"Gemini cooldown active ({mins}m {secs}s remaining after HTTP 429)"
-        return "", msg
+    # 1. Check global cooldown (all models exhausted)
+    global_remaining = get_gemini_cooldown_remaining()
+    if global_remaining > 0:
+        mins = int(global_remaining // 60)
+        secs = int(global_remaining % 60)
+        return "", f"Gemini cooldown active ({mins}m {secs}s remaining after all models hit HTTP 429)"
 
-    models = get_configured_gemini_models()
-    last_error: Optional[str] = None
-    for model_name in models:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-        payload = {
-            "contents": [
-                {
-                    "parts": [{"text": prompt}]
-                }
-            ],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "temperature": 0.2
+    # 2. Find next available model
+    model_info = get_available_model()
+    if not model_info:
+        models = get_configured_gemini_models()
+        set_gemini_cooldown()
+        return "", f"All configured Gemini models {models} exhausted (cooldown activated)"
+
+    model_name, _ = model_info
+
+    # 3. Enforce pacing: minimum 6s between requests (max 10 req/min across backend)
+    wait_for_gemini_pacing()
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    payload = {
+        "contents": [
+            {
+                "parts": [{"text": prompt}]
             }
+        ],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.2
         }
-        
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=data,
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
+    }
 
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=35) as resp:
+            res_json = json.loads(resp.read().decode("utf-8"))
+            candidates = res_json.get("candidates", [])
+            if candidates:
+                parts = candidates[0].get("content", {}).get("parts", [])
+                if parts:
+                    text = parts[0].get("text", "")
+                    if text:
+                        return text, None
+    except urllib.error.HTTPError as he:
+        err_msg = f"HTTP Error {he.code}: {he.reason}"
         try:
-            with urllib.request.urlopen(req, timeout=35) as resp:
-                res_json = json.loads(resp.read().decode("utf-8"))
-                candidates = res_json.get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    if parts:
-                        text = parts[0].get("text", "")
-                        if text:
-                            return text, None
-        except urllib.error.HTTPError as he:
-            err_msg = f"HTTP Error {he.code}: {he.reason}"
-            try:
-                raw_err = he.read().decode("utf-8", errors="ignore")
-                err_json = json.loads(raw_err)
-                msg = err_json.get("error", {}).get("message")
-                if msg:
-                    err_msg += f" - {msg[:120]}"
-            except Exception:
-                pass
-            last_error = err_msg
-            print(f"[Gemini API] Note: Model '{model_name}' call exception ({err_msg}).")
-            if he.code == 429:
-                set_gemini_cooldown()
-                # Stop trying remaining models for this story immediately!
-                break
-            continue
-        except Exception as e:
-            last_error = f"{type(e).__name__}: {str(e)}"
-            print(f"[Gemini API] Note: Model '{model_name}' call exception ({last_error}). Trying fallback...")
-            continue
-    return "", last_error
+            raw_err = he.read().decode("utf-8", errors="ignore")
+            err_json = json.loads(raw_err)
+            msg = err_json.get("error", {}).get("message")
+            if msg:
+                err_msg += f" - {msg[:120]}"
+        except Exception:
+            pass
+        print(f"[Gemini API] Note: Model '{model_name}' call exception ({err_msg}).")
+        if he.code == 429:
+            record_model_429(model_name)
+        return "", err_msg
+    except Exception as e:
+        err_msg = f"{type(e).__name__}: {str(e)}"
+        print(f"[Gemini API] Note: Model '{model_name}' call exception ({err_msg}).")
+        return "", err_msg
+
+    return "", f"Model '{model_name}' returned empty candidates"
 
 
 def parse_and_format_article_json(data: Dict[str, Any], raw_title: str, source_name: str, source_url: str, suggested_category: str, raw_image_url: Optional[str] = None) -> Dict[str, Any]:

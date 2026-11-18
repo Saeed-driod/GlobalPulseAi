@@ -266,6 +266,14 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
 
         published_articles: List[Article] = []
 
+        # Check per-run Gemini attempt limit (GEMINI_MAX_STORIES_PER_RUN, default 5)
+        max_stories_env = os.getenv("GEMINI_MAX_STORIES_PER_RUN", "5")
+        try:
+            max_gemini_stories_per_run = int(max_stories_env)
+        except ValueError:
+            max_gemini_stories_per_run = 5
+        gemini_stories_attempted = 0
+
         # Check today's published count against DAILY_PUBLISHING_CAP
         now_utc = datetime.now(timezone.utc)
         start_of_day = datetime(now_utc.year, now_utc.month, now_utc.day, tzinfo=timezone.utc)
@@ -288,10 +296,17 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 print(f"[Master Pipeline] Reached target publication limit or daily cap.")
                 break
 
-            # Check if an earlier candidate in this batch triggered cooldown
+            # Check if all models entered cooldown
             if get_gemini_cooldown_remaining() > 0:
-                print("[Master Pipeline] Gemini 429 cooldown active. Halting further candidate processing.")
+                print("[Master Pipeline] All Gemini models in 429 cooldown. Halting candidate processing.")
                 break
+
+            # Limit candidate stories sent to Gemini per run to prevent burning daily quota
+            if gemini_stories_attempted >= max_gemini_stories_per_run:
+                print(f"[Master Pipeline] Reached per-run Gemini attempt cap ({gemini_stories_attempted}/{max_gemini_stories_per_run} via GEMINI_MAX_STORIES_PER_RUN). Halting further attempts this run.")
+                break
+
+            gemini_stories_attempted += 1
 
             try:
                 print(f"\n[Step 2/5] Synthesizing with Gemini AI: '{item['raw_title'][:60]}...'")

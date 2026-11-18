@@ -92,6 +92,10 @@ rejected_stories.json
 backend/rejected_stories.json
 .gemini_cooldown
 backend/.gemini_cooldown
+.gemini_last_call
+backend/.gemini_last_call
+.gemini_model_status.json
+backend/.gemini_model_status.json
 scheduler.lock
 backend/scheduler.lock
 
