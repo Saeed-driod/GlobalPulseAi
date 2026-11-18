@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -6,11 +7,36 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 # Global Scheduler Instance
 scheduler: Optional[BackgroundScheduler] = None
+_scheduler_lock_file = None
 last_run_info: Dict[str, Any] = {
     "last_run_time": None,
     "last_run_status": "Never executed",
     "last_run_summary": None,
 }
+
+
+def _acquire_scheduler_lock() -> bool:
+    """Attempts to acquire exclusive non-blocking lock on scheduler.lock so only 1 process runs jobs."""
+    global _scheduler_lock_file
+    lock_path = Path(__file__).resolve().parent.parent / "scheduler.lock"
+    try:
+        _scheduler_lock_file = open(lock_path, "w")
+        try:
+            import fcntl
+            fcntl.flock(_scheduler_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except (ImportError, AttributeError):
+            try:
+                import msvcrt
+                msvcrt.locking(_scheduler_lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                return True
+            except Exception:
+                return False
+        except (BlockingIOError, IOError, OSError):
+            return False
+    except Exception as e:
+        print(f"[Scheduler Lock Notice] {e}")
+        return True
 
 
 def scheduled_pipeline_job():
@@ -75,6 +101,11 @@ def start_scheduler() -> BackgroundScheduler:
         print("[Scheduler] Scheduler is already active.")
         return scheduler
 
+    # Acquire process lock to guarantee only 1 uvicorn worker process initializes the scheduler
+    if not _acquire_scheduler_lock():
+        print("[Scheduler] Another worker process holds the scheduler lock. Skipping initialization in this process.")
+        return None
+
     # Configure interval (default: 15 minutes)
     interval_hours = os.getenv("AUTO_PIPELINE_INTERVAL_HOURS")
     interval_minutes = os.getenv("AUTO_PIPELINE_INTERVAL_MINUTES", "15")
@@ -128,11 +159,17 @@ def start_scheduler() -> BackgroundScheduler:
 
 def stop_scheduler():
     """Cleanly stop the background scheduler."""
-    global scheduler
+    global scheduler, _scheduler_lock_file
     if scheduler and scheduler.running:
         scheduler.shutdown(wait=False)
         print("[Scheduler] Background scheduler shut down.")
         scheduler = None
+    if _scheduler_lock_file:
+        try:
+            _scheduler_lock_file.close()
+        except Exception:
+            pass
+        _scheduler_lock_file = None
 
 
 def get_scheduler_status() -> Dict[str, Any]:

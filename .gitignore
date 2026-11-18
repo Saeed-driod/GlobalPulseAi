@@ -88,6 +88,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+rejected_stories.json
+backend/rejected_stories.json
+.gemini_cooldown
+backend/.gemini_cooldown
+scheduler.lock
+backend/scheduler.lock
 
 # OS and Editor files
 .DS_Store

@@ -372,13 +372,82 @@ def clean_json_text(text: str) -> str:
     return text.strip()
 
 
+COOLDOWN_FILE = Path(__file__).resolve().parent.parent / ".gemini_cooldown"
+DEFAULT_COOLDOWN_MINUTES = 30
+_in_memory_cooldown_until: float = 0.0
+
+
+def get_gemini_cooldown_remaining() -> float:
+    """Returns seconds remaining in Gemini 429 cooldown, or 0.0 if not in cooldown."""
+    global _in_memory_cooldown_until
+    now = datetime.now(timezone.utc).timestamp()
+    if _in_memory_cooldown_until > now:
+        return _in_memory_cooldown_until - now
+
+    if COOLDOWN_FILE.exists():
+        try:
+            with open(COOLDOWN_FILE, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if content:
+                    until = float(content)
+                    if until > now:
+                        _in_memory_cooldown_until = until
+                        return until - now
+                    else:
+                        try:
+                            COOLDOWN_FILE.unlink(missing_ok=True)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+    return 0.0
+
+
+def set_gemini_cooldown(minutes: Optional[int] = None) -> float:
+    """Activates cooldown for Gemini calls after HTTP 429 / quota exhaustion."""
+    global _in_memory_cooldown_until
+    if minutes is None:
+        try:
+            minutes = int(os.getenv("GEMINI_COOLDOWN_MINUTES", str(DEFAULT_COOLDOWN_MINUTES)))
+        except ValueError:
+            minutes = DEFAULT_COOLDOWN_MINUTES
+    duration = max(1, minutes) * 60
+    now = datetime.now(timezone.utc).timestamp()
+    until = now + duration
+    _in_memory_cooldown_until = until
+    try:
+        with open(COOLDOWN_FILE, "w", encoding="utf-8") as f:
+            f.write(str(until))
+    except Exception as e:
+        print(f"[Gemini Cooldown Warning] Could not persist cooldown timestamp: {e}")
+    print(f"[Gemini Cooldown Activated] HTTP 429 received. Cooldown set for {minutes} minutes ({duration}s).")
+    return duration
+
+
+def get_configured_gemini_models() -> List[str]:
+    """Returns list of Gemini model names to try, configurable via GEMINI_MODELS env."""
+    env_models = os.getenv("GEMINI_MODELS")
+    if env_models and env_models.strip():
+        models = [m.strip().replace("models/", "") for m in env_models.split(",") if m.strip()]
+        if models:
+            return models
+    return ["gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-flash-latest"]
+
+
 def call_gemini_api(prompt: str, api_key: str) -> Tuple[str, Optional[str]]:
     """
     Call Google Gemini REST API endpoint with automatic model fallback.
     Ultra-reliable, zero C-extension conflicts.
     Returns (raw_response_text, error_message_if_failed).
     """
-    models = ["gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-flash-latest"]
+    remaining = get_gemini_cooldown_remaining()
+    if remaining > 0:
+        mins = int(remaining // 60)
+        secs = int(remaining % 60)
+        msg = f"Gemini cooldown active ({mins}m {secs}s remaining after HTTP 429)"
+        return "", msg
+
+    models = get_configured_gemini_models()
     last_error: Optional[str] = None
     for model_name in models:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
@@ -423,7 +492,11 @@ def call_gemini_api(prompt: str, api_key: str) -> Tuple[str, Optional[str]]:
             except Exception:
                 pass
             last_error = err_msg
-            print(f"[Gemini API] Note: Model '{model_name}' call exception ({err_msg}). Trying fallback...")
+            print(f"[Gemini API] Note: Model '{model_name}' call exception ({err_msg}).")
+            if he.code == 429:
+                set_gemini_cooldown()
+                # Stop trying remaining models for this story immediately!
+                break
             continue
         except Exception as e:
             last_error = f"{type(e).__name__}: {str(e)}"
