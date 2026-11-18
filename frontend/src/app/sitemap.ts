@@ -62,24 +62,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${siteUrl}/category/markets`,
-      lastModified: currentDate,
-      changeFrequency: "hourly",
-      priority: 0.9,
-    },
-    {
-      url: `${siteUrl}/category/world-politics`,
-      lastModified: currentDate,
-      changeFrequency: "hourly",
-      priority: 0.9,
-    },
-    {
-      url: `${siteUrl}/category/science`,
-      lastModified: currentDate,
-      changeFrequency: "hourly",
-      priority: 0.9,
-    },
-    {
       url: `${siteUrl}/category/sports`,
       lastModified: currentDate,
       changeFrequency: "hourly",
@@ -94,19 +76,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const HARD_CAP = 5000;
-  const PAGE_LIMIT = 500;
+  const PAGE_LIMIT = 100;
   const allArticles: any[] = [];
   let skip = 0;
   let totalArticles = Infinity;
 
   while (skip < totalArticles && allArticles.length < HARD_CAP) {
+    const fetchLimit = Math.min(PAGE_LIMIT, HARD_CAP - allArticles.length);
     try {
-      const fetchLimit = Math.min(PAGE_LIMIT, HARD_CAP - allArticles.length);
       const res = await fetchArticles({
         status: "PUBLISHED",
         limit: fetchLimit,
         skip,
-        revalidate: 3600,
+        revalidate: 60,
       });
 
       const items = res.items || [];
@@ -120,14 +102,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       if (items.length < fetchLimit) break;
     } catch (err) {
       console.warn(`[Sitemap Warning] Error fetching articles page at skip ${skip}:`, err);
-      // Keep what was already collected and stop looping
+      if (allArticles.length === 0) {
+        throw new Error(`[Sitemap Error] Failed to fetch articles: ${err}`);
+      }
       break;
     }
   }
 
-  const dynamicRoutes: MetadataRoute.Sitemap = allArticles
-    .filter((article) => article && article.slug && !article.is_noindex)
-    .map((article) => ({
+  if (allArticles.length === 0) {
+    throw new Error("[Sitemap Error] Zero published articles retrieved. Refusing to publish an article-less sitemap.");
+  }
+
+  const seenSlugs = new Set<string>();
+  const dynamicRoutes: MetadataRoute.Sitemap = [];
+
+  for (const article of allArticles) {
+    if (!article || !article.slug || article.is_noindex) continue;
+    if (seenSlugs.has(article.slug)) continue;
+    seenSlugs.add(article.slug);
+
+    dynamicRoutes.push({
       url: `${siteUrl}/news/${article.slug}`,
       lastModified: article.published_at
         ? new Date(article.published_at)
@@ -136,7 +130,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         : currentDate,
       changeFrequency: "daily",
       priority: 0.9,
-    }));
+    });
+  }
 
   return [...staticRoutes, ...dynamicRoutes];
 }

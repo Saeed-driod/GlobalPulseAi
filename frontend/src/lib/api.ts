@@ -31,7 +31,7 @@ export function getBackendUrl(): string {
   if (envUrl && envUrl.trim()) {
     return envUrl.trim().replace(/\/+$/, "");
   }
-  return "";
+  return "http://150.136.214.192";
 }
 
 export const API_BASE = getApiBase();
