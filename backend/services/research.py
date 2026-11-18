@@ -27,6 +27,9 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 # In-memory robots.txt cache: netloc -> Optional[RobotFileParser]
 _ROBOTS_CACHE: Dict[str, Optional[urllib.robotparser.RobotFileParser]] = {}
 
+# In-memory extracted page text cache for current cycle: url -> Optional[str]
+_PAGE_CACHE: Dict[str, Optional[str]] = {}
+
 # Daily tracking file
 _DAILY_TRACK_FILE = Path(__file__).resolve().parent.parent / ".deep_research_daily.json"
 
@@ -211,7 +214,11 @@ def fetch_article_page(url: str, timeout: int = 8, max_bytes: int = 204800) -> O
     if not url or not isinstance(url, str) or not url.startswith("http"):
         return None
 
+    if url in _PAGE_CACHE:
+        return _PAGE_CACHE[url]
+
     if not is_allowed_by_robots(url):
+        _PAGE_CACHE[url] = None
         return None
 
     try:
@@ -226,18 +233,24 @@ def fetch_article_page(url: str, timeout: int = 8, max_bytes: int = 204800) -> O
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             content_type = resp.headers.get("Content-Type", "").lower()
             if "html" not in content_type and "xml" not in content_type:
+                _PAGE_CACHE[url] = None
                 return None
             raw_bytes = resp.read(max_bytes)
             content = raw_bytes.decode("utf-8", errors="ignore")
             main_text = extract_main_text_from_html(content)
             if not main_text:
+                _PAGE_CACHE[url] = None
                 return None
             # Return first ~2500 characters
             if len(main_text) > 2500:
                 cut = main_text[:2500].rsplit("\n\n", 1)[0]
-                return cut if len(cut) > 1500 else main_text[:2500]
-            return main_text
+                res = cut if len(cut) > 1500 else main_text[:2500]
+            else:
+                res = main_text
+            _PAGE_CACHE[url] = res
+            return res
     except Exception:
+        _PAGE_CACHE[url] = None
         return None
 
 

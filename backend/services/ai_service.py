@@ -623,7 +623,7 @@ def call_gemini_api(prompt: str, api_key: str) -> Tuple[str, Optional[str]]:
         except Exception:
             pass
         print(f"[Gemini API] Note: Model '{model_name}' call exception ({err_msg}).")
-        if he.code == 429:
+        if he.code in (429, 503):
             record_model_429(model_name)
         return "", err_msg
     except Exception as e:
@@ -1086,10 +1086,7 @@ def process_deep_research_news(
         for idx, s in enumerate(source_pack)
     ])
 
-    combined_source_text = f"Title: {raw_title}\n\n" + "\n\n".join([
-        f"Source: {s.get('outlet', '')}\nTitle: {s.get('title', '')}\n{s.get('text', '')}"
-        for s in source_pack
-    ])
+    combined_source_text = f"Title: {raw_title}\n\n" + combined_sources_str
 
     fixed_categories_str = ", ".join(FIXED_CATEGORIES)
 
@@ -1125,8 +1122,8 @@ Rules for trending search terms:
 You have been provided with a SOURCE PACK containing verified reports from multiple news outlets.
 
 STRICT EDITORIAL REQUIREMENTS:
-1. WORD COUNT: The article body must contain between 400 and 700 words. Never write under 400 words.
-2. STRUCTURE: Use short, clearly demarcated sections with the following exact Markdown headings:
+1. WORD COUNT: The article body MUST contain between 400 and 700 words (do not write under 400 words). Thoroughly explain the background, timelines, factual numbers, and corroborated statements from the sources.
+2. STRUCTURE: Write comprehensive, well-developed paragraphs for each section (approximately 130 to 180 words each) using these exact Markdown headings:
    ### What Happened
    ### Key Details
    ### What We Don't Know Yet
