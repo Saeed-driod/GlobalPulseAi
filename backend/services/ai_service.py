@@ -372,12 +372,14 @@ def clean_json_text(text: str) -> str:
     return text.strip()
 
 
-def call_gemini_api(prompt: str, api_key: str) -> str:
+def call_gemini_api(prompt: str, api_key: str) -> Tuple[str, Optional[str]]:
     """
     Call Google Gemini REST API endpoint with automatic model fallback.
     Ultra-reliable, zero C-extension conflicts.
+    Returns (raw_response_text, error_message_if_failed).
     """
     models = ["gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-flash-latest"]
+    last_error: Optional[str] = None
     for model_name in models:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
         payload = {
@@ -409,11 +411,25 @@ def call_gemini_api(prompt: str, api_key: str) -> str:
                     if parts:
                         text = parts[0].get("text", "")
                         if text:
-                            return text
-        except Exception as e:
-            print(f"[Gemini API] Note: Model '{model_name}' call exception ({e}). Trying fallback...")
+                            return text, None
+        except urllib.error.HTTPError as he:
+            err_msg = f"HTTP Error {he.code}: {he.reason}"
+            try:
+                raw_err = he.read().decode("utf-8", errors="ignore")
+                err_json = json.loads(raw_err)
+                msg = err_json.get("error", {}).get("message")
+                if msg:
+                    err_msg += f" - {msg[:120]}"
+            except Exception:
+                pass
+            last_error = err_msg
+            print(f"[Gemini API] Note: Model '{model_name}' call exception ({err_msg}). Trying fallback...")
             continue
-    return ""
+        except Exception as e:
+            last_error = f"{type(e).__name__}: {str(e)}"
+            print(f"[Gemini API] Note: Model '{model_name}' call exception ({last_error}). Trying fallback...")
+            continue
+    return "", last_error
 
 
 def parse_and_format_article_json(data: Dict[str, Any], raw_title: str, source_name: str, source_url: str, suggested_category: str, raw_image_url: Optional[str] = None) -> Dict[str, Any]:
@@ -509,6 +525,7 @@ def process_raw_news(
     - Plain, clear journalistic English.
     """
     gemini_api_key = os.getenv("GEMINI_API_KEY")
+    gemini_error: Optional[str] = None
 
     # Clean and prepare SOURCE_TEXT
     source_text = f"Title: {raw_title}\n\nSummary/Excerpt: {raw_summary}\n\nSource: {source_name}\nURL: {source_url}"
@@ -574,23 +591,33 @@ If SOURCE_TEXT contains fewer than 3 distinct facts or body is under 120 words, 
     if gemini_api_key:
         try:
             # Step 1: Initial Generation
-            raw_response = call_gemini_api(base_prompt, gemini_api_key)
+            raw_response, api_err = call_gemini_api(base_prompt, gemini_api_key)
+            if api_err:
+                gemini_error = api_err
             if raw_response:
                 cleaned = clean_json_text(raw_response)
+                data = None
                 try:
                     data = json.loads(cleaned, strict=False)
-                except Exception:
+                except Exception as json_err:
                     sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', lambda m: ' ' if m.group(0) in '\t\r\n' else '', cleaned)
-                    data = json.loads(sanitized, strict=False)
+                    try:
+                        data = json.loads(sanitized, strict=False)
+                    except Exception as json_err2:
+                        gemini_error = f"Invalid JSON response: {json_err2}"
+                        data = None
 
-                formatted = parse_and_format_article_json(data, raw_title, source_name, source_url, suggested_category, raw_image_url=raw_image_url)
+                if data:
+                    formatted = parse_and_format_article_json(data, raw_title, source_name, source_url, suggested_category, raw_image_url=raw_image_url)
+                    formatted["generation_path"] = "gemini"
+                    formatted["gemini_error"] = None
 
-                # Step 2: Strict Number, Score, Date, Weekday, and Ranking Verification
-                is_valid, unverified = verify_output_facts(formatted, source_text)
+                    # Step 2: Strict Number, Score, Date, Weekday, and Ranking Verification
+                    is_valid, unverified = verify_output_facts(formatted, source_text)
 
-                if not is_valid:
-                    print(f"[Number/Fact Check Failed] Output contained unverified facts: {unverified}. Regenerating once with strict correction...")
-                    correction_prompt = f"""{base_prompt}
+                    if not is_valid:
+                        print(f"[Number/Fact Check Failed] Output contained unverified facts: {unverified}. Regenerating once with strict correction...")
+                        correction_prompt = f"""{base_prompt}
 
 CRITICAL CORRECTION REQUIRED:
 Your previous output invented the following numbers, scores, dates, weekdays, or rankings not present in SOURCE_TEXT:
@@ -601,31 +628,43 @@ You must rewrite the JSON using ONLY facts, numbers, and scores directly stated 
 - Never invent weekdays (e.g. Saturday), halves (e.g. second half), points (e.g. two points), or dates unless explicitly written in SOURCE_TEXT.
 - If a detail is not in the source text, omit it completely."""
 
-                    retry_raw = call_gemini_api(correction_prompt, gemini_api_key)
-                    if retry_raw:
-                        cleaned_retry = clean_json_text(retry_raw)
-                        try:
-                            retry_data = json.loads(cleaned_retry, strict=False)
-                        except Exception:
-                            sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', lambda m: ' ' if m.group(0) in '\t\r\n' else '', cleaned_retry)
-                            retry_data = json.loads(sanitized, strict=False)
+                        retry_raw, retry_err = call_gemini_api(correction_prompt, gemini_api_key)
+                        if retry_err:
+                            gemini_error = retry_err
+                        if retry_raw:
+                            cleaned_retry = clean_json_text(retry_raw)
+                            retry_data = None
+                            try:
+                                retry_data = json.loads(cleaned_retry, strict=False)
+                            except Exception:
+                                sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', lambda m: ' ' if m.group(0) in '\t\r\n' else '', cleaned_retry)
+                                try:
+                                    retry_data = json.loads(sanitized, strict=False)
+                                except Exception:
+                                    pass
 
-                        formatted_retry = parse_and_format_article_json(retry_data, raw_title, source_name, source_url, suggested_category, raw_image_url=raw_image_url)
-                        retry_valid, retry_unverified = verify_output_facts(formatted_retry, source_text)
+                            if retry_data:
+                                formatted_retry = parse_and_format_article_json(retry_data, raw_title, source_name, source_url, suggested_category, raw_image_url=raw_image_url)
+                                retry_valid, retry_unverified = verify_output_facts(formatted_retry, source_text)
 
-                        if retry_valid:
-                            print(f"[Number/Fact Check Passed on Retry] All numbers, scores, and dates confirmed in source text.")
-                            formatted_retry["trending_term_used"] = extract_used_trending_term(formatted_retry, trending_in_source)
-                            return formatted_retry
-                        else:
-                            print(f"[Number/Fact Check Failed on Retry] Still unverified: {retry_unverified}. Marking confidence as 'thin'.")
-                            formatted_retry["confidence"] = "thin"
-                            formatted_retry["trending_term_used"] = extract_used_trending_term(formatted_retry, trending_in_source)
-                            return formatted_retry
+                                if retry_valid:
+                                    print(f"[Number/Fact Check Passed on Retry] All numbers, scores, and dates confirmed in source text.")
+                                    formatted_retry["generation_path"] = "gemini"
+                                    formatted_retry["gemini_error"] = None
+                                    formatted_retry["trending_term_used"] = extract_used_trending_term(formatted_retry, trending_in_source)
+                                    return formatted_retry
+                                else:
+                                    print(f"[Number/Fact Check Failed on Retry] Still unverified: {retry_unverified}. Marking confidence as 'thin'.")
+                                    formatted_retry["generation_path"] = "gemini"
+                                    formatted_retry["confidence"] = "thin"
+                                    formatted_retry["gemini_error"] = f"Failed factual verification on retry: {', '.join(retry_unverified)}"
+                                    formatted_retry["trending_term_used"] = extract_used_trending_term(formatted_retry, trending_in_source)
+                                    return formatted_retry
 
-                formatted["trending_term_used"] = extract_used_trending_term(formatted, trending_in_source)
-                return formatted
+                    formatted["trending_term_used"] = extract_used_trending_term(formatted, trending_in_source)
+                    return formatted
         except Exception as e:
+            gemini_error = gemini_error or f"Gemini exception: {e}"
             print(f"[Gemini API Note] Exception ({e}); utilizing grounded editorial fallback synthesizer.")
 
     # Grounded Editorial Fallback Synthesizer (Zero Invented Facts, Zero Invented Scores)
@@ -687,6 +726,8 @@ You must rewrite the JSON using ONLY facts, numbers, and scores directly stated 
         "source_url": source_url,
         "confidence": confidence,
         "image_url": resolved_image,
+        "generation_path": "fallback",
+        "gemini_error": gemini_error or ("GEMINI_API_KEY missing" if not gemini_api_key else "Empty or failed Gemini response"),
     }
 
     # Verify fallback facts as well

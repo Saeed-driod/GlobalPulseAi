@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import traceback
 from pathlib import Path
 from datetime import datetime, timezone
@@ -80,6 +81,80 @@ def are_titles_duplicate(title1: str, title2: str) -> bool:
     return False
 
 
+REJECTED_CACHE_FILE = Path(__file__).resolve().parent.parent / "rejected_stories.json"
+REJECTED_CACHE_TTL_SECONDS = 24 * 3600  # 24 hours
+
+
+def _clean_url_key(url: Optional[str]) -> Optional[str]:
+    if not url:
+        return None
+    return url.split("?")[0].rstrip("/").strip().lower()
+
+
+def _normalize_title_key(title: str) -> str:
+    return re.sub(r'[^a-z0-9]', '', (title or "").lower())
+
+
+def load_rejected_stories() -> Dict[str, float]:
+    """Loads rejected stories cache and purges entries older than 24 hours."""
+    if not REJECTED_CACHE_FILE.exists():
+        return {}
+    try:
+        with open(REJECTED_CACHE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        now = datetime.now(timezone.utc).timestamp()
+        valid = {k: float(ts) for k, ts in data.items() if (now - float(ts)) < REJECTED_CACHE_TTL_SECONDS}
+        return valid
+    except Exception as e:
+        print(f"[Rejected Cache Notice] Could not read cache: {e}")
+        return {}
+
+
+def save_rejected_stories(cache: Dict[str, float]) -> None:
+    """Saves rejected stories cache atomically."""
+    try:
+        tmp_file = REJECTED_CACHE_FILE.with_suffix(".tmp")
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            json.dump(cache, f, indent=2)
+        tmp_file.replace(REJECTED_CACHE_FILE)
+    except Exception as e:
+        print(f"[Rejected Cache Notice] Could not save cache: {e}")
+
+
+def is_story_rejected(source_url: Optional[str], raw_title: str) -> bool:
+    """Checks whether a story was rejected by the quality gate within the last 24 hours."""
+    cache = load_rejected_stories()
+    if not cache:
+        return False
+    now = datetime.now(timezone.utc).timestamp()
+    url_key = _clean_url_key(source_url)
+    if url_key and url_key in cache:
+        if (now - cache[url_key]) < REJECTED_CACHE_TTL_SECONDS:
+            return True
+    title_key = _normalize_title_key(raw_title)
+    if title_key and title_key in cache:
+        if (now - cache[title_key]) < REJECTED_CACHE_TTL_SECONDS:
+            return True
+    return False
+
+
+def record_rejected_story(source_url: Optional[str], raw_title: str, reason: str = "") -> None:
+    """Remembers a rejected candidate story for 24 hours so it is not sent to Gemini repeatedly."""
+    try:
+        cache = load_rejected_stories()
+        now = datetime.now(timezone.utc).timestamp()
+        url_key = _clean_url_key(source_url)
+        if url_key:
+            cache[url_key] = now
+        title_key = _normalize_title_key(raw_title)
+        if title_key:
+            cache[title_key] = now
+        save_rejected_stories(cache)
+        print(f"[Rejected Cache] Cached story '{raw_title[:45]}' for 24h skip ({reason})")
+    except Exception as e:
+        print(f"[Rejected Cache Notice] Could not record story rejection: {e}")
+
+
 def is_story_duplicate(db: Session, raw_title: str, source_url: Optional[str] = None) -> bool:
     """Checks if a story is a duplicate by URL, exact title, or semantic word overlap."""
     if source_url:
@@ -134,6 +209,9 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
         for item in raw_items:
             r_title = item.get("raw_title", "")
             r_url = item.get("source_url")
+            # 0. Check against rejected stories cache (rejected in last 24h)
+            if is_story_rejected(r_url, r_title):
+                continue
             # 1. Check against DB
             if is_story_duplicate(db, r_title, r_url):
                 continue
@@ -206,17 +284,23 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     raw_image_url=item.get("raw_image_url")
                 )
 
+                gen_path = ai_data.get("generation_path", "unknown")
+                gem_err = ai_data.get("gemini_error")
+                err_info = f" | gemini_error='{gem_err}'" if gem_err else ""
+
                 # Quality Gate 1: Check confidence and body word count (must be "full" and >= 120 words)
                 confidence = str(ai_data.get("confidence") or "").strip().lower()
                 body_text = ai_data.get("body") or ""
                 body_words = len(body_text.split())
                 if confidence != "full" or body_words < 120:
-                    print(f"[Master Pipeline] Quality Gate: Article '{ai_data.get('title', '')[:50]}' rejected (confidence='{confidence}', body_words={body_words} < 120). Skipping publication.")
+                    print(f"[Master Pipeline] Quality Gate: Article '{ai_data.get('title', '')[:50]}' rejected | path='{gen_path}' | confidence='{confidence}' | body_words={body_words} < 120{err_info}. Skipping publication.")
+                    record_rejected_story(item.get("source_url"), item.get("raw_title", ""), reason=f"confidence={confidence}, words={body_words}, path={gen_path}")
                     continue
 
                 # Quality Gate 2: Check CATEGORY_FOCUS
                 if CATEGORY_FOCUS and ai_data["category"] not in CATEGORY_FOCUS:
-                    print(f"[Master Pipeline] Quality Gate: Category '{ai_data['category']}' not in active CATEGORY_FOCUS {CATEGORY_FOCUS}. Skipping.")
+                    print(f"[Master Pipeline] Quality Gate: Category '{ai_data['category']}' not in active CATEGORY_FOCUS {CATEGORY_FOCUS} | path='{gen_path}'{err_info}. Skipping.")
+                    record_rejected_story(item.get("source_url"), item.get("raw_title", ""), reason=f"category={ai_data['category']}")
                     continue
 
                 # Secondary check: verify synthesized title doesn't already exist
