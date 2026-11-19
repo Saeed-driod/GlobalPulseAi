@@ -219,8 +219,9 @@ export function ArticleDetailClient({ initialArticle, slug, initialRelatedArticl
       const trimmed = section.trim();
       if (!trimmed) return null;
 
-      if (trimmed.startsWith("### ")) {
-        const headingText = trimmed.replace("### ", "").replace(/\*\*/g, "").trim();
+      const headingMatch = trimmed.match(/^(#{1,4})\s+(.+)$/);
+      if (headingMatch) {
+        const headingText = headingMatch[2].replace(/\*\*/g, "").trim();
         return (
           <h2 key={idx} className="text-xl sm:text-2xl font-bold font-serif text-white mt-8 mb-4 tracking-tight">
             {headingText}
