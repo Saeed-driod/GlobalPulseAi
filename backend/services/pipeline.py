@@ -13,7 +13,10 @@ try:
     from ..models import Article, ArticleStatus
     from .scraper import fetch_breaking_rss_news
     from .ai_service import process_raw_news, get_gemini_cooldown_remaining, process_deep_research_news
-    from .research import build_source_pack, can_do_deep_research_today, record_deep_research_done
+    from .research import (
+        build_source_pack, can_do_deep_research_today, record_deep_research_done,
+        get_skipped_robots_count, reset_skipped_robots_count
+    )
     from .video_generator import compose_short_video, compose_video
     from .youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
     from .youtube_quota import can_post_now, record_youtube_upload
@@ -25,7 +28,10 @@ except (ImportError, ValueError):
         from models import Article, ArticleStatus
         from services.scraper import fetch_breaking_rss_news
         from services.ai_service import process_raw_news, get_gemini_cooldown_remaining, process_deep_research_news
-        from services.research import build_source_pack, can_do_deep_research_today, record_deep_research_done
+        from services.research import (
+            build_source_pack, can_do_deep_research_today, record_deep_research_done,
+            get_skipped_robots_count, reset_skipped_robots_count
+        )
         from services.video_generator import compose_short_video, compose_video
         from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
         from services.youtube_quota import can_post_now, record_youtube_upload
@@ -36,7 +42,10 @@ except (ImportError, ValueError):
         from backend.models import Article, ArticleStatus
         from backend.services.scraper import fetch_breaking_rss_news
         from backend.services.ai_service import process_raw_news, get_gemini_cooldown_remaining, process_deep_research_news
-        from backend.services.research import build_source_pack, can_do_deep_research_today, record_deep_research_done
+        from backend.services.research import (
+            build_source_pack, can_do_deep_research_today, record_deep_research_done,
+            get_skipped_robots_count, reset_skipped_robots_count
+        )
         from backend.services.video_generator import compose_short_video, compose_video
         from backend.services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
         from backend.services.youtube_quota import can_post_now, record_youtube_upload
@@ -206,13 +215,16 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
         db = SessionLocal()
         close_session = True
 
+    reset_skipped_robots_count()
+    fetched_count = 0
+
     # Check if Gemini 429 cooldown is active
     cooldown_secs = get_gemini_cooldown_remaining()
     if cooldown_secs > 0:
         mins = int(cooldown_secs // 60)
         secs = int(cooldown_secs % 60)
         print(f"[Master Pipeline] Gemini 429 cooldown active ({mins}m {secs}s remaining). Halting pipeline run early.")
-        print(f"[Pipeline Run Summary] Deep tried: 0 | Deep published: 0 | Deep rejected: 0 (top reason: none) | Standard published: 0 | Standard rejected: 0")
+        print(f"run summary: fetched=0 published=0 rejected=0 skipped_robots=0")
         if close_session:
             db.close()
         return {
@@ -226,9 +238,10 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
         # Step 1: Fetch Breaking News from Global RSS Wires
         print("\n[Step 1/5] Fetching breaking stories from RSS feeds...")
         raw_items = fetch_breaking_rss_news(limit=max(limit * 5, 15))
+        fetched_count = len(raw_items) if raw_items else 0
         if not raw_items:
             print("[Master Pipeline] No raw items fetched from RSS feeds.")
-            print(f"[Pipeline Run Summary] Deep tried: 0 | Deep published: 0 | Deep rejected: 0 (top reason: none) | Standard published: 0 | Standard rejected: 0")
+            print(f"run summary: fetched=0 published=0 rejected=0 skipped_robots=0")
             return {
                 "success": False,
                 "message": "No news items available from RSS sources.",
@@ -275,7 +288,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
         # If all stories from this fetch cycle already exist in DB, STOP. NEVER re-publish duplicate stories!
         if not candidate_items:
             print("[Master Pipeline] All active wires previously indexed. Zero duplicates generated.")
-            print(f"[Pipeline Run Summary] Deep tried: 0 | Deep published: 0 | Deep rejected: 0 (top reason: none) | Standard published: 0 | Standard rejected: 0")
+            print(f"run summary: fetched={fetched_count} published=0 rejected=0 skipped_robots=0")
             return {
                 "success": True,
                 "message": "All current RSS news items are already published. No duplicates generated.",
@@ -309,7 +322,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
 
         if published_today >= DAILY_PUBLISHING_CAP:
             print(f"[Master Pipeline] Daily publishing cap of {DAILY_PUBLISHING_CAP} reached for today ({published_today} published). Halting further publishing.")
-            print(f"[Pipeline Run Summary] Deep tried: 0 | Deep published: 0 | Deep rejected: 0 (top reason: none) | Standard published: 0 | Standard rejected: 0")
+            print(f"run summary: fetched={fetched_count} published=0 rejected=0 skipped_robots=0")
             return {
                 "success": True,
                 "message": f"Daily publishing cap of {DAILY_PUBLISHING_CAP} stories reached for today.",
@@ -600,10 +613,10 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     standard_stories_rejected += 1
                 continue
 
-        top_deep_reason = Counter(deep_reasons).most_common(1)[0][0] if deep_reasons else "none"
-        deep_rejected_count = len(deep_reasons)
+        total_rejected = len(deep_reasons) + standard_stories_rejected
+        skipped_robots = get_skipped_robots_count()
         print("\n=======================================================")
-        print(f"[Pipeline Run Summary] Deep tried: {deep_stories_tried} | Deep published: {deep_stories_published} | Deep rejected: {deep_rejected_count} (top reason: {top_deep_reason}) | Standard published: {standard_stories_published} | Standard rejected: {standard_stories_rejected}")
+        print(f"run summary: fetched={fetched_count} published={len(published_articles)} rejected={total_rejected} skipped_robots={skipped_robots}")
         print(f"[Master Pipeline] COMPLETED. Published {len(published_articles)} article(s).")
         print("=======================================================\n")
 

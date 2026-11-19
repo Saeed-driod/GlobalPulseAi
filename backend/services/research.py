@@ -24,14 +24,25 @@ except ImportError:
     BeautifulSoup = None
 
 # Honest bot identity referencing site /about page
-_SITE_URL = (os.getenv("SITE_URL") or os.getenv("NEXT_PUBLIC_SITE_URL") or "https://globalpulseai.vercel.app").rstrip("/")
-USER_AGENT = f"GlobalPulseBot/1.0 (+{_SITE_URL}/about)"
+USER_AGENT = "GlobalPulseBot/1.0 (+https://theglobalpulseai.com/about)"
 
 # In-memory robots.txt cache: netloc -> Optional[RobotFileParser]
 _ROBOTS_CACHE: Dict[str, Any] = {}
 
 # In-memory extracted page text cache for current cycle: url -> Optional[str]
 _PAGE_CACHE: Dict[str, Optional[str]] = {}
+
+# Skipped due to robots.txt counter for current run
+_SKIPPED_ROBOTS_COUNT = 0
+
+
+def get_skipped_robots_count() -> int:
+    return _SKIPPED_ROBOTS_COUNT
+
+
+def reset_skipped_robots_count() -> None:
+    global _SKIPPED_ROBOTS_COUNT
+    _SKIPPED_ROBOTS_COUNT = 0
 
 # Daily tracking file
 _DAILY_TRACK_FILE = Path(__file__).resolve().parent.parent / ".deep_research_daily.json"
@@ -95,7 +106,7 @@ def is_allowed_by_robots(url: str) -> bool:
     """
     Checks if robots.txt allows fetching url:
     - If robots.txt returns 5xx or times out, treat as NOT allowed for this cycle (skip it).
-    - A 404 or other 4xx still means "allowed".
+    - Only 200 (parsed according to robots rules) or 404 (allowed) determine fetch permission.
     - Uses in-memory cache for the cycle.
     """
     try:
@@ -119,18 +130,18 @@ def is_allowed_by_robots(url: str) -> bool:
                         content = resp.read().decode("utf-8", errors="ignore")
                         rp.parse(content.splitlines())
                         _ROBOTS_CACHE[netloc] = rp
-                    elif 400 <= status_code < 500:
-                        # 404 or other 4xx means allowed
+                    elif status_code == 404:
+                        # 404 means allowed
                         _ROBOTS_CACHE[netloc] = True
                     else:
-                        # 5xx or other non-200/non-4xx means NOT allowed for this cycle
+                        # 5xx or other non-200/non-404 means NOT allowed for this cycle
                         _ROBOTS_CACHE[netloc] = False
             except urllib.error.HTTPError as he:
-                if 400 <= he.code < 500:
-                    # 404 or other 4xx means allowed
+                if he.code == 404:
+                    # 404 means allowed
                     _ROBOTS_CACHE[netloc] = True
                 else:
-                    # 5xx server error -> treat as NOT allowed for this cycle
+                    # 5xx or other error -> treat as NOT allowed for this cycle
                     _ROBOTS_CACHE[netloc] = False
             except (urllib.error.URLError, socket.timeout, TimeoutError):
                 # Timeout or connection failure -> treat as NOT allowed for this cycle
@@ -246,6 +257,8 @@ def fetch_article_page(url: str, timeout: int = 8, max_bytes: int = 204800) -> O
         return _PAGE_CACHE[url]
 
     if not is_allowed_by_robots(url):
+        global _SKIPPED_ROBOTS_COUNT
+        _SKIPPED_ROBOTS_COUNT += 1
         _PAGE_CACHE[url] = None
         return None
 
