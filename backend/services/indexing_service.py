@@ -18,7 +18,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 INDEXNOW_KEY = os.getenv("INDEXNOW_KEY", "b4f8c92a7e1d4b65a0c3e8f9d2a1b5c7")
-SITE_HOST = os.getenv("SITE_HOST", "globalpulseai.vercel.app").replace("https://", "").replace("http://", "").rstrip("/")
+SITE_HOST = os.getenv("SITE_HOST", "theglobalpulseai.com").replace("https://", "").replace("http://", "").rstrip("/")
 BASE_SITE_URL = f"https://{SITE_HOST}"
 INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow"
 

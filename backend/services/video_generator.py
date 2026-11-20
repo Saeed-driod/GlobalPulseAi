@@ -379,7 +379,7 @@ def clean_script_for_voiceover(
       1. 0-3s Hook: Immediate conflict / surprising fact
       2. 3-25s Core Facts (3 short conversational sentences): What happened, why it matters, who it affects
       3. 25-35s Takeaway: One sharp insight on what happens next
-      4. 35-40s Fast CTA: "Read the full breakdown on globalpulseai.vercel.app and subscribe to @GlobalPulseAI."
+      4. 35-40s Fast CTA: "Read the full breakdown on theglobalpulseai.com and subscribe to @GlobalPulseAI."
     """
     text = youtube_script or ""
     text = re.sub(r"\[.*?\]", " ", text)
@@ -451,7 +451,7 @@ def clean_script_for_voiceover(
             ]
 
         takeaway = f"Industry experts project this momentum will trigger widespread structural adjustments across {category or 'the sector'}."
-        cta = "For the verified full breakdown, visit globalpulseai.vercel.app and subscribe to @GlobalPulseAI."
+        cta = "For the verified full breakdown, visit theglobalpulseai.com and subscribe to @GlobalPulseAI."
 
         all_parts = [hook] + fact_candidates[:3] + [takeaway, cta]
         cleaned = " ".join(all_parts)
@@ -469,8 +469,8 @@ def prepare_text_for_tts(clean_text: str) -> str:
     t = re.sub(r"(?i)\b@eduhubbysaeed\b", "@GlobalPulseAI", t)
     t = re.sub(r"(?i)\b@globlepulseai\b", "@GlobalPulseAI", t)
     t = re.sub(r"(?i)\bgloblepulseai\b", "GlobalPulseAI", t)
-    t = re.sub(r"(?i)\bwww\.localhost:3000\b", "globalpulseai.vercel.app", t)
-    t = re.sub(r"(?i)\blocalhost:3000\b", "globalpulseai.vercel.app", t)
+    t = re.sub(r"(?i)\bwww\.localhost:3000\b", "theglobalpulseai.com", t)
+    t = re.sub(r"(?i)\blocalhost:3000\b", "theglobalpulseai.com", t)
     t = re.sub(r"(?i)\bthank you for watching.*$", "", t).strip()
     return t.rstrip(".!? ") + "."
 
@@ -1740,7 +1740,7 @@ def compose_video(
                 f"⚡ {title}\n\n"
                 f"{clean_summary}\n\n"
                 f"👇 Follow @globalpulseai for daily global updates!\n"
-                f"🌐 Full story & analysis: https://globalpulseai.vercel.app\n\n"
+                f"🌐 Full story & analysis: https://theglobalpulseai.com\n\n"
                 f"{hashtags}\n"
             )
 

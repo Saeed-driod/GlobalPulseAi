@@ -458,7 +458,7 @@ def maybe_auto_post_next_article(db, min_interval_seconds: int = 1500) -> Option
         except Exception as img_err:
             pass
 
-    art_url = f"https://globalpulseai.vercel.app/news/{target_article.slug}"
+    art_url = f"https://theglobalpulseai.com/news/{target_article.slug}"
     res = post_article_to_facebook(
         title=target_article.title,
         summary=target_article.summary,

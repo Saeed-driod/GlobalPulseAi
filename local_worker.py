@@ -269,7 +269,7 @@ def render_article_video(article_id: int, video_format: str = "short", do_upload
                 )
                 fb_auth = check_facebook_auth()
                 if fb_auth.get("authenticated"):
-                    art_url = f"https://globalpulseai.vercel.app/news/{article.slug}"
+                    art_url = f"https://theglobalpulseai.com/news/{article.slug}"
 
                     # A: Post Link Card if not yet posted
                     if not article.facebook_post_id:
