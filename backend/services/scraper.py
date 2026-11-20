@@ -143,7 +143,8 @@ def fetch_breaking_rss_news(
             feed_extracted = 0
             # Scan top 20 entries to find fresh, unpublished stories (prevents repeat duplicates)
             for entry in parsed.entries[:20]:
-                title = getattr(entry, "title", "").strip()
+                title = getattr(entry, "title", "")
+                title = html.unescape(title).strip()
                 link = getattr(entry, "link", "").strip()
                 summary = getattr(entry, "summary", "") or getattr(entry, "description", "")
                 summary = clean_html(summary)

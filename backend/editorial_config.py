@@ -102,3 +102,20 @@ CATEGORY_EDITORIAL_INTROS: Dict[str, str] = {
     ),
 }
 
+# Sensitive / allegation block terms: stories matching these full words/phrases are rejected by the quality gate
+SENSITIVE_BLOCK_TERMS: List[str] = [
+    "sexual assault",
+    "sexual misconduct",
+    "sexual abuse",
+    "rape",
+    "affair",
+    "affairs",
+    "scandal",
+    "accused of",
+    "allegations",
+    "alleged abuse",
+    "child abuse",
+    "molest",
+]
+
+

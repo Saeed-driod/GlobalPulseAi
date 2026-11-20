@@ -1,5 +1,6 @@
 import os
 import re
+import html
 import json
 import traceback
 from collections import Counter
@@ -21,7 +22,7 @@ try:
     from .youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
     from .youtube_quota import can_post_now, record_youtube_upload
     from .trends import get_trending_terms
-    from ..editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE
+    from ..editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE, SENSITIVE_BLOCK_TERMS
 except (ImportError, ValueError):
     try:
         from database import get_db, SessionLocal
@@ -36,7 +37,7 @@ except (ImportError, ValueError):
         from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
         from services.youtube_quota import can_post_now, record_youtube_upload
         from services.trends import get_trending_terms
-        from editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE
+        from editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE, SENSITIVE_BLOCK_TERMS
     except (ImportError, ValueError):
         from backend.database import get_db, SessionLocal
         from backend.models import Article, ArticleStatus
@@ -50,11 +51,13 @@ except (ImportError, ValueError):
         from backend.services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
         from backend.services.youtube_quota import can_post_now, record_youtube_upload
         from backend.services.trends import get_trending_terms
-        from backend.editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE
+        from backend.editorial_config import DAILY_PUBLISHING_CAP, CATEGORY_FOCUS, EDITORIAL_BYLINE, SENSITIVE_BLOCK_TERMS
 
 
 def slugify(text: str) -> str:
     """Generate clean SEO-friendly slug from title, max 80 chars cut at word boundary."""
+    text = html.unescape(text)
+    text = re.sub(r"['’‘`]", "", text)
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s-]', '', text)
     slug = re.sub(r'[\s-]+', '-', text).strip('-')
@@ -68,6 +71,15 @@ def slugify(text: str) -> str:
             else:
                 slug = truncated
     return slug
+
+
+def contains_sensitive_allegation(title: str, summary: str) -> bool:
+    """Checks if title or summary contains any sensitive allegation block term (whole word/phrase)."""
+    text = f"{title or ''} {summary or ''}"
+    for term in SENSITIVE_BLOCK_TERMS:
+        if re.search(r'\b' + re.escape(term) + r'\b', text, re.IGNORECASE):
+            return True
+    return False
 
 
 def are_titles_duplicate(title1: str, title2: str) -> bool:
@@ -256,6 +268,11 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
             r_url = item.get("source_url")
             # 0. Check against rejected stories cache (rejected in last 24h)
             if is_story_rejected(r_url, r_title):
+                continue
+            # 0b. Pre-filter sensitive allegation stories
+            if contains_sensitive_allegation(r_title, item.get("raw_summary", "")):
+                record_rejected_story(r_url, r_title, reason="sensitive_allegation")
+                print(f"[Master Pipeline] Candidate '{r_title[:50]}' contains sensitive allegation term. Skipping.")
                 continue
             # 1. Check against DB
             if is_story_duplicate(db, r_title, r_url):
@@ -446,6 +463,19 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                         record_rejected_story(item.get("source_url"), item.get("raw_title", ""), reason=f"category={ai_data['category']}")
                     continue
 
+                # Quality Gate 2b: Check sensitive allegation terms
+                if contains_sensitive_allegation(ai_data.get("title", ""), ai_data.get("summary", "")):
+                    reason = "sensitive_allegation"
+                    if is_deep:
+                        deep_reasons.append(reason)
+                        print(f"[Deep Story Log] Headline: '{title_for_log}' | Sources: {sources_count} ({outlets_str}) | Words: {body_words} | Published: False | Result: REJECTED | Reason: {reason}")
+                    else:
+                        standard_stories_rejected += 1
+                        print(f"[Master Pipeline] Quality Gate: Article '{title_for_log[:50]}' rejected | reason='{reason}'. Skipping publication.")
+                    if is_genuine_gemini:
+                        record_rejected_story(item.get("source_url"), item.get("raw_title", ""), reason=reason)
+                    continue
+
                 # Secondary check: verify synthesized title doesn't already exist
                 existing_synth = db.query(Article).filter(Article.title == ai_data["title"]).first()
                 if existing_synth:
@@ -471,6 +501,11 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                         print(f"[Master Pipeline] Slug '{slug}' already exists. Skipping duplicate story.")
                     continue
 
+                # Disallow generic GitHub OG images
+                image_url = ai_data.get("image_url")
+                if image_url and any(bad in image_url.lower() for bad in ["github.com", "opengraph.githubassets.com"]):
+                    image_url = None
+
                 # Save initial article as IMMEDIATELY PUBLISHED in DB so it goes live on website first!
                 article = Article(
                     title=ai_data["title"],
@@ -480,7 +515,7 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                     content=ai_data["content"],
                     source_url=ai_data.get("source_url") or item.get("source_url"),
                     source_name=ai_data.get("source_name") or item.get("source_name"),
-                    image_url=ai_data.get("image_url"),
+                    image_url=image_url,
                     youtube_script=ai_data.get("youtube_script"),
                     author_name=ai_data.get("author_name") or EDITORIAL_BYLINE,
                     status=ArticleStatus.PUBLISHED.value,

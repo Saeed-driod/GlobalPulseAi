@@ -31,6 +31,8 @@ def is_generic_placeholder(url: Optional[str]) -> bool:
     if not url:
         return True
     u = str(url).strip().lower()
+    if any(bad in u for bad in ["github.com", "opengraph.githubassets.com"]):
+        return True
     return u in ("", "none", "null", "undefined") or "/default-thumbnail" in u or "/placeholder" in u or u.startswith("/api/og")
 
 def is_low_res_thumbnail(url: Optional[str]) -> bool:
@@ -63,21 +65,21 @@ def extract_source_image_from_entry_or_url(entry: Any = None, source_url: Option
         if media_content and isinstance(media_content, list):
             for m in media_content:
                 u = m.get("url")
-                if u and isinstance(u, str) and (u.startswith("http") or u.startswith("//")):
+                if u and isinstance(u, str) and (u.startswith("http") or u.startswith("//")) and not is_generic_placeholder(u):
                     return clean_image_url(u)
 
         enclosures = getattr(entry, "enclosures", None)
         if enclosures and isinstance(enclosures, list):
             for enc in enclosures:
                 u = enc.get("href") or enc.get("url")
-                if u and isinstance(u, str) and (u.startswith("http") or u.startswith("//")):
+                if u and isinstance(u, str) and (u.startswith("http") or u.startswith("//")) and not is_generic_placeholder(u):
                     return clean_image_url(u)
 
         thumbs = getattr(entry, "media_thumbnail", None)
         if thumbs and isinstance(thumbs, list):
             for t in thumbs:
                 u = t.get("url")
-                if u and isinstance(u, str) and (u.startswith("http") or u.startswith("//")):
+                if u and isinstance(u, str) and (u.startswith("http") or u.startswith("//")) and not is_generic_placeholder(u):
                     return clean_image_url(u)
 
         links = getattr(entry, "links", None)
@@ -85,7 +87,7 @@ def extract_source_image_from_entry_or_url(entry: Any = None, source_url: Option
             for l in links:
                 if "image" in l.get("type", ""):
                     u = l.get("href")
-                    if u and isinstance(u, str) and (u.startswith("http") or u.startswith("//")):
+                    if u and isinstance(u, str) and (u.startswith("http") or u.startswith("//")) and not is_generic_placeholder(u):
                         return clean_image_url(u)
 
         # Check HTML inside summary / description / content for <img> tags
@@ -96,7 +98,7 @@ def extract_source_image_from_entry_or_url(entry: Any = None, source_url: Option
             if val and isinstance(val, str) and "<img" in val:
                 img_m = re.findall(r'<img[^>]+src=[\x22\x27]([^\x22\x27]+)[\x22\x27]', val, re.I)
                 for u in img_m:
-                    if (u.startswith("http") or u.startswith("//")) and not any(bad in u.lower() for bad in ["pixel", "spacer", "tracker", "1x1", "icon", "feed"]):
+                    if (u.startswith("http") or u.startswith("//")) and not any(bad in u.lower() for bad in ["pixel", "spacer", "tracker", "1x1", "icon", "feed"]) and not is_generic_placeholder(u):
                         return clean_image_url(u)
 
     # 2. Extract og:image directly from publisher's source article webpage
@@ -119,7 +121,7 @@ def extract_source_image_from_entry_or_url(entry: Any = None, source_url: Option
                     matches = re.findall(r'<meta[^>]+content=[\x22\x27]([^\x22\x27]+)[\x22\x27][^>]+name=[\x22\x27]twitter:image', text, re.I)
                 if not matches:
                     matches = re.findall(r'[\x22\x27]image[\x22\x27]\s*:\s*[\x22\x27](https?://[^\x22\x27]+\.(?:jpg|jpeg|png|webp))[\x22\x27]', text, re.I)
-                if matches:
+                if matches and not is_generic_placeholder(matches[0]):
                     return clean_image_url(matches[0])
         except Exception:
             pass
@@ -167,11 +169,11 @@ def resolve_article_image(
     """
     # Extract real source picture from RSS entry or publisher webpage
     source_img = extract_source_image_from_entry_or_url(entry=entry, source_url=source_url)
-    if source_img and source_img.startswith("http") and "images.unsplash.com" not in source_img:
+    if source_img and source_img.startswith("http") and "images.unsplash.com" not in source_img and not is_generic_placeholder(source_img):
         return source_img
 
     # If current image is a valid HTTP URL and not an Unsplash fallback or placeholder
-    if current_image_url and current_image_url.startswith("http") and not current_image_url.startswith("/api/og"):
+    if current_image_url and current_image_url.startswith("http") and not current_image_url.startswith("/api/og") and not is_generic_placeholder(current_image_url):
         if "images.unsplash.com" not in current_image_url:
             return clean_image_url(current_image_url)
 

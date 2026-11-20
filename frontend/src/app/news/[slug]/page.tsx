@@ -132,7 +132,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://theglobalpulseai.com").replace(/\/$/, "");
   const metaDescription = buildCompleteMetaDescription(article.title, article.summary, article.content, article.meta_description);
   const articleUrl = `${siteUrl}/news/${article.slug}`;
-  const imageUrl = article.image_url ? getHdImageUrl(article.image_url) : `${siteUrl}/api/og`;
+  const rawImg = article.image_url;
+  const isGithubImg = rawImg && (rawImg.toLowerCase().includes("github.com") || rawImg.toLowerCase().includes("opengraph.githubassets.com"));
+  const imageUrl = (!isGithubImg && rawImg) ? getHdImageUrl(rawImg, article.title, article.category) : `${siteUrl}/api/og`;
   const authorName = "GlobalPulse AI Desk";
 
   // Single brand mention in title format: "{headline} | GlobalPulse AI"
@@ -201,6 +203,9 @@ export default async function Page({ params }: PageProps) {
   const metaDescription = buildCompleteMetaDescription(article.title, article.summary, article.content, article.meta_description);
   const cleanHeadline = article.title.replace(/\s*\|\s*GlobalPulse AI/gi, "").trim();
   const categorySlug = getCategorySlug(article.category);
+  const rawImg = article.image_url;
+  const isGithubImg = rawImg && (rawImg.toLowerCase().includes("github.com") || rawImg.toLowerCase().includes("opengraph.githubassets.com"));
+  const pageImageUrl = (!isGithubImg && rawImg) ? getHdImageUrl(rawImg, article.title, article.category) : `${siteUrl}/api/og`;
 
   // Server-side fetch 6 related articles (same category prioritized first)
   let relatedArticles: any[] = [];
@@ -252,7 +257,7 @@ export default async function Page({ params }: PageProps) {
     },
     headline: cleanHeadline,
     description: metaDescription,
-    image: [article.image_url ? getHdImageUrl(article.image_url) : `${siteUrl}/api/og`],
+    image: [pageImageUrl],
     datePublished: formatIsoWithTimezone(article.published_at || article.created_at),
     dateModified: formatIsoWithTimezone(article.updated_at || article.published_at || article.created_at),
     articleSection: article.category,
@@ -286,7 +291,7 @@ export default async function Page({ params }: PageProps) {
         thumbnailUrl: [
           `https://img.youtube.com/vi/${article.youtube_video_id}/maxresdefault.jpg`,
           `https://img.youtube.com/vi/${article.youtube_video_id}/hqdefault.jpg`,
-          article.image_url || `${siteUrl}/api/og`,
+          pageImageUrl,
         ],
         uploadDate: formatIsoWithTimezone(article.published_at || article.created_at),
         contentUrl: `https://www.youtube.com/watch?v=${article.youtube_video_id}`,

@@ -120,6 +120,11 @@ export function getBrandedOgUrl(title: string, category: string = "AI & Tech"): 
 }
 
 export function getHdImageUrl(url?: string | null, title?: string, category?: string): string {
+  // Disallow generic GitHub repository / OG images
+  if (url && (url.toLowerCase().includes("github.com") || url.toLowerCase().includes("opengraph.githubassets.com"))) {
+    return getCategoryCuratedPhoto(category, title);
+  }
+
   // 1. If valid external photo (genuine source picture from publisher or Unsplash)
   if (url && typeof url === "string" && url.startsWith("http") && !url.startsWith("/api/og")) {
     if (url.includes("images.unsplash.com")) {
