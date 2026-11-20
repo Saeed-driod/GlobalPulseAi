@@ -27,7 +27,7 @@ async function getInitialArticles(): Promise<Article[]> {
 
 export default async function HomePage() {
   const initialArticles = await getInitialArticles();
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://theglobalpulseai.com").replace(/\/$/, "");
 
   const organizationSchema = {
     "@context": "https://schema.org",

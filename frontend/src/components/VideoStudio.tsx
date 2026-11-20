@@ -363,7 +363,7 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
 
         ctx.fillStyle = "#e2e8f0";
         ctx.font = "bold 22px 'Inter', sans-serif";
-        const tickerHeadline = `${title.toUpperCase()} • GLOBALPULSE AI • globalpulseai.vercel.app`;
+        const tickerHeadline = `${title.toUpperCase()} • GLOBALPULSE AI • theglobalpulseai.com`;
         ctx.fillText(tickerHeadline, 290, tickerY + 52);
 
         // 4. Hormozi Captions
@@ -440,7 +440,7 @@ export function VideoStudio({ isOpen, onClose, initialArticle }: VideoStudioProp
         ctx.fillStyle = "#cbd5e1";
         ctx.font = "bold 20px 'Inter', sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("● LIVE WIRE • GLOBALPULSE AI • globalpulseai.vercel.app", w / 2, h - 34);
+        ctx.fillText("● LIVE WIRE • GLOBALPULSE AI • theglobalpulseai.com", w / 2, h - 34);
         ctx.textAlign = "start";
       }
     },

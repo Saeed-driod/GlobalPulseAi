@@ -189,7 +189,7 @@ export default function LiveStreamPage() {
   };
 
   const handleShare = () => {
-    const shareText = `Watching live 24/7 global broadcast on GlobalPulse AI: https://globalpulseai.vercel.app/live`;
+    const shareText = `Watching live 24/7 global broadcast on GlobalPulse AI: https://theglobalpulseai.com/live`;
     navigator.clipboard.writeText(shareText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);

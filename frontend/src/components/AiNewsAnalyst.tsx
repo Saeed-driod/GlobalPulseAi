@@ -52,7 +52,7 @@ export const AiNewsAnalyst: React.FC = () => {
   const handleCopy = () => {
     if (!result) return;
     const sourceLabel = result.source === "ai" ? "AI-generated summary" : "Quick summary (basic mode)";
-    const textToCopy = `🤖 GlobalPulse AI Intelligence Synthesis (${sourceLabel}):\n\n${result.headline}\n\nKey Takeaways:\n${result.bullets.map((b) => `• ${b}`).join("\n")}\n\nAnalyzed on: https://globalpulseai.vercel.app`;
+    const textToCopy = `🤖 GlobalPulse AI Intelligence Synthesis (${sourceLabel}):\n\n${result.headline}\n\nKey Takeaways:\n${result.bullets.map((b) => `• ${b}`).join("\n")}\n\nAnalyzed on: https://theglobalpulseai.com`;
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);

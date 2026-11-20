@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
             </span>
           </div>
           <span style={{ color: "#64748b", fontSize: "14px", fontFamily: "monospace" }}>
-            globalpulseai.vercel.app
+            theglobalpulseai.com
           </span>
         </div>
       </div>

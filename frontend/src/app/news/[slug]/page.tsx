@@ -129,7 +129,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://theglobalpulseai.com").replace(/\/$/, "");
   const metaDescription = buildCompleteMetaDescription(article.title, article.summary, article.content, article.meta_description);
   const articleUrl = `${siteUrl}/news/${article.slug}`;
   const imageUrl = article.image_url ? getHdImageUrl(article.image_url) : `${siteUrl}/api/og`;
@@ -196,7 +196,7 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
 
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://theglobalpulseai.com").replace(/\/$/, "");
   const articleUrl = `${siteUrl}/news/${resolvedParams.slug}`;
   const metaDescription = buildCompleteMetaDescription(article.title, article.summary, article.content, article.meta_description);
   const cleanHeadline = article.title.replace(/\s*\|\s*GlobalPulse AI/gi, "").trim();

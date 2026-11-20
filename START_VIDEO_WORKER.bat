@@ -13,7 +13,7 @@ echo  Unified Storage    : ALL videos saved in ONE folder -> "videos\"
 echo  Cloud RAM Used     : 0 MB (100%% Hardware Accelerated on your Local PC)
 echo ===============================================================================
 echo.
-echo  Mission Control: Open https://globalpulseai.vercel.app/admin in your browser.
+echo  Mission Control: Open https://theglobalpulseai.com/admin in your browser.
 echo  All generated videos (News, Shorts, Longs, Movie Promos) go directly into:
 echo    ==^> D:\Global English Audience\videos\
 echo.

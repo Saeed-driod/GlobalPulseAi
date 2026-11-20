@@ -35,20 +35,20 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://theglobalpulseai.com"),
   title: {
     default: "GlobalPulse AI | Daily News Briefs on Tech, Markets, Politics, Science, Sports and Entertainment",
     template: "%s | GlobalPulse AI",
   },
   description:
     "Daily news briefs and plain-English analysis covering AI, tech, markets, world politics, science, sports, and entertainment.",
-  authors: [{ name: "GlobalPulse AI Desk", url: process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app" }],
+  authors: [{ name: "GlobalPulse AI Desk", url: process.env.NEXT_PUBLIC_SITE_URL || "https://theglobalpulseai.com" }],
   creator: "GlobalPulse AI",
   publisher: "GlobalPulse AI",
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://theglobalpulseai.com",
     siteName: "GlobalPulse AI",
     title: "GlobalPulse AI | Daily News Briefs on Tech, Markets, Politics, Science, Sports and Entertainment",
     description: "Daily news briefs and plain-English analysis covering AI, tech, markets, world politics, science, sports, and entertainment.",

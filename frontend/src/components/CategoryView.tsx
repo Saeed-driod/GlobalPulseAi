@@ -51,7 +51,7 @@ function safeJsonLd(data: unknown): string {
 }
 
 export function getCategoryPageCanonical(slug: string, pageNumber: number = 1): string {
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://theglobalpulseai.com").replace(/\/$/, "");
   return pageNumber > 1 ? `${siteUrl}/category/${slug}/page/${pageNumber}` : `${siteUrl}/category/${slug}`;
 }
 
@@ -64,7 +64,7 @@ export async function getCategoryMetadata(slug: string, pageNumber: number = 1):
     };
   }
 
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://theglobalpulseai.com").replace(/\/$/, "");
   const canonicalUrl = getCategoryPageCanonical(slug, pageNumber);
   const pageTitle =
     pageNumber > 1
@@ -108,7 +108,7 @@ export async function CategoryView({ slug, pageNumber }: CategoryViewProps) {
 
   const pageSize = 24;
   const skip = (pageNumber - 1) * pageSize;
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://globalpulseai.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://theglobalpulseai.com").replace(/\/$/, "");
   const canonicalUrl = getCategoryPageCanonical(slug, pageNumber);
   const theme = getCategoryTheme(cat.name);
 

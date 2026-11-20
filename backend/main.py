@@ -223,6 +223,8 @@ app = FastAPI(
 
 # Enable CORS with strict allowed origins and locked headers
 default_cors_origins = [
+    "https://theglobalpulseai.com",
+    "https://www.theglobalpulseai.com",
     "https://globalpulseai.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",

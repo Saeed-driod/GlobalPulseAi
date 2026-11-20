@@ -9,7 +9,7 @@ export const revalidate = 120;
 const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
-  "https://globalpulseai.vercel.app"
+  "https://theglobalpulseai.com"
 ).replace(/\/+$/, "");
 
 export const metadata: Metadata = {

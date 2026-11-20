@@ -59,7 +59,7 @@ export const ViralPoll: React.FC = () => {
   };
 
   const pollQuestion = "Will Autonomous AI Agents manage more than 50% of software engineering and enterprise workflows by 2027?";
-  const shareUrl = "https://globalpulseai.vercel.app";
+  const shareUrl = "https://theglobalpulseai.com";
   const shareMessage = `I just voted on GlobalPulse AI: "${pollQuestion}". Vote and see live global results: ${shareUrl}`;
 
   const handleCopy = () => {

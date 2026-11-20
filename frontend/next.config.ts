@@ -7,6 +7,17 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "globalpulseai.vercel.app",
+          },
+        ],
+        destination: "https://theglobalpulseai.com/:path*",
+        permanent: true,
+      },
+      {
         source: "/movies",
         destination: "/sports",
         permanent: true,
