@@ -88,6 +88,9 @@ export const metadata: Metadata = {
       "tiktok-developers-site-verification": "8ZtJ7ileN14xFRdPeEgUday0VvqUf7Zj",
     },
   },
+  other: {
+    "google-adsense-account": "ca-pub-5380114680461998",
+  },
 };
 
 export default function RootLayout({
@@ -130,12 +133,11 @@ export default function RootLayout({
         />
 
         {/* Google AdSense Official Script */}
-        <Script
+        <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5380114680461998"
           crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+        ></script>
 
         {/* OneSignal Web Push Notifications (Free Global Audience Retention) */}
         <Script
