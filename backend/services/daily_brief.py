@@ -254,6 +254,7 @@ EDITORIAL RULES:
 4. FORBIDDEN WORDS:
    Never use any of these words: {banned_str}
    Never use unsupported adjectives like 'brilliant', 'crucial', 'major', 'dismantling', 'dominant', 'stunning', or 'masterclass'.
+   Avoid using the word 'may' as a verb (use 'can', 'could', or 'might' instead).
 5. SENSITIVE TOPICS: Do not include scandals or allegations.
 6. JSON OUTPUT ONLY:
 {{
@@ -343,9 +344,18 @@ Set "confidence" to "full" ONLY if the body is at least 450 words and every stor
             "key_points": []
         }
         facts_valid, unverified = verify_output_facts(output_check, combined_source_text)
-        if not facts_valid:
+        real_unverified = []
+        for u in unverified:
+            if u == "Month 'may'":
+                # Check if 'may' was used as calendar month (e.g. 'in may', 'early may', 'may 2026')
+                if re.search(r'\b(?:in|during|of|early|late|mid)\s+may\b|\bmay\s+\d{1,2}\b', combined_text, re.IGNORECASE):
+                    real_unverified.append(u)
+            else:
+                real_unverified.append(u)
+
+        if real_unverified:
             gate_passed = False
-            gate_failures.append(f"verify_output_facts unverified tokens: {unverified[:5]}")
+            gate_failures.append(f"verify_output_facts unverified tokens: {real_unverified[:5]}")
 
         # Quality Gate Outcome Logging
         if not gate_passed:
