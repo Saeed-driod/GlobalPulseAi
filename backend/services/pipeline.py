@@ -328,6 +328,8 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
         deep_reasons: List[str] = []
         standard_stories_published = 0
         standard_stories_rejected = 0
+        deep_word_counts: List[int] = []
+        standard_word_counts: List[int] = []
 
         # Check today's published count against DAILY_PUBLISHING_CAP
         now_utc = datetime.now(timezone.utc)
@@ -366,17 +368,15 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
             is_deep = False
 
             try:
-                # Check eligibility for Deep Research mode (trending items, max 3 per run, max 5/day)
-                is_trending = is_item_trending(item, trending_terms)
+                # Check eligibility for Deep Research mode (max 4 per run, within daily cap)
                 is_deep_eligible = (
-                    is_trending
-                    and deep_stories_run_count < 3
+                    deep_stories_run_count < 4
                     and can_do_deep_research_today()
                 )
 
                 source_pack = []
                 if is_deep_eligible:
-                    print(f"\n[Deep Research] Story matched trending term. Building multi-source pack: '{item['raw_title'][:60]}...'")
+                    print(f"\n[Deep Research] Candidate eligible. Building multi-source pack: '{item['raw_title'][:60]}...'")
                     try:
                         source_pack = build_source_pack(candidate=item, all_raw_items=raw_items, trending_terms=trending_terms)
                     except Exception as sp_err:
@@ -433,9 +433,9 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
 
                 # Quality Gate 1: Check confidence and body word count
                 # Deep research requires confidence == "full" and body_words >= 300
-                # Standard short flow requires confidence == "full" and body_words >= 120
+                # Standard short flow requires confidence == "full" and body_words >= 220
                 confidence = str(ai_data.get("confidence") or "").strip().lower()
-                min_required_words = 300 if is_deep else 120
+                min_required_words = 300 if is_deep else 220
                 if confidence != "full" or body_words < min_required_words:
                     reason = f"confidence='{confidence}', words={body_words} < {min_required_words}"
                     if is_deep:
@@ -531,10 +531,12 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
 
                 if is_deep:
                     deep_stories_published += 1
+                    deep_word_counts.append(body_words)
                     record_deep_research_done()
                     print(f"[Deep Story Log] Headline: '{article.title}' | Sources: {sources_count} ({outlets_str}) | Words: {body_words} | Published: True | Result: PUBLISHED")
                 else:
                     standard_stories_published += 1
+                    standard_word_counts.append(body_words)
 
                 # Log headline and trending search term used for owner review
                 trending_term = ai_data.get("trending_term_used") or "none"
@@ -650,8 +652,18 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
 
         total_rejected = len(deep_reasons) + standard_stories_rejected
         skipped_robots = get_skipped_robots_count()
+        deep_n = len(deep_word_counts)
+        standard_m = len(standard_word_counts)
+        avg_deep = round(sum(deep_word_counts) / deep_n, 1) if deep_n > 0 else 0
+        if isinstance(avg_deep, float) and avg_deep.is_integer():
+            avg_deep = int(avg_deep)
+        avg_standard = round(sum(standard_word_counts) / standard_m, 1) if standard_m > 0 else 0
+        if isinstance(avg_standard, float) and avg_standard.is_integer():
+            avg_standard = int(avg_standard)
+
         print("\n=======================================================")
         print(f"run summary: fetched={fetched_count} published={len(published_articles)} rejected={total_rejected} skipped_robots={skipped_robots}")
+        print(f"article lengths: deep={deep_n} avg_words={avg_deep} standard={standard_m} avg_words={avg_standard}")
         print(f"[Master Pipeline] COMPLETED. Published {len(published_articles)} article(s).")
         print("=======================================================\n")
 

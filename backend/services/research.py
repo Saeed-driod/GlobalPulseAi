@@ -57,15 +57,15 @@ STOPWORDS = {
 
 
 # ==============================================================================
-# 1. DAILY QUOTA TRACKING (DEEP_RESEARCH_PER_DAY, default 5)
+# 1. DAILY QUOTA TRACKING (DEEP_RESEARCH_PER_DAY, default 12)
 # ==============================================================================
 
 def get_deep_research_daily_max() -> int:
-    env_val = os.getenv("DEEP_RESEARCH_PER_DAY", "5")
+    env_val = os.getenv("DEEP_RESEARCH_PER_DAY", "12")
     try:
         return int(env_val)
     except ValueError:
-        return 5
+        return 12
 
 
 def get_deep_research_daily_count() -> int:

@@ -661,7 +661,7 @@ def parse_and_format_article_json(data: Dict[str, Any], raw_title: str, source_n
 
     body_words = len(body.split())
     raw_conf = str(data.get("confidence", "full")).strip().lower()
-    if raw_conf != "full" or body_words < 120:
+    if raw_conf != "full" or body_words < 220:
         confidence = "thin"
     else:
         confidence = "full"
@@ -761,7 +761,7 @@ Use ONLY facts found in SOURCE_TEXT. Never invent names, numbers, scores, quotes
 Do not copy sentences from the source. Rewrite in your own words. At most one direct quote, under 15 words, in quotation marks and attributed.
 {trending_prompt_block}
 HEADLINE REQUIREMENT: Maximum 60 characters. Place the main subject (product, team, person or event) at the very start of the headline. Write in clear, plain English with zero clickbait and no keyword stuffing.
-ARTICLE BODY REQUIREMENT: The body must contain at least 120 words (120-200 words if source is brief, 200-350 words if source contains substantial detail). If SOURCE_TEXT lacks sufficient verifiable facts for at least 120 words, return confidence "thin". Never invent fluff or filler.
+ARTICLE BODY REQUIREMENT: The body must contain at least 220 words (220-300 words if source is brief, 300-400 words if source contains substantial detail). If SOURCE_TEXT lacks sufficient verifiable facts for at least 220 words, return confidence "thin". Never invent fluff or filler.
 STRICT FACTUAL GROUNDING: Every single sentence must be supported by facts in SOURCE_TEXT. Never invent claims about how a match or event unfolded (e.g. do not say a team 'controlled the match', 'dismantled the opposition', or 'took place at [venue]' unless explicitly stated in SOURCE_TEXT).
 FORBIDDEN ADJECTIVES: Never use unsupported adjectives like 'brilliant', 'crucial', 'major', 'dismantling', 'dominant', 'stunning', 'emphatic', or 'masterclass' unless directly quoting the source.
 Banned words/phrases: tier-1, neural, dossier, telemetry, high-stakes, landmark, intelligence report, synthesized, decisive tactical adjustments, accelerating operational transition, brilliant, crucial, major, dismantling, dominant.
@@ -782,13 +782,13 @@ Return JSON:
    "concrete fact 2 from the source",
    "concrete fact 3 from the source"
  ],
- "body": "at least 120 words (120-200 words if source is brief, 200-350 words if detailed), inverted pyramid, every sentence strictly supported by SOURCE_TEXT, zero unsupported adjectives",
+ "body": "at least 220 words (220-300 if source is brief, 300-400 if detailed), inverted pyramid, every sentence strictly supported by SOURCE_TEXT, zero unsupported adjectives",
  "why_it_matters": "2-3 sentences of reasoning based only on stated facts, labelled as analysis",
  "source_name": "{source_name}",
  "source_url": "{source_url}",
- "confidence": "\"full\" only if body is at least 120 words and supported by 3+ distinct facts; otherwise \"thin\""
+ "confidence": "\"full\" only if body is at least 220 words and supported by 3+ distinct facts; otherwise \"thin\""
 }}
-If SOURCE_TEXT contains fewer than 3 distinct facts or body is under 120 words, return confidence "thin" and do not write a full article."""
+If SOURCE_TEXT contains fewer than 3 distinct facts or body is under 220 words, return confidence "thin" and do not write a full article."""
 
     if gemini_api_key:
         try:
@@ -884,7 +884,7 @@ You must rewrite the JSON using ONLY facts, numbers, and scores directly stated 
     body = f"{lead_para}\n\n{context_para}"
 
     body_words = len(body.split())
-    is_thin = len(sentences) < 2 or len(clean_summary) < 70 or body_words < 120
+    is_thin = len(sentences) < 2 or len(clean_summary) < 70 or body_words < 220
     confidence = "thin" if is_thin else "full"
 
     key_points = [

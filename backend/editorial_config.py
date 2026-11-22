@@ -47,9 +47,9 @@ HEADLINE_MAX_LENGTH: int = 60
 META_DESC_MIN_LENGTH: int = 140
 META_DESC_MAX_LENGTH: int = 155
 
-# Article body word count bounds (minimum 120 words for quality gate)
-BODY_WORD_COUNT_MIN: int = 120
-BODY_WORD_COUNT_MAX: int = 400
+# Article body word count bounds (minimum 220 words for quality gate)
+BODY_WORD_COUNT_MIN: int = 220
+BODY_WORD_COUNT_MAX: int = 450
 
 # Strictly banned buzzwords, jargon, unsupported adjectives, and generic filler
 BANNED_WORDS: List[str] = [
