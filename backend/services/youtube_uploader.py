@@ -78,7 +78,7 @@ SCOPES = [
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 
-PUBLIC_SITE_URL = os.getenv("PUBLIC_SITE_URL", os.getenv("FRONTEND_URL", "https://globalpulse.ai")).rstrip("/")
+PUBLIC_SITE_URL = os.getenv("PUBLIC_SITE_URL", os.getenv("FRONTEND_URL", "https://theglobalpulseai.com")).rstrip("/")
 FRONTEND_URL = os.getenv("FRONTEND_URL", PUBLIC_SITE_URL).rstrip("/")
 ADMIN_DASHBOARD_URL = f"{FRONTEND_URL}/admin"
 

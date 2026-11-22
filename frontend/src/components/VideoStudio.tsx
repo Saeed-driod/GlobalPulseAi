@@ -107,7 +107,7 @@ export function generateViral35sScript(
   }
 
   // 4. Fast CTA (30-35s)
-  const cta = `Read more on GlobalPulseAI.vercel.app and follow @GlobalPulseAI for daily alerts.`;
+  const cta = `Read more on TheGlobalPulseAI.com and follow @GlobalPulseAI for daily alerts.`;
 
   const scriptParts = [hook, ...coreFacts.slice(0, 3), takeaway, cta];
   const fullScript = scriptParts.join(" ").replace(/\s+/g, " ").trim();

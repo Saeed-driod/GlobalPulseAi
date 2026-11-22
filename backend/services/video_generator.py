@@ -24,21 +24,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_VIDEOS_DIR = BASE_DIR / "static" / "videos"
 STATIC_VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
 
-PUBLIC_SITE_URL = os.getenv("PUBLIC_SITE_URL", os.getenv("FRONTEND_URL", "https://globalpulse.ai")).rstrip("/")
+PUBLIC_SITE_URL = os.getenv("PUBLIC_SITE_URL", os.getenv("FRONTEND_URL", "https://theglobalpulseai.com")).rstrip("/")
 
 def get_clean_domain(url: str) -> str:
     """Extracts a clean uppercase domain for display banners (never localhost)."""
     if not url or "localhost" in str(url).lower() or "127.0.0.1" in str(url):
-        return "GLOBALPULSEAI.VERCEL.APP"
+        return "THEGLOBALPULSEAI.COM"
     try:
         parsed = urllib.parse.urlparse(url)
         domain = parsed.netloc or parsed.path
         cleaned = domain.strip("/").upper()
         if not cleaned or "LOCALHOST" in cleaned:
-            return "GLOBALPULSEAI.VERCEL.APP"
+            return "THEGLOBALPULSEAI.COM"
         return cleaned
     except Exception:
-        return "GLOBALPULSEAI.VERCEL.APP"
+        return "THEGLOBALPULSEAI.COM"
 
 def run_async_in_isolated_thread(async_func, *args, timeout: float = 45.0) -> bool:
     """
