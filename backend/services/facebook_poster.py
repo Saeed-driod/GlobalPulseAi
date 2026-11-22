@@ -419,6 +419,7 @@ def maybe_auto_post_next_article(db, min_interval_seconds: int = 1500) -> Option
     unposted_candidates = (
         db.query(Article)
         .filter((Article.facebook_post_id == None) | (Article.facebook_post_id == ""))
+        .filter(~Article.slug.like("daily-brief-%"))
         .order_by(Article.id.desc())
         .limit(10)
         .all()

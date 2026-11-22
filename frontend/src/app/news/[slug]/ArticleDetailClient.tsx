@@ -198,6 +198,18 @@ export function ArticleDetailClient({ initialArticle, slug, initialRelatedArticl
       const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
       if (linkMatch) {
         const [, linkTitle, linkUrl] = linkMatch;
+        const isInternal = linkUrl.startsWith("/") || linkUrl.startsWith("#");
+        if (isInternal) {
+          return (
+            <Link
+              key={index}
+              href={linkUrl}
+              className="text-cyan-400 font-medium underline underline-offset-4 decoration-cyan-400/40 hover:text-cyan-300"
+            >
+              {linkTitle}
+            </Link>
+          );
+        }
         return (
           <a
             key={index}

@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 
 # Global Scheduler Instance
 scheduler: Optional[BackgroundScheduler] = None
@@ -85,6 +86,32 @@ def scheduled_video_cleanup_job():
         gc.collect()
 
 
+def scheduled_daily_brief_job():
+    """
+    Scheduled job callback invoked by APScheduler at configured UTC hours
+    to generate and publish the Daily Brief.
+    """
+    daily_brief_enabled = os.getenv("DAILY_BRIEF_ENABLED", "true").lower() in ("true", "1", "yes")
+    if not daily_brief_enabled:
+        print("[Scheduler] Daily Brief is disabled via DAILY_BRIEF_ENABLED=false.")
+        return
+
+    print(f"\n[Scheduler] Daily Brief job triggered at {datetime.now(timezone.utc).isoformat()}")
+    try:
+        try:
+            from .daily_brief import run_daily_brief
+        except (ImportError, ValueError):
+            from backend.services.daily_brief import run_daily_brief
+
+        res = run_daily_brief(dry_run=False)
+        print(f"[Scheduler] Daily Brief run result: {res.get('status')} - {res.get('reason') or res.get('slug')}")
+    except Exception as e:
+        print(f"[Scheduler] Error during scheduled Daily Brief job: {e}")
+    finally:
+        import gc
+        gc.collect()
+
+
 def start_scheduler() -> BackgroundScheduler:
     """
     Initialize and start the 24/7 Background Automation Scheduler.
@@ -147,6 +174,25 @@ def start_scheduler() -> BackgroundScheduler:
         coalesce=True,
     )
 
+    # Register Daily Brief scheduled job (runs at configured UTC hours, default 18, 19, 20)
+    daily_brief_enabled = os.getenv("DAILY_BRIEF_ENABLED", "true").lower() in ("true", "1", "yes")
+    if daily_brief_enabled:
+        brief_hours = os.getenv("DAILY_BRIEF_HOURS_UTC", "18,19,20").strip()
+        try:
+            brief_trigger = CronTrigger(hour=brief_hours, minute=0, timezone="UTC")
+            scheduler.add_job(
+                scheduled_daily_brief_job,
+                trigger=brief_trigger,
+                id="daily_brief_job",
+                name="GlobalPulse AI Daily Brief Publisher",
+                replace_existing=True,
+                max_instances=1,
+                coalesce=True,
+            )
+            print(f"[Scheduler] Daily Brief registered: UTC hours {brief_hours}:00")
+        except Exception as e:
+            print(f"[Scheduler Warning] Failed to schedule Daily Brief job: {e}")
+
     scheduler.start()
     print(f"============================================================")
     print(f"[Scheduler] 24/7 BACKGROUND AUTOMATION ACTIVE ({interval_desc})")
@@ -179,6 +225,7 @@ def get_scheduler_status() -> Dict[str, Any]:
     is_running = scheduler is not None and scheduler.running
     next_run = None
     cleanup_next_run = None
+    brief_next_run = None
 
     if is_running:
         job = scheduler.get_job("master_news_video_youtube_pipeline")
@@ -187,6 +234,9 @@ def get_scheduler_status() -> Dict[str, Any]:
         cleanup_job = scheduler.get_job("video_retention_cleanup")
         if cleanup_job and cleanup_job.next_run_time:
             cleanup_next_run = cleanup_job.next_run_time.isoformat()
+        brief_job = scheduler.get_job("daily_brief_job")
+        if brief_job and brief_job.next_run_time:
+            brief_next_run = brief_job.next_run_time.isoformat()
 
     interval_hours = float(os.getenv("AUTO_PIPELINE_INTERVAL_HOURS")) if os.getenv("AUTO_PIPELINE_INTERVAL_HOURS") else None
     interval_minutes = float(os.getenv("AUTO_PIPELINE_INTERVAL_MINUTES", "15"))
@@ -198,6 +248,7 @@ def get_scheduler_status() -> Dict[str, Any]:
         "interval_minutes": interval_minutes,
         "next_run_time": next_run,
         "video_cleanup_next_run": cleanup_next_run,
+        "daily_brief_next_run": brief_next_run,
         "last_run_time": last_run_info["last_run_time"],
         "last_run_status": last_run_info["last_run_status"],
         "last_run_summary": last_run_info["last_run_summary"],

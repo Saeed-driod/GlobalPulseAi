@@ -603,7 +603,7 @@ def process_pending_articles(category: str = None, video_format: str = "auto", l
         longs_today = counts["longs_today"]
         total_today = counts["total_today"]
 
-        query = db.query(Article)
+        query = db.query(Article).filter(~Article.slug.like("daily-brief-%"))
         if category:
             query = query.filter(Article.category.ilike(f"%{category}%"))
 
