@@ -7,8 +7,17 @@ Usage:
 """
 
 import sys
+import os
 import argparse
 from pathlib import Path
+
+# Auto re-exec into backend/venv if executed with system python
+_venv_py_linux = Path(__file__).resolve().parent.parent / "venv" / "bin" / "python"
+_venv_py_win = Path(__file__).resolve().parent.parent / "venv" / "Scripts" / "python.exe"
+_venv_py = _venv_py_linux if _venv_py_linux.exists() else (_venv_py_win if _venv_py_win.exists() else None)
+
+if _venv_py and Path(sys.executable).resolve() != _venv_py.resolve():
+    os.execv(str(_venv_py), [str(_venv_py)] + sys.argv)
 
 # Safe Unicode output on Windows
 if hasattr(sys.stdout, "reconfigure"):
