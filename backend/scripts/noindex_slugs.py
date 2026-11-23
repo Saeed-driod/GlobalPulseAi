@@ -6,7 +6,16 @@ Does NOT delete anything.
 """
 
 import sys
+import os
 from pathlib import Path
+
+# Auto re-exec into backend/venv if executed with system python
+_venv_py_linux = Path(__file__).resolve().parent.parent / "venv" / "bin" / "python"
+_venv_py_win = Path(__file__).resolve().parent.parent / "venv" / "Scripts" / "python.exe"
+_venv_py = _venv_py_linux if _venv_py_linux.exists() else (_venv_py_win if _venv_py_win.exists() else None)
+
+if _venv_py and Path(sys.executable).resolve() != _venv_py.resolve():
+    os.execv(str(_venv_py), [str(_venv_py)] + sys.argv)
 
 # Safe Unicode output
 if hasattr(sys.stdout, "reconfigure"):
@@ -34,31 +43,7 @@ except ImportError:
     from backend.models import Article
 
 SLUGS_TO_NOINDEX = [
-    "apple-teases-macbook-pro-event-next-week-7",
-    "apple-teases-macbook-pro-event-next-week-6",
-    "apple-teases-macbook-pro-event-next-week-2",
-    "apple-teases-macbook-pro-event-next-week-1",
-    "sonys-best-noise-canceling-earbuds-are-nearly-100-off-today-only-2",
-    "sonys-best-noise-canceling-earbuds-are-nearly-100-off-today-only-1",
-    "hackers-hit-ai-coding-tool-opencode-running-up-charges-on-users-ai-accounts-4",
-    "hackers-hit-ai-coding-tool-opencode-running-up-charges-on-users-ai-accounts-3",
-    "hackers-hit-ai-coding-tool-opencode-running-up-charges-on-users-ai-accounts-1",
-    "amazon-is-funding-a-new-nuclear-plant-in-indiana-4",
-    "amazon-is-funding-a-new-nuclear-plant-in-indiana-1",
-    "nvidia-launches-new-open-models-to-run-agents-in-the-enterprise-and-on-pcs-2",
-    "nvidia-launches-new-open-models-to-run-agents-in-the-enterprise-and-on-pcs-1",
-    "people-are-using-ai-to-make-their-smart-tvs-dumb-again-2",
-    "people-are-using-ai-to-make-their-smart-tvs-dumb-again-1",
-    "lets-talk-about-jensen-huangs-many-affairs",
-    "the-nvidia-scandal-isnt-slowing-down",
-    "the-unfolding-jensen-huang-scandal-a-timeline",
-    "an-overview-of-jensen-huangs-messy-days",
-    "what8217s-really-at-stake-in-the-jensen-huang-saga",
-    "nvidia-is-reportedly-preparing-to-fire-jensen-huang",
-    "grard-depardieu-drops-appeal-in-sexual-assault-case-and-accep",
-    "russell-brand-faces-sexual-misconduct-claims-from-six-more-wom",
-    "openssl-vulnerability-identified-in-evpencodeblock",
-    "microsoft8217s-massive-outlook-outage-continues",
+    "daily-brief-2026-11-23",
 ]
 
 def main():
