@@ -36,7 +36,12 @@ all_in_window = query.all()
 print(f"\nTotal articles in last 24h window (published, not noindex, not daily-brief): {len(all_in_window)}")
 for a in all_in_window:
     words = len((a.content or "").split())
+    total_words = len(((a.summary or "") + " " + (a.content or "")).split())
     in_focus = a.category in CATEGORY_FOCUS
-    print(f"  #{a.id} [{a.category}] in_focus={in_focus} words={words} views={a.views} pub={a.published_at.isoformat() if a.published_at else None} title={a.title[:45]}")
+    print(f"  #{a.id} [{a.category}] in_focus={in_focus} content_words={words} total_words={total_words} views={a.views} title={a.title[:45]}")
+
+gta = db.query(Article).filter(Article.slug == "gta-6-uk-prices-editions-where-to-buy").first()
+if gta:
+    print(f"\nGTA 6 article: id={gta.id} pub={gta.published_at} words={len((gta.content or '').split())}")
 
 db.close()
