@@ -43,6 +43,7 @@ except ImportError:
     from backend.models import Article
 
 SLUGS_TO_NOINDEX = [
+    "daily-brief-2026-11-22",
     "daily-brief-2026-11-23",
 ]
 

@@ -1,6 +1,6 @@
 """
 GlobalPulse AI - Daily Brief Service
-Generates a comprehensive 450-700 word Daily Brief summarizing the best
+Generates a comprehensive 550-800 word Daily Brief summarizing the best
 published articles from the past 24 hours.
 Strictly grounded in existing articles; zero new outside sourcing or invented facts.
 """
@@ -9,7 +9,7 @@ import os
 import re
 import json
 import logging
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
@@ -71,9 +71,13 @@ def get_daily_brief_candidates(db) -> List[Article]:
     - published_at within last 24h
     - slug does not start with 'daily-brief-'
     - category in CATEGORY_FOCUS
+    - content has at least 300 words
+    - at most 2 articles per category
     Sorted by views descending, then published_at descending.
-    Top 7 articles.
+    Top 5 articles.
     """
+    from sqlalchemy import func
+
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     query = (
         db.query(Article)
@@ -87,17 +91,31 @@ def get_daily_brief_candidates(db) -> List[Article]:
     if CATEGORY_FOCUS:
         query = query.filter(Article.category.in_(CATEGORY_FOCUS))
 
-    from sqlalchemy import func
-    candidates = (
+    raw_candidates = (
         query
         .order_by(
             func.coalesce(Article.views, 0).desc(),
             Article.published_at.desc()
         )
-        .limit(7)
         .all()
     )
-    return candidates
+
+    selected: List[Article] = []
+    category_counts: Dict[str, int] = defaultdict(int)
+
+    for art in raw_candidates:
+        content_words = len((art.content or "").split())
+        if content_words < 300:
+            continue
+        cat = art.category or "Other"
+        if category_counts[cat] >= 2:
+            continue
+        selected.append(art)
+        category_counts[cat] += 1
+        if len(selected) == 5:
+            break
+
+    return selected
 
 
 def normalize_daily_brief_meta_description(meta: str, date_display: str) -> str:
@@ -153,22 +171,23 @@ def run_daily_brief(dry_run: bool = False) -> Dict[str, Any]:
         today_utc = datetime.now(timezone.utc)
         slug_date = today_utc.strftime("%Y-%m-%d")
         target_slug = f"daily-brief-{slug_date}"
-        date_display = today_utc.strftime("%d %b")  # e.g. "22 Nov"
+        date_display = today_utc.strftime("%d %b")  # e.g. "23 Nov"
         date_full = today_utc.strftime("%A, %d %B %Y")
 
-        # 1. Idempotency Check
-        existing = db.query(Article).filter(Article.slug == target_slug).first()
-        if existing:
-            msg = f"daily brief skipped: {target_slug} already exists"
-            logger.info(msg)
-            print(f"[Daily Brief] {msg}")
-            return {
-                "status": "skipped",
-                "reason": f"{target_slug} already exists",
-                "slug": target_slug
-            }
+        # 1. Idempotency Check (applied on live publish)
+        if not dry_run:
+            existing = db.query(Article).filter(Article.slug == target_slug).first()
+            if existing:
+                msg = f"daily brief skipped: {target_slug} already exists"
+                logger.info(msg)
+                print(f"[Daily Brief] {msg}")
+                return {
+                    "status": "skipped",
+                    "reason": f"{target_slug} already exists",
+                    "slug": target_slug
+                }
 
-        # 2. Candidate Selection
+        # 2. Candidate Selection (content >= 300 words, max 2 per category, top 5)
         candidates = get_daily_brief_candidates(db)
         if len(candidates) < 4:
             msg = f"daily brief skipped: only {len(candidates)} articles"
@@ -179,6 +198,12 @@ def run_daily_brief(dry_run: bool = False) -> Dict[str, Any]:
                 "reason": f"only {len(candidates)} articles",
                 "candidates_count": len(candidates)
             }
+
+        # Print selected candidates
+        print(f"\n[Daily Brief Candidates Selected ({len(candidates)})]:")
+        for i, c in enumerate(candidates, 1):
+            c_words = len((c.content or "").split())
+            print(f"  {i}. [{c.category}] {c.title} ({c_words} words, views: {c.views or 0})")
 
         # 3. Gemini Cooldown Check
         cooldown_remaining = get_gemini_cooldown_remaining()
@@ -202,11 +227,12 @@ def run_daily_brief(dry_run: bool = False) -> Dict[str, Any]:
             }
 
         # 4. Build Candidate Pack and Source Verification Text
+        lead_story = candidates[0]
         story_blocks = []
         for i, c in enumerate(candidates, 1):
-            excerpt = (c.content or "").strip()[:1200]
+            excerpt = (c.content or "").strip()[:1400]
             story_blocks.append(
-                f"STORY #{i}:\n"
+                f"STORY #{i} (Priority #{i}):\n"
                 f"Title: {c.title}\n"
                 f"Category: {c.category}\n"
                 f"Slug: {c.slug}\n"
@@ -218,7 +244,7 @@ def run_daily_brief(dry_run: bool = False) -> Dict[str, Any]:
         combined_source_text = (
             f"Today's Date: {date_full} ({date_display} {today_utc.year})\n\n"
             + "\n\n".join([
-                f"{c.title}\n{c.summary or ''}\n{(c.content or '')[:1200]}\nSlug: {c.slug}"
+                f"{c.title}\n{c.summary or ''}\n{(c.content or '')[:1400]}\nSlug: {c.slug}"
                 for c in candidates
             ])
         )
@@ -229,28 +255,34 @@ def run_daily_brief(dry_run: bool = False) -> Dict[str, Any]:
         prompt = f"""You are a senior news editor writing the GlobalPulse AI "Daily Brief" for US and UK readers.
 The date of this brief is {date_full} ({date_display}).
 
-Your task is to write a comprehensive, readable Daily Brief summarizing our top {len(candidates)} stories from the past 24 hours.
+Your task is to write a comprehensive, high-quality Daily Brief summarizing our top {len(candidates)} stories from the past 24 hours.
 
-CANDIDATE STORIES:
+CANDIDATE STORIES (ordered by priority, #1 is the biggest lead story):
 {candidate_text}
 
 EDITORIAL RULES:
 1. STRICT FACTUAL GROUNDING: Use ONLY facts, numbers, dates, and quotes explicitly stated in the candidate stories above. NEVER invent, assume, or extrapolate any numbers, dates, days of the week, names, or events.
-2. HEADLINE: Maximum 60 characters total. It MUST include "Daily Brief" and the date "{date_display}".
-   Example: "Daily Brief, {date_display}: Anthropic IPO and Top Stories"
-   The headline MUST NOT exceed 60 characters in total length.
-3. BODY STRUCTURE: Between 450 and 700 words in clear, plain journalistic English. Follow this exact structure:
-   - A short introduction (2-3 sentences) setting the context of today's key stories.
-   - For EACH candidate story, a dedicated section formatted as:
-     ### <Story Title or Topic Name>
-     Followed by 3 to 4 sentences explaining what happened, key numbers/dates, and why it matters.
-     At the end of this story section, on its own line:
+2. HEADLINE REQUIREMENT:
+   Format MUST be: "Daily Brief, {date_display}: <short name of #1 lead story>"
+   The #1 lead story is: "{lead_story.title}"
+   Your headline MUST specifically reference this lead story topic, NOT generic category lists!
+   STRICTLY FORBIDDEN: Never use generic category lists like "Markets, Games and Sports", "Tech and Sports Updates", or "News Overview".
+   Total headline length MUST NOT exceed 60 characters (aim for 45-58 characters).
+3. BODY STRUCTURE AND LENGTH:
+   Total body length MUST be strictly between 550 and 800 words (aim for 580-680 words).
+   Structure:
+   - INTRODUCTION: Exactly 2 sentences. If any of the candidate stories share a connection or common dynamic, highlight that connection in one sentence. Otherwise, write a direct, concise 2-sentence opening summarizing today's key dispatches.
+   - STORY SECTIONS: Present all {len(candidates)} stories in order, starting with #1 ({lead_story.title}).
+     For EACH story, write between 100 and 140 words formatted as:
+     ### <Story Headline or Specific Topic>
+     Explain what happened in detail, explicitly citing verified dates, numbers, figures, and company/person names from the source text.
+     Include a "Why it matters:" sentence explaining the practical significance based STRICTLY on the facts provided (do NOT speculate, give opinions, or invent unverified forecasts).
+     At the end of each story section, on its own line:
      [Read the full article](/news/<slug>)
      where <slug> is the exact slug provided for that story.
-   - At the very end, a final section:
+   - WHAT TO WATCH NEXT: At the very end, a final section:
      ### What to watch next
-     2 to 3 sentences summarizing upcoming developments mentioned in the candidate stories (no invented forecasts).
-   Total word count of the body MUST be at least 450 words (aim for 500-620 words).
+     2 to 3 sentences summarizing upcoming milestones, dates, or next developments mentioned in the candidate stories (zero unstated predictions).
 4. FORBIDDEN WORDS:
    Never use any of these words: {banned_str}
    Never use unsupported adjectives like 'brilliant', 'crucial', 'major', 'dismantling', 'dominant', 'stunning', or 'masterclass'.
@@ -258,12 +290,12 @@ EDITORIAL RULES:
 5. SENSITIVE TOPICS: Do not include scandals or allegations.
 6. JSON OUTPUT ONLY:
 {{
-  "headline": "Daily Brief, {date_display}: ...",
+  "headline": "Daily Brief, {date_display}: <Specific #1 Story Topic>",
   "meta_description": "A single complete grammatical sentence between 140 and 155 characters summarizing the brief.",
-  "body": "Full article body (450-700 words) with headings and [Read the full article](/news/<slug>) links.",
+  "body": "Full article body (550-800 words) with headings and [Read the full article](/news/<slug>) links.",
   "confidence": "full"
 }}
-Set "confidence" to "full" ONLY if the body is at least 450 words and every story includes its [Read the full article](/news/<slug>) link.
+Set "confidence" to "full" ONLY if the body is at least 550 words and every story includes its [Read the full article](/news/<slug>) link.
 """
 
         # 6. Single Gemini Call
@@ -290,6 +322,11 @@ Set "confidence" to "full" ONLY if the body is at least 450 words and every stor
         body = sanitize_banned_phrases(data.get("body", "")).strip()
         confidence = str(data.get("confidence", "")).strip().lower()
 
+        # C) Markdown fix: replace literal escape sequences with real newlines & characters
+        body = body.replace("\\n", "\n").replace("\\#", "#").replace("\\*", "*")
+        body = re.sub(r'([^\n])\n(#{1,4}\s+)', r'\1\n\n\2', body)
+        body = re.sub(r'(#{1,4}\s+[^\n]+)\n([^\n#])', r'\1\n\n\2', body)
+
         # Enforce headline length max 60 chars
         if len(headline) > HEADLINE_MAX_LENGTH:
             truncated = headline[:HEADLINE_MAX_LENGTH]
@@ -307,11 +344,14 @@ Set "confidence" to "full" ONLY if the body is at least 450 words and every stor
             gate_passed = False
             gate_failures.append(f"confidence is '{confidence}' (expected 'full')")
 
-        # Gate Check 2: body >= 450 words
+        # Gate Check 2: body >= 550 words
         body_words = len(body.split())
-        if body_words < 450:
+        if body_words < 550:
             gate_passed = False
-            gate_failures.append(f"body word count {body_words} < 450 words")
+            gate_failures.append(f"body word count {body_words} < 550 words")
+        elif body_words > 850:
+            gate_passed = False
+            gate_failures.append(f"body word count {body_words} > 800 words")
 
         # Gate Check 3: At least 4 internal /news/ links
         internal_links = re.findall(r'\[(?:Read the full article|[^\]]+)\]\(/news/([a-zA-Z0-9\-_]+)\)', body)
@@ -319,10 +359,15 @@ Set "confidence" to "full" ONLY if the body is at least 450 words and every stor
             gate_passed = False
             gate_failures.append(f"internal links count {len(internal_links)} < 4")
 
-        # Gate Check 4: headline <= 60 characters
+        # Gate Check 4: headline <= 60 characters and non-generic
         if len(headline) > HEADLINE_MAX_LENGTH:
             gate_passed = False
             gate_failures.append(f"headline length {len(headline)} > {HEADLINE_MAX_LENGTH}")
+
+        generic_phrases = ["markets, games and sports", "tech and sports", "sports and tech", "news overview", "daily news review", "top stories review"]
+        if any(gp in headline.lower() for gp in generic_phrases):
+            gate_passed = False
+            gate_failures.append("headline is generic category list instead of naming lead story")
 
         # Gate Check 5: meta 140-155 characters
         if not (META_DESC_MIN_LENGTH <= len(meta_description) <= META_DESC_MAX_LENGTH):
@@ -366,6 +411,7 @@ Set "confidence" to "full" ONLY if the body is at least 450 words and every stor
             "headline": headline,
             "word_count": body_words,
             "candidates_count": len(candidates),
+            "selected_candidates": [c.title for c in candidates],
             "links_count": len(internal_links),
             "gate_passed": gate_passed,
             "failures": gate_failures,

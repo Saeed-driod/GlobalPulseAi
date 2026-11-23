@@ -84,6 +84,12 @@ def main():
 
     gate_str = "PASS" if gate_passed else f"FAIL ({'; '.join(failures)})"
 
+    selected_candidates = result.get("selected_candidates", [])
+    if selected_candidates:
+        print("\nChune gaye articles:")
+        for idx, t in enumerate(selected_candidates, 1):
+            print(f"  {idx}. {t}")
+
     print(f"\nheadline: {headline}")
     print(f"word count: {word_count}")
     print(f"candidates count: {candidates_count}")

@@ -227,7 +227,13 @@ export function ArticleDetailClient({ initialArticle, slug, initialRelatedArticl
   };
 
   const renderParagraphs = (content: string) => {
-    return content.split("\n\n").map((section, idx) => {
+    const normalized = (content || "")
+      .replace(/\\n/g, "\n")
+      .replace(/\\#/g, "#")
+      .replace(/([^\n])\n(#{1,4}\s+)/g, "$1\n\n$2")
+      .replace(/(#{1,4}\s+[^\n]+)\n([^\n#])/g, "$1\n\n$2");
+
+    return normalized.split("\n\n").map((section, idx) => {
       const trimmed = section.trim();
       if (!trimmed) return null;
 
