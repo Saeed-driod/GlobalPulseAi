@@ -34,7 +34,7 @@ export const metadata: Metadata = {
       "Real-time scores, match schedules, and official broadcast guides across all global sports.",
   },
   robots: {
-    index: true,
+    index: false,
     follow: true,
   },
 };
