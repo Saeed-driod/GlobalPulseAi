@@ -104,8 +104,8 @@ def get_daily_brief_candidates(db) -> List[Article]:
     category_counts: Dict[str, int] = defaultdict(int)
 
     for art in raw_candidates:
-        content_words = len((art.content or "").split())
-        if content_words < 300:
+        words = max(len((art.content or "").split()), len(f"{art.summary or ''} {art.content or ''}".split()))
+        if words < 300:
             continue
         cat = art.category or "Other"
         if category_counts[cat] >= 2:
