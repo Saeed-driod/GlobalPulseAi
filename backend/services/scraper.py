@@ -53,14 +53,49 @@ RSS_FEEDS = [
     },
     {
         "category": "AI & Tech",
-        "name": "Hacker News",
-        "url": "https://news.ycombinator.com/rss",
+        "name": "Wired",
+        "url": "https://www.wired.com/feed/rss",
+    },
+    {
+        "category": "AI & Tech",
+        "name": "Engadget",
+        "url": "https://www.engadget.com/rss.xml",
+    },
+    {
+        "category": "AI & Tech",
+        "name": "BBC News Technology",
+        "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    },
+    {
+        "category": "AI & Tech",
+        "name": "The Guardian Technology",
+        "url": "https://www.theguardian.com/technology/rss",
     },
     # 3. Entertainment, Cinema & Gaming
     {
         "category": "Entertainment",
         "name": "IGN Gaming & Cinema",
         "url": "https://feeds.feedburner.com/ign/all",
+    },
+    {
+        "category": "Entertainment",
+        "name": "Variety",
+        "url": "https://variety.com/feed/",
+    },
+    {
+        "category": "Entertainment",
+        "name": "Deadline",
+        "url": "https://deadline.com/feed/",
+    },
+    {
+        "category": "Entertainment",
+        "name": "The Hollywood Reporter",
+        "url": "https://www.hollywoodreporter.com/feed/",
+    },
+    {
+        "category": "Entertainment",
+        "name": "The Guardian Film",
+        "url": "https://www.theguardian.com/film/rss",
     },
 ]
 
