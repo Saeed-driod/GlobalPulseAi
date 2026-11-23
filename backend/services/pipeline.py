@@ -16,7 +16,7 @@ try:
     from .ai_service import process_raw_news, get_gemini_cooldown_remaining, process_deep_research_news
     from .research import (
         build_source_pack, can_do_deep_research_today, record_deep_research_done,
-        get_skipped_robots_count, reset_skipped_robots_count
+        get_skipped_robots_count, reset_skipped_robots_count, fetch_article_page
     )
     from .video_generator import compose_short_video, compose_video
     from .youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
@@ -31,7 +31,7 @@ except (ImportError, ValueError):
         from services.ai_service import process_raw_news, get_gemini_cooldown_remaining, process_deep_research_news
         from services.research import (
             build_source_pack, can_do_deep_research_today, record_deep_research_done,
-            get_skipped_robots_count, reset_skipped_robots_count
+            get_skipped_robots_count, reset_skipped_robots_count, fetch_article_page
         )
         from services.video_generator import compose_short_video, compose_video
         from services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
@@ -45,7 +45,7 @@ except (ImportError, ValueError):
         from backend.services.ai_service import process_raw_news, get_gemini_cooldown_remaining, process_deep_research_news
         from backend.services.research import (
             build_source_pack, can_do_deep_research_today, record_deep_research_done,
-            get_skipped_robots_count, reset_skipped_robots_count
+            get_skipped_robots_count, reset_skipped_robots_count, fetch_article_page
         )
         from backend.services.video_generator import compose_short_video, compose_video
         from backend.services.youtube_uploader import upload_short_to_youtube, upload_long_video_to_youtube
@@ -399,13 +399,30 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 else:
                     if is_deep_eligible:
                         print(f"[Deep Research] Insufficient corroborating sources ({len(source_pack)} found). Falling back to standard short flow.")
-                    print(f"\n[Step 2/5] Synthesizing with Gemini AI: '{item['raw_title'][:60]}...'")
+
+                    # Pre-Gemini check: source text must have at least 800 characters (RSS summary + fetched page text)
+                    source_url = item.get("source_url", "")
+                    rss_summary = (item.get("raw_summary") or "").strip()
+                    page_text = (fetch_article_page(source_url) or "").strip() if source_url else ""
+
+                    if page_text:
+                        combined_source_text = f"{rss_summary}\n\n{page_text}".strip()
+                    else:
+                        combined_source_text = rss_summary
+
+                    total_source_len = len(combined_source_text)
+                    if total_source_len < 800:
+                        print(f"[Master Pipeline] skipped_thin_source: Article '{item.get('raw_title', '')[:50]}' source text too short ({total_source_len} chars < 800). Skipping without Gemini call.")
+                        record_rejected_story(source_url, item.get("raw_title", ""), reason="skipped_thin_source")
+                        continue
+
+                    print(f"\n[Step 2/5] Synthesizing with Gemini AI: '{item['raw_title'][:60]}...' (source: {total_source_len} chars)")
                     ai_data = process_raw_news(
                         raw_title=item["raw_title"],
-                        raw_summary=item["raw_summary"],
+                        raw_summary=combined_source_text,
                         source_name=item["source_name"],
                         suggested_category=item.get("suggested_category"),
-                        source_url=item.get("source_url", ""),
+                        source_url=source_url,
                         raw_image_url=item.get("raw_image_url")
                     )
 
@@ -437,13 +454,21 @@ def run_full_automation_pipeline(limit: int = 1, db: Optional[Session] = None, v
                 confidence = str(ai_data.get("confidence") or "").strip().lower()
                 min_required_words = 300 if is_deep else 220
                 if confidence != "full" or body_words < min_required_words:
-                    reason = f"confidence='{confidence}', words={body_words} < {min_required_words}"
+                    if body_words <= 1:
+                        reason = "rejected: empty/invalid Gemini output"
+                    elif body_words < min_required_words:
+                        reason = f"rejected: words={body_words} < {min_required_words}"
+                    elif confidence == "thin":
+                        reason = f"rejected: confidence=thin (words={body_words})"
+                    else:
+                        reason = f"rejected: confidence={confidence} (words={body_words})"
+
                     if is_deep:
                         deep_reasons.append(reason)
                         print(f"[Deep Story Log] Headline: '{title_for_log}' | Sources: {sources_count} ({outlets_str}) | Words: {body_words} | Published: False | Result: REJECTED | Reason: {reason}{err_info}")
                     else:
                         standard_stories_rejected += 1
-                        print(f"[Master Pipeline] Quality Gate: Article '{title_for_log[:50]}' rejected | path='{gen_path}' | {reason}{err_info}. Skipping publication.")
+                        print(f"[Master Pipeline] Quality Gate: Article '{title_for_log[:50]}' | path='{gen_path}' | {reason}{err_info}. Skipping publication.")
                     if is_genuine_gemini:
                         record_rejected_story(item.get("source_url"), item.get("raw_title", ""), reason=f"{reason}, path={gen_path}")
                     else:
