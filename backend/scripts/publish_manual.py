@@ -49,6 +49,86 @@ except ImportError:
 
 MANUAL_ARTICLES: List[Dict[str, Any]] = [
     {
+        "slug": "2027-predictions-economist-imf-gartner-what-to-expect",
+        "title": "2027 Predictions: Economist, IMF and Gartner Forecasts",
+        "category": "AI & Tech",
+        "meta_description": (
+            "What will 2027 bring? The IMF forecasts 3.4% global growth, Gartner names 10 tech trends and The Economist flags 10 risks, from AI debt to Taiwan."
+        ),
+        "summary": (
+            "• The IMF forecasts 3.4% global growth in 2027 while warning of risks from AI-linked debt, bond yields, and workplace disruption affecting 40% of jobs.\n"
+            "• The Economist highlights ten major themes including post-Trump politics, Iran conflict risks, commercial space milestones, and rising AI scrutiny.\n"
+            "• Gartner names ten strategic tech trends for 2027 spanning AI reasoning models, autonomous exposure remediation, and coding agent harnesses."
+        ),
+        "image_url": "https://theglobalpulseai.com/articles/2027-predictions.png",
+        "content": """What will 2027 look like? Three widely cited outlooks, from The Economist, the International Monetary Fund (IMF) and Gartner, were published between October and November 2026. This guide sums up what each says about the economy, technology and global risks, and where they agree. These are forecasts, not facts, and all of them can change.
+
+Disclosure: this article summarises published reports. The predictions belong to the organisations named, not to us.
+
+## The economy: the IMF expects 3.4% growth
+
+In its World Economic Outlook, released on 13 October 2026, the IMF forecast global growth of 3.1% in 2026, up from 3.0% in its July forecast, and 3.4% in 2027. It said growth was 3.5% in 2025.
+
+The IMF listed several risks:
+
+- Rising debt, including borrowing linked to AI.
+- A possible correction in AI-related stock prices.
+- Rising bond yields and high borrowing costs for governments.
+- Cyberthreats that could disrupt financial systems.
+
+The forecast also assumes oil averaging $96 a barrel and shipments through the Strait of Hormuz resuming by March. IMF Managing Director Kristalina Georgieva described AI's effect on jobs as "a slow moving tsunami, but a tsunami nonetheless," and estimated that about 40% of jobs worldwide will be augmented, downgraded or eliminated. Silvana Tenreyro, the IMF's director of research, said "The outlook is highly uneven."
+
+## The world: ten themes from The Economist
+
+According to a Türkiye Today summary of The Economist's *The World Ahead 2027*, published on 17 November 2026, the magazine's ten themes include:
+
+- **Politics beyond Trump.** The race to succeed him gains prominence. Editor Tom Standage wrote: "The post-Trump era is beginning. But don't expect the president to go quietly."
+- **The Iran conflict.** It could disrupt energy flows, fertiliser supplies and food security.
+- **Extreme weather.** More heat, drought and wildfires are expected, with renewables possibly gaining ground.
+- **AI scrutiny.** Rising corporate debt and opaque financing could raise the risk of an AI market crash.
+- **France and Europe.** A possible Marine Le Pen victory could strain the Franco-German partnership.
+- **Borrowing costs.** Rising government debt and higher bond yields are pressuring developed economies.
+- **China and Taiwan.** Xi Jinping is reportedly seeking to have China's military ready to capture Taiwan by 2027.
+- **Weight-loss drugs.** Wider use of treatments such as Ozempic could shift spending towards clothing, cosmetics and fitness.
+- **The commercial space race.** SpaceX's Starship is expected to begin regular satellite launches, and the first private space station is set to launch.
+- **Hollywood.** Studios are looking for new audiences as low-budget YouTuber productions challenge traditional filmmaking.
+
+We read a summary of the report, not the full text, so check The Economist for the details behind each theme.
+
+## Technology: Gartner's ten trends
+
+On 20 October 2026, Gartner announced its top strategic technology trends for 2027 at its IT Symposium/Xpo. The list is:
+
+1. Large Quantitative Models, for analysing numerical data.
+2. Speech Reasoning Models, voice AI that reasons directly on audio.
+3. World Models, which let machines simulate outcomes before acting.
+4. AI Context Platforms, which give AI agents the knowledge to make decisions.
+5. Agent Coding Harness, a control system for autonomous coding agents.
+6. AI Agent Identity, controls linking agents to their credentials and actions.
+7. Autonomous Exposure Remediation, which finds and fixes security vulnerabilities automatically.
+8. Sovereign Tech, designed so organisations can exit critical providers.
+9. Disposable Applications, software meant to be retired once its need ends.
+10. Wetware as a Service, remote access to biological systems that perform computation.
+
+Gartner makes two predictions along the way. By 2027, it says organisations prioritising semantics in AI-ready data will improve agentic AI accuracy by up to 80% and cut costs by up to 60%. By 2028, it says 25% of enterprise security breaches will trace back to AI agent abuse.
+
+## Where the forecasts agree
+
+- **AI is both the engine and the risk.** The IMF and The Economist both flag AI-linked debt and a possible market correction, while Gartner focuses on AI agents and their security.
+- **Borrowing costs matter.** The IMF and The Economist both point to bond yields and government debt.
+- **Energy and geopolitics.** The IMF's oil assumption and The Economist's Iran theme both depend on how the conflict develops.
+
+## What we do not know
+
+- Whether growth reaches the IMF's 3.4%. The forecast depends on assumptions about oil and shipping that could change.
+- Whether any single event on The Economist's list happens. It describes themes to watch, not certainties.
+- How quickly the Gartner trends reach businesses outside large organisations.
+
+This article is for information only and is not investment advice.
+
+Sources: IMF World Economic Outlook, October 2026 (imf.org; coverage by NBC New York, 13 October 2026); Gartner press release, "Gartner Identifies the Top Strategic Technology Trends for 2027" (20 October 2026); Türkiye Today summary of The Economist's The World Ahead 2027 (17 November 2026).""",
+    },
+    {
         "slug": "black-friday-2026-gaming-deals-what-is-cheaper",
         "title": "Black Friday 2026 Gaming Deals: What Is Actually Cheaper",
         "category": "AI & Tech",
@@ -248,6 +328,7 @@ def publish_or_update_article(db, item: Dict[str, Any], dry_run: bool = False) -
     meta_desc = item["meta_description"]
     summary = item["summary"]
     content = item["content"]
+    image_url = item.get("image_url")
 
     existing = db.query(Article).filter(Article.slug == slug).first()
 
@@ -259,6 +340,8 @@ def publish_or_update_article(db, item: Dict[str, Any], dry_run: bool = False) -
             existing.category = category
             existing.content = content
             existing.summary = summary
+            if image_url is not None:
+                existing.image_url = image_url
             existing.status = ArticleStatus.PUBLISHED.value
             existing.is_noindex = False
             if hasattr(existing, "meta_description"):
@@ -280,7 +363,7 @@ def publish_or_update_article(db, item: Dict[str, Any], dry_run: bool = False) -
                 "author_name": "GlobalPulse AI Desk",
                 "source_name": "GlobalPulse AI Desk",
                 "source_url": None,
-                "image_url": None,
+                "image_url": image_url,
                 "status": ArticleStatus.PUBLISHED.value,
                 "is_noindex": False,
                 "published_at": datetime.now(timezone.utc),
@@ -312,6 +395,7 @@ def publish_or_update_article(db, item: Dict[str, Any], dry_run: bool = False) -
         "title": title,
         "category": category,
         "word_count": len(content.split()),
+        "image_url": image_url,
     }
 
 
@@ -361,6 +445,7 @@ def main():
             print(f"  Title     : {res['title']}")
             print(f"  Category  : {res['category']}")
             print(f"  Word Count: {res['word_count']}")
+            print(f"  Image URL : {res.get('image_url')}")
             print(f"  URL       : {res['url']}")
 
         print("\n" + "=" * 65)

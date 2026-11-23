@@ -125,6 +125,11 @@ export function getHdImageUrl(url?: string | null, title?: string, category?: st
     return getCategoryCuratedPhoto(category, title);
   }
 
+  // Local static articles images (e.g. /articles/2027-predictions.png)
+  if (url && typeof url === "string" && (url.startsWith("/articles/") || url.startsWith("/uploads/"))) {
+    return url;
+  }
+
   // 1. If valid external photo (genuine source picture from publisher or Unsplash)
   if (url && typeof url === "string" && url.startsWith("http") && !url.startsWith("/api/og")) {
     if (url.includes("images.unsplash.com")) {

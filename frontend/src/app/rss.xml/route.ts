@@ -50,8 +50,14 @@ export async function GET(request: Request) {
         .replace(/^[•▸*-\s]+/gm, " ")
         .trim();
 
-      const imageTag = article.image_url
-        ? `<enclosure url="${escapeXml(article.image_url)}" length="0" type="image/jpeg" />`
+      const rawImg = article.image_url || "";
+      const fullImg = rawImg.startsWith("http")
+        ? rawImg
+        : rawImg.startsWith("/")
+          ? `${siteUrl}${rawImg}`
+          : "";
+      const imageTag = fullImg
+        ? `<enclosure url="${escapeXml(fullImg)}" length="0" type="image/jpeg" />`
         : "";
 
       return `
