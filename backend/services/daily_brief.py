@@ -269,20 +269,20 @@ EDITORIAL RULES:
    STRICTLY FORBIDDEN: Never use generic category lists like "Markets, Games and Sports", "Tech and Sports Updates", or "News Overview".
    Total headline length MUST NOT exceed 60 characters (aim for 45-58 characters).
 3. BODY STRUCTURE AND LENGTH:
-   Total body length MUST be strictly between 550 and 800 words (aim for 580-680 words).
+   Total body length MUST be strictly between 550 and 750 words (aim for 600-680 words). Do NOT exceed 750 words.
    Structure:
-   - INTRODUCTION: Exactly 2 sentences. If any of the candidate stories share a connection or common dynamic, highlight that connection in one sentence. Otherwise, write a direct, concise 2-sentence opening summarizing today's key dispatches.
+   - INTRODUCTION: Exactly 2 sentences. If any candidate stories share a connection or common dynamic, highlight that connection in one sentence. Otherwise, write a direct, concise 2-sentence opening summarizing today's key dispatches.
    - STORY SECTIONS: Present all {len(candidates)} stories in order, starting with #1 ({lead_story.title}).
-     For EACH story, write between 100 and 140 words formatted as:
+     For EACH story, write strictly between 95 and 115 words (around 105 words per story):
      ### <Story Headline or Specific Topic>
-     Explain what happened in detail, explicitly citing verified dates, numbers, figures, and company/person names from the source text.
-     Include a "Why it matters:" sentence explaining the practical significance based STRICTLY on the facts provided (do NOT speculate, give opinions, or invent unverified forecasts).
+     Explain what happened concisely, citing verified dates, numbers, figures, and company/person names from the source text.
+     Include a single "Why it matters:" sentence explaining the practical significance based STRICTLY on the facts provided (do NOT speculate, give opinions, or invent unverified forecasts).
      At the end of each story section, on its own line:
      [Read the full article](/news/<slug>)
      where <slug> is the exact slug provided for that story.
    - WHAT TO WATCH NEXT: At the very end, a final section:
      ### What to watch next
-     2 to 3 sentences summarizing upcoming milestones, dates, or next developments mentioned in the candidate stories (zero unstated predictions).
+     2 sentences summarizing upcoming milestones, dates, or next developments mentioned in the candidate stories (zero unstated predictions).
 4. FORBIDDEN WORDS:
    Never use any of these words: {banned_str}
    Never use unsupported adjectives like 'brilliant', 'crucial', 'major', 'dismantling', 'dominant', 'stunning', or 'masterclass'.
