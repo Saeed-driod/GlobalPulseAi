@@ -49,6 +49,72 @@ except ImportError:
 
 MANUAL_ARTICLES: List[Dict[str, Any]] = [
     {
+        "slug": "robert-pattinson-new-james-bond-what-we-know",
+        "title": "Robert Pattinson Is the New James Bond: What We Know",
+        "category": "Entertainment",
+        "meta_description": (
+            "Robert Pattinson was named the new 007 on 16 November. Director, writer, release timing and what is still unconfirmed, including who will play M."
+        ),
+        "summary": (
+            "• Amazon MGM Studios confirmed Robert Pattinson as James Bond on 16 November 2026, with Denis Villeneuve directing and Steven Knight writing the script.\n"
+            "• No release date has been confirmed, though reports point to a 2028 release with filming expected to start in 2027.\n"
+            "• No other cast has been announced; reports of other actors in contention and who will play M remain unconfirmed."
+        ),
+        "image_url": "https://theglobalpulseai.com/articles/bond-new-007.png",
+        "content": """Robert Pattinson is the next James Bond. Amazon MGM Studios announced the casting on 16 November 2026, ending years of speculation about who would succeed Daniel Craig as 007. Here is what has been confirmed, what has only been reported, and what nobody has said yet.
+
+## Who is the new James Bond?
+
+Amazon MGM Studios confirmed that Pattinson will play James Bond in its next 007 film. ITV reports that he is 40. Craig played Bond from *Casino Royale* in 2006 to *No Time To Die* in 2021, five films in all.
+
+In the studio's announcement, Pattinson said: "James Bond is one of the most legendary characters in cinema, and to be entrusted with 007 is the honour of a lifetime." Mike Hopkins, head of Prime Video and Amazon MGM Studios, said the studio "proudly introduce[s] Robert Pattinson as the next 007."
+
+## Who is making the film?
+
+According to Amazon MGM Studios:
+
+- **Director:** Denis Villeneuve. He said "there can only be one 007."
+- **Writer:** Steven Knight, who wrote the script.
+- **Producers:** Amy Pascal (Pascal Pictures) and David Heyman (Heyday Films). They called Pattinson "the perfect Bond for our times."
+- **Executive producer:** Tanya Lapointe.
+
+It is the first Bond film since Amazon gained creative control of the franchise. In March 2025, Amazon MGM Studios closed a joint venture with Barbara Broccoli and Michael G. Wilson under which it took creative control of the James Bond property.
+
+## When will the new Bond film be released?
+
+There is no official date. Amazon's announcement does not give a release date or a filming start. Heart reported on 17 November that "everything points towards 2028" and that production is expected to begin in 2027, but it said no exact dates have been given. ITV also reports that filming is expected next year, with a 2028 release. Treat both as expectations, not confirmed dates.
+
+## Who else is in the film?
+
+No other cast has been confirmed. We found nothing from Amazon on who will play M or any other role, so any report naming other actors should be treated as rumour for now.
+
+## Who else was in the running?
+
+ITV reports that Jack Lowden, Josh O'Connor and Callum Turner were reportedly also in contention. Amazon has not commented on other candidates, so this is reporting, not confirmation.
+
+## What is Pattinson doing before Bond?
+
+Amazon says Pattinson is set to appear in *Dune: Part Three* and is in production on *The Batman Part II*. How those schedules fit around Bond has not been explained.
+
+## Quick answers
+
+**Who is the new 007 actor?** Robert Pattinson, announced by Amazon MGM Studios on 16 November 2026.
+
+**Who is directing?** Denis Villeneuve, with a script by Steven Knight.
+
+**Who is the new M?** Not announced.
+
+**When does it come out?** Not confirmed. Reports point to 2028.
+
+## What we do not know yet
+
+- The film's title and exact release date.
+- Who will play M and the rest of the cast.
+- When filming begins.
+
+Sources: Amazon MGM Studios announcement via Amazon News (16 November 2026) and its Bond updates page; ITV News (16 November 2026); Heart (17 November 2026).""",
+    },
+    {
         "slug": "2027-predictions-economist-imf-gartner-what-to-expect",
         "title": "2027 Predictions: Economist, IMF and Gartner Forecasts",
         "category": "AI & Tech",
