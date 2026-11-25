@@ -49,6 +49,63 @@ except ImportError:
 
 MANUAL_ARTICLES: List[Dict[str, Any]] = [
     {
+        "slug": "nvidia-reinstates-jensen-huang-ceo-stock-jumps-31-percent",
+        "title": "Nvidia Reinstates Jensen Huang as CEO; Stock Jumps 31%",
+        "category": "AI & Tech",
+        "meta_description": (
+            "Nvidia's board reinstated Jensen Huang as CEO on 23 November, six days after saying it would not. Shares rose about 31%. What changed and what is unclear."
+        ),
+        "summary": (
+            "• Nvidia reinstated Jensen Huang as president, CEO and board member on 23 November 2026 after a unanimous board vote, reversing its 17 November stance.\n"
+            "• Nvidia shares jumped about 31.5% to $165.05 on 23 November, lifting the Nasdaq by 6.5% and the S&P 500 by 4.7%, before cooling more than 5% on 24 November.\n"
+            "• An independent board committee is investigating reports of a foreign intelligence effort targeting Huang, while Nvidia formed a National Security and Export Control Committee and continues cooperating with ongoing inquiries."
+        ),
+        "image_url": "https://theglobalpulseai.com/articles/nvidia-huang-returns.png",
+        "content": """Nvidia announced on Monday 23 November 2026 that Jensen Huang has been reinstated as president, chief executive officer and a member of the board, effective immediately. The move reverses the position the chairman gave on 17 November, and Nvidia shares rose about 31% that day. Here is what Nvidia said, how the market and analysts reacted, and what remains unclear.
+
+## What Nvidia announced
+
+According to Nvidia's filing with the US Securities and Exchange Commission, the board voted unanimously to reinstate Huang after discussions with him, saying it was satisfied with his candor and ability to lead. The board also said it received input from senior US government levels and concluded that the reinstatement poses no national security risk.
+
+Other points from the release:
+
+- **Board chair:** Harvey C. Jones, who remains chair, said: "The Board believes Jensen is the right person to lead NVIDIA."
+- **Colette Kress:** The interim CEO continues as chief financial officer, and the release thanks her for her service.
+- **Huang's statement:** He said he takes the role "with the greatest humility and renewed commitment."
+- **Investigation:** A committee of independent directors is investigating reports that Huang was the target of a foreign intelligence effort. Huang says he supports the probe and will cooperate. Nvidia has not published further details.
+- **New oversight:** A National Security and Export Control Committee, made up only of independent directors, will oversee trade compliance and national security risks. Nvidia is also searching for a Chief Compliance Officer.
+- **Investigations:** Nvidia says it will keep cooperating with ongoing government investigations and inquiries.
+
+## How it got here
+
+In a filing dated 12 November, Nvidia said Huang had resigned as CEO and board member, and named Kress interim CEO. On 17 November, at the start of Nvidia's earnings call, chairman Harvey Jones said the board "unanimously accepted his resignation and does not intend to reinstate Jensen as CEO," according to the South China Morning Post. Six days later the board reversed course. Yahoo Finance reported that President Trump had publicly urged the board to reinstate Huang the day before the announcement. We did not see the original comments.
+
+## The market reaction
+
+Nvidia shares closed up about 31.5% at $165.05 on 23 November, according to a market recap by US Brief that cites Yahoo Finance and CNBC. The recap calls it Nvidia's biggest one-day gain since May 2003. The Nasdaq Composite rose about 6.5%, the S&P 500 about 4.7% and the Dow about 3%, and the Nasdaq and S&P 500 had their biggest daily gains since April 2025.
+
+Yahoo Finance reported that Nvidia had fallen for six straight days before the announcement, and that other AI-linked stocks rose as well, including TSMC, Arm and Micron. CNBC reported on 24 November that Nvidia shares fell more than 5% as the rally cooled. We could not open the full CNBC article.
+
+## What analysts said
+
+According to Yahoo Finance, several analysts reacted to the news:
+
+- **Bernstein** upgraded Nvidia to Outperform from Neutral with a $200 price target, 11 days after downgrading it. Analyst Stacy Rasgon said the ongoing investigations may limit the stock's valuation for now. The team called the board's on-and-off response "clown-like."
+- **Citi's Atif Malik** raised his target to $240 and said the reinstatement "removes the key overhang created by the CEO transition."
+- **KeyBank's John Vinh** called it a "significantly positive development" but is waiting for more detail on the board investigation and an SEC accounting inquiry.
+- **Stifel's Ruben Roy** said Huang's return removes key-person risk, but the investigations could still weigh on the stock.
+
+## What we do not know yet
+
+- What the independent committee's investigation will find, and when.
+- Whether the SEC accounting inquiry mentioned by analysts leads to any action.
+- How Nvidia shares will trade in the coming weeks. They moved sharply in both directions within days.
+
+This article is for information only and is not investment advice.
+
+Sources: NVIDIA Form 8-K and press release (23 November 2026, sec.gov); South China Morning Post (17 November 2026); Yahoo Finance, "Nvidia soars as board reinstates Jensen Huang" and "Wall Street analysts cheer Jensen Huang's return" (23 November 2026); US Brief market recap (23 November 2026); CNBC headline (24 November 2026).""",
+    },
+    {
         "slug": "robert-pattinson-new-james-bond-what-we-know",
         "title": "Robert Pattinson Is the New James Bond: What We Know",
         "category": "Entertainment",
