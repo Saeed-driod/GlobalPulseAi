@@ -148,14 +148,12 @@ export function ArticleDetailClient({ initialArticle, slug, initialRelatedArticl
     rawBody = rawBody.replace(whyItMattersRegex, "").trim();
   }
 
-  // Filter out any legacy tables or FAQs
+  // Filter out any legacy FAQs
   const cleanBodyText = rawBody
     .split("\n\n")
     .filter((section) => {
       const trimmed = section.trim();
       if (!trimmed) return false;
-      // Strip markdown tables
-      if (trimmed.startsWith("|") && trimmed.includes("\n|")) return false;
       // Strip FAQs
       if (/###\s*Frequently Asked Questions/i.test(trimmed)) return false;
       if (trimmed.startsWith("**Q:") || trimmed.startsWith("Q:")) return false;
@@ -256,6 +254,53 @@ export function ArticleDetailClient({ initialArticle, slug, initialRelatedArticl
             {renderFormattedText(trimmed.replace(/^>\s*/gm, ""))}
           </blockquote>
         );
+      }
+
+      if (trimmed.startsWith("|") && trimmed.includes("\n|")) {
+        const lines = trimmed
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.startsWith("|"));
+        if (lines.length >= 2) {
+          const parseRow = (line: string) =>
+            line
+              .replace(/^\|/, "")
+              .replace(/\|$/, "")
+              .split("|")
+              .map((cell) => cell.trim());
+          const headers = parseRow(lines[0]);
+          const isSeparator = /^\|?(\s*:?-+:?\s*\|)+\s*$/.test(lines[1]);
+          const bodyLines = isSeparator ? lines.slice(2) : lines.slice(1);
+          return (
+            <div key={idx} className="my-6 overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-900/50">
+              <table className="w-full text-left border-collapse text-sm sm:text-base">
+                <thead className="bg-slate-800/80 text-white font-semibold">
+                  <tr>
+                    {headers.map((h, hi) => (
+                      <th key={hi} className="px-4 py-3 border-b border-slate-700/60 whitespace-nowrap">
+                        {renderFormattedText(h)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80 text-slate-200">
+                  {bodyLines.map((rowLine, ri) => {
+                    const cells = parseRow(rowLine);
+                    return (
+                      <tr key={ri} className="hover:bg-slate-800/40 transition-colors">
+                        {headers.map((_, ci) => (
+                          <td key={ci} className="px-4 py-3">
+                            {renderFormattedText(cells[ci] ?? "")}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
       }
 
       if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {

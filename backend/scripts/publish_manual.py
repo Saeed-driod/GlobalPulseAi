@@ -49,6 +49,77 @@ except ImportError:
 
 MANUAL_ARTICLES: List[Dict[str, Any]] = [
     {
+        "slug": "sonos-black-friday-2026-best-deals-arc-ultra-beam-ace",
+        "title": "Sonos Black Friday 2026: Best Deals on Arc Ultra, Beam, Ace",
+        "category": "AI & Tech",
+        "meta_description": (
+            "Sonos Black Friday 2026 deals: Arc Ultra $849, Beam $339, Ace $229 in the US, plus UK prices at Currys. What is discounted, until when, and what to check."
+        ),
+        "summary": (
+            "• Sonos is offering up to 25% off select soundbars, speakers, headphones and subwoofers through 30 November 2026, with US deals including Arc Ultra at $849 and Beam (Gen 2) at $339.\n"
+            "• Tom's Guide highlights the Sonos Ace headphones at $229 ($120 off) as their lowest price ever, alongside multi-room bundles like the Ultimate Immersive Set at $2,199.\n"
+            "• UK shoppers can find Currys discounts including Arc Ultra at £799 (£200 off), Beam (Gen 2) at £339 (£110 off) and Sub Mini at £339 (£90 off)."
+        ),
+        "image_url": "https://theglobalpulseai.com/articles/sonos-black-friday.png",
+        "content": """Black Friday is on 27 November, and Sonos has already cut prices on its soundbars, speakers and headphones. Here are the prices reported by MacRumors and Tom's Guide on 19 and 25 November, with US deals first and UK deals after. Prices and stock can change quickly, so confirm the figure at checkout.
+
+## Sonos Black Friday 2026: the short version
+
+MacRumors reports that Sonos is offering up to 25% off select products through 30 November. The listed discounts cover speakers, soundbars, headphones and subwoofers, with several multi-room bundles included.
+
+## US deals
+
+These sale prices appear in MacRumors' list of Sonos.com offers. The regular prices are our arithmetic, sale price plus the listed discount, and Tom's Guide's Amazon figures mostly match them:
+
+| Product | Sale price | Discount |
+|---|---|---|
+| Arc Ultra (soundbar) | $849 | $250 off |
+| Beam (Gen 2) | $339 | $160 off |
+| Ray (soundbar) | $169 | $50 off |
+| Sonos Ace (headphones) | $229 | $120 off |
+| Move 2 | $399 | $100 off |
+| Era 100 | $179 | $40 off |
+| Roam 2 | $139 | $40 off |
+| Sub Mini | $399 | $100 off |
+| Sub 4 | $719 | $180 off |
+
+MacRumors also lists bundles, such as the Immersive Set with Beam at $1,096 ($340 off) and the Ultimate Immersive Set with Arc Ultra at $2,199 ($797 off).
+
+Tom's Guide labels the Sonos Ace at $229 as its lowest price ever. It says the Era 100 at $179 is not the lowest price it has seen.
+
+## UK deals
+
+Tom's Guide lists these UK offers at Currys, with the regular price shown in brackets:
+
+- **Arc Ultra:** £799 (was £999), £200 off
+- **Beam (Gen 2):** £339 (was £449), £110 off
+- **Ray:** £169 (was £199), £30 off
+- **Roam 2:** £139 (was £179), £40 off
+- **Sub Mini:** £339 (was £429), £90 off
+
+## Which Sonos product should you look at?
+
+- **Home cinema:** The Arc Ultra and Beam (Gen 2) are the soundbars with the biggest cuts in dollars. The Ray is the cheaper option.
+- **Music in a room:** The Era 100 and Move 2 are the speaker deals in the lists above.
+- **Headphones:** Tom's Guide calls the Ace's $229 price its lowest ever.
+
+## Before you buy
+
+- **Check the price at checkout.** Tom's Guide shows two different prices for the Ace, the Beam Gen 2 and the Sub Mini in different sections of the same page, so the price depends on the version and retailer.
+- **Compare retailers.** The same Sonos product can be priced differently on Sonos.com and Amazon in the US and at Currys in the UK.
+- **Check the end date.** MacRumors gives 30 November for the Sonos offers. Tom's Guide gives no end dates for its listings.
+- **Buy from an authorised seller** if you want the manufacturer's warranty.
+
+## What we do not know yet
+
+- Whether any price will drop further on 27 November or Cyber Monday.
+- Sonos UK prices on Sonos.com. The sources we checked list UK prices at Currys only.
+
+This article is for information only and is not a recommendation to buy.
+
+Sources: MacRumors, Sonos Black Friday sale (19 November 2026); Tom's Guide, best Sonos Black Friday deals (25 November 2026).""",
+    },
+    {
         "slug": "nvidia-reinstates-jensen-huang-ceo-stock-jumps-31-percent",
         "title": "Nvidia Reinstates Jensen Huang as CEO; Stock Jumps 31%",
         "category": "AI & Tech",
