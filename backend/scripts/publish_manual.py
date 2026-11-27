@@ -512,6 +512,66 @@ GamesRadar and TechRadar listed EE bundles of a PS5 Slim with GTA 6 at around £
 
 Sources: Rockstar Games (rockstargames.com newswire and store.rockstargames.com), PC Gamer live launch coverage (18 November 2026), TechRadar GTA 6 pre-order tracker (updated 27 June 2026), GamesRadar where to pre-order GTA 6 (updated 24 August 2026), HotUKDeals GTA VI deal pages (Asda, AO, ShopTo listings), Dexerto (15 November 2026).""",
     },
+    {
+        "slug": "economic-outlook-2027-imf-oecd-world-bank-forecasts",
+        "title": "2027 Economic Outlook: IMF, OECD, World Bank Compared",
+        "category": "AI & Tech",
+        "meta_description": (
+            "IMF 3.4%, OECD 3.0%, World Bank 2.8%: three 2027 global growth forecasts compared, why they differ, and the energy, debt and AI risks all three flag."
+        ),
+        "summary": (
+            "• The IMF forecasts 3.4% global growth for 2027, the OECD 3.0% and the World Bank 2.8%, a 0.6-point gap between the highest and lowest.\n"
+            "• The forecasts differ partly because of publication dates, energy price assumptions and, possibly, how national growth rates are weighted.\n"
+            "• All three flag Middle East energy risks, rising bond yields and debt, and the chance that AI investment disappoints."
+        ),
+        "image_url": "https://theglobalpulseai.com/articles/economic-outlook-2027.png",
+        "content": """Three major institutions have published global growth forecasts for 2027, and they do not agree. The IMF expects 3.4%, the OECD 3.0% and the World Bank 2.8%. This guide puts the numbers side by side, explains why they differ and lists the risks all three flag. These are forecasts, not facts, and the assumptions behind them can change.
+
+## The forecasts side by side
+
+| Institution | Published | 2026 growth | 2027 growth |
+|---|---|---|---|
+| IMF | 13 October 2026 | 3.1% | 3.4% |
+| OECD | 23 September 2026 | 2.9% | 3.0% |
+| World Bank | 11 June 2026 | 2.5% | 2.8% |
+
+CGTN reports that the IMF's 2027 figure is unchanged from its July forecast. Euronews reports that the OECD raised its 2026 forecast by 0.1 percentage point and trimmed 2027 by 0.1. The World Bank said growth should recover to 2.8% in 2027, still 0.4 percentage points below the 2010s average.
+
+The gap between the highest and lowest 2027 forecast is 0.6 percentage points (our arithmetic).
+
+## Why the numbers differ
+
+- **Different dates.** The World Bank published in June, before the OECD and the IMF. Its forecast assumed the worst energy disruptions would ease in July, while the IMF assumes oil and gas shipments through the Strait of Hormuz resume by March.
+- **Different weights, possibly.** The IMF has explained that the weights used to add up national growth rates make a big difference to global growth, because purchasing power parity weights give developing countries such as China and India a larger share of the world economy than market exchange rates do. The gap is not new: for 2025 the IMF reports 3.5% growth and the World Bank 2.9%. We did not confirm which weights each institution uses, so treat this as a possible explanation, not a proven one.
+- **Different energy assumptions.** The IMF assumes oil averages $96 a barrel in 2026, and the World Bank projects Brent at $94. The OECD says an assumed fall in energy prices in 2027 is projected to help stabilise global growth.
+
+## Inflation and the big economies
+
+- **Inflation:** The IMF expects global headline inflation of 4.7% in 2026, easing to 4.1% in 2027. The World Bank expects 4.0% in 2026, up from 3.3% in 2025. The OECD puts G20 headline inflation at 4.1% in 2026. These measures cover different groups of countries, so compare them with care.
+- **United States:** The IMF forecasts 2.3% growth in both 2026 and 2027. The OECD forecasts 2.2% for 2026.
+- **Euro area:** The IMF forecasts 1.1% in 2026 and 1.2% in 2027, according to the Associated Press. The OECD forecasts 1.0% in both years.
+- **Emerging and developing economies:** The IMF forecasts 3.7% in 2026 and 4.4% in 2027. The World Bank forecasts 3.6% and 4.2%.
+
+## The risks all three flag
+
+- **Energy and the Middle East.** The World Bank says growth could fall to 1.3% in 2026 if energy disruption is more severe and comes with substantial financial stress. The OECD lists prolonged disruption to Middle East exports among its main risks.
+- **Debt and bond yields.** The IMF points to rising debt, including AI-related borrowing, and high borrowing costs. The OECD cites further rises in long-term government bond yields.
+- **AI investment.** The IMF warns of a possible correction in AI-related stock prices. The OECD flags AI investment returns that fall short of expectations, and the World Bank lists equity corrections in technology.
+- **Weather.** The OECD names a very strong El Nino and its effect on harvests and food prices. The World Bank cites more frequent weather-related disasters.
+
+The IMF also says there is about a 10% chance that global growth in 2027 falls below 2%, down from 20% in its April estimate.
+
+## What we do not know
+
+- Whether oil and gas shipments resume on the IMF's timetable. Its 3.4% forecast depends on it.
+- Whether the World Bank will revise its June forecast. The sources we checked show nothing newer.
+- The OECD's 2027 forecasts for inflation and for the United States, which the pages we read did not give.
+- Which weighting method each institution uses.
+
+This article is for information only and is not investment advice.
+
+Sources: IMF, World Economic Outlook, October 2026 (imf.org, 13 October 2026) and Chapter 1; Associated Press coverage via NBC New York (13 October 2026); CGTN (13 October 2026); OECD, Interim Economic Outlook, September 2026 (oecd.org) and Euronews (23 September 2026); World Bank, Global Economic Prospects, June 2026 (press release, 11 June 2026); IMF Finance & Development, Purchasing Power Parity: Weights Matter.""",
+    },
 ]
 
 
