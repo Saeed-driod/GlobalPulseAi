@@ -649,6 +649,56 @@ This article is for information only and is not legal advice.
 
 Sources: GamesRadar, "GTA 6 physical copies are a code in a box" (24 June 2026); TechRadar, "GTA 6 physical copies have a download code in the box" (24 June 2026); ShopAppy, "GTA 6 in the UK: boxed code vs download" (updated 28 November 2026); Consumer Rights Act 2015, sections 43 to 45 (legislation.gov.uk); Which?, Consumer Contracts Regulations guide.""",
     },
+    {
+        "slug": "amazon-decart-7-5-billion-deal-explained",
+        "title": "Amazon's $7.5 Billion Decart Deal Explained: What It Means for the AI Chip War",
+        "category": "AI & Tech",
+        "meta_description": (
+            "Amazon agrees to buy Decart's AI optimization tech for a reported $7.5B to boost Trainium chips and rival Nvidia. What is confirmed and what is not."
+        ),
+        "summary": (
+            "• Amazon announced on November 23 a deal to buy the core Decart Optimization Stack (DOS) technology and bring Decart's three co-founders and research team into Amazon, reportedly for $7.5 billion.\n"
+            "• Decart's software will help optimize AI inference and Amazon's custom Trainium silicon to train and run AI models faster and at lower cost, challenging Nvidia's AI chip dominance.\n"
+            "• The deal awaits regulatory clearance with no confirmed timeline, Amazon has not officially confirmed the $7.5B figure, and external Trainium sales terms remain unconfirmed."
+        ),
+        "image_url": "https://theglobalpulseai.com/articles/amazon-decart.png",
+        "content": """Amazon has signed an agreement to buy the core technology of Israeli AI startup Decart for $7.5 billion, one of the largest AI talent-and-technology acquisitions of the year. The deal, announced by Amazon on November 23, hands the e-commerce and cloud giant the proprietary software behind the Decart Optimization Stack (DOS) — and brings Decart's three co-founders, Dean Leitersdorf, Moshe Shalev and Orian Leitersdorf, along with their team of AI researchers and engineers, into Amazon.
+
+## What Amazon is actually buying
+
+Unlike a traditional acquisition, Amazon is purchasing the technology behind DOS rather than the company's entire product line. Decart Optimization Stack is software designed to make AI models run faster and more efficiently across a range of hardware. According to Amazon's own announcement, Decart's technology will help Amazon optimize both AI inference and its custom silicon performance, "so more customers can train and run AI models faster and at lower cost."
+
+Since 2025, Decart's team had already been working closely with Amazon, delivering performance results on Trainium — Amazon's in-house AI training chip — using a full-stack approach that spans both software and hardware. That collaboration was effectively a long trial run before the purchase.
+
+## Why it matters: the AI chip war
+
+The deal is aimed squarely at Nvidia's dominance in AI chips. Amazon has spent years building its own silicon portfolio — from Graviton (general purpose) to Trainium (AI training and inference) — and reports from Calcalist suggest the acquisition follows the collapse of earlier Decart acquisition talks with Anthropic and Nvidia.
+
+"Every leap forward in AI starts with getting more out of every chip," said Peter DeSantis, Senior Vice President of foundational AI models, custom silicon and quantum computing at Amazon. "More efficient compute means better training, better reinforcement learning, faster inference, and better models for customers at a lower cost."
+
+Decart co-founder and CEO Dean Leitersdorf said joining Amazon "gives our team the scale, the customers, and the infrastructure to pursue that mission faster than we could on our own."
+
+## The bigger picture
+
+The purchase lands amid a wider debate about how much power a handful of technology companies now hold over the global economy. Commentators and business leaders have warned that advanced AI and concentrated tech power are creating "hostage-like" conditions, where attempts to rein in the biggest firms could themselves trigger downturns. TechCrunch reports the deal comes as Amazon prepares to sell Trainium chips more broadly, turning its internal chip effort into an external business.
+
+For customers, the near-term impact is efficiency: faster AI inference at lower cost on AWS. For the industry, it signals that custom-silicon players like Amazon are willing to spend billions to reduce their dependence on Nvidia — and that elite AI engineering talent has become one of the most expensive assets in technology.
+
+## What we do not know
+
+- The deal has not closed yet. Amazon says completion is subject to "customary closing conditions, including regulatory clearance," and there is no confirmed timeline.
+- The $7.5 billion valuation comes from Bloomberg and Calcalist reporting; Amazon's official announcement does not state the deal value.
+- What happens to Decart's remaining business and products outside the DOS technology was not specified.
+- Whether Trainium chips will actually be sold to external customers, and on what terms, remains unconfirmed.
+
+## Sources
+
+- Amazon (official announcement, Nov 23, 2026): https://www.aboutamazon.com/news/company-news/amazon-decart-ai-optimization
+- Bloomberg (Nov 23, 2026): https://www.bloomberg.com/news/articles/2026-11-23/amazon-is-said-to-pay-7-5-billion-for-ai-startup-decart-s-tech
+- Calcalist / CTech (Nov 23, 2026): http://www.calcalistech.com/ctechnews/article/g0mtcg4mi
+- TechCrunch (Nov 23, 2026): https://techcrunch.com/2026/11/23/amazon-snaps-up-decarts-ai-optimization-tech-for-7-5b-as-it-prepares-to-sell-trainium-chips/
+- SiliconANGLE (Nov 23, 2026): https://siliconangle.com/2026/11/23/amazon-acquires-key-assets-of-ai-startup-decart-for-reported-7-5b/""",
+    },
 ]
 
 
