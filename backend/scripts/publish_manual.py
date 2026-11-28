@@ -572,6 +572,83 @@ This article is for information only and is not investment advice.
 
 Sources: IMF, World Economic Outlook, October 2026 (imf.org, 13 October 2026) and Chapter 1; Associated Press coverage via NBC New York (13 October 2026); CGTN (13 October 2026); OECD, Interim Economic Outlook, September 2026 (oecd.org) and Euronews (23 September 2026); World Bank, Global Economic Prospects, June 2026 (press release, 11 June 2026); IMF Finance & Development, Purchasing Power Parity: Weights Matter.""",
     },
+    {
+        "slug": "gta-6-physical-copy-uk-code-in-box-no-disc-your-rights",
+        "title": "GTA 6 Physical Copy in the UK: No Disc, What Is in the Box",
+        "category": "Entertainment",
+        "meta_description": (
+            "GTA 6 boxed copies in the UK hold a download code, not a disc. What is in the box, the £64.99 price, and what your rights are if the code fails."
+        ),
+        "summary": (
+            "• Rockstar confirmed that physical GTA 6 copies contain a code for the digital download and no disc, with boxes reaching stores on 12 November, a week before the 19 November launch.\n"
+            "• UK reports list the boxed Standard Edition at £64.99 at Argos, against £69.99 for the digital download, with a code, an empty disc spindle and an A3 poster in the box.\n"
+            "• If a code fails, the Consumer Rights Act 2015 covers faulty digital content, but whether a boxed code counts as goods or digital content is not settled in the sources we checked."
+        ),
+        "image_url": "https://theglobalpulseai.com/articles/gta-6-physical-copy-uk.png",
+        "content": """If you bought GTA 6 in a UK shop, the box does not contain a game disc. Rockstar confirmed that physical copies hold a code for the digital download instead. This guide explains what is in the box, what it costs, what you give up compared with a disc, and what the law says if the code does not work. Details come from the sources named below and can change.
+
+## What Rockstar confirmed
+
+GamesRadar reported on 24 June 2026 that Rockstar confirmed physical copies are "a code in a box". The listing states that "a disk will not be included in the box". According to GamesRadar, physical copies reach stores on 12 November, a week before the 19 November launch, so buyers can pre-load the game.
+
+TechRadar adds that players get a digital licence for the game instead of a disc. Both outlets say fans reacted with disappointment. TechRadar offers one explanation, that Rockstar may be trying to reduce leaks, and presents it as speculation.
+
+## What is in the UK box
+
+ShopAppy, summarising reports from the Mirror and the Express, lists three things in the box:
+
+- A download code.
+- An empty plastic disc spindle.
+- A double-sided A3 poster.
+
+The code works on consoles without a disc drive, such as the PS5 Digital Edition, according to ShopAppy.
+
+## Price and where to buy
+
+| Version | UK price | Source |
+|---|---|---|
+| Standard Edition, download | £69.99 | Novuna Personal Finance, via ShopAppy |
+| Standard Edition, boxed code | £64.99 at Argos | The Mirror, via ShopAppy |
+| Ultimate Edition | £89.99, digital only | ShopAppy |
+
+ShopAppy, citing the Mirror, lists Argos, Currys, Amazon UK and GAME as stockists of the boxed copy. Prices change often, so confirm the figure at checkout.
+
+## What you give up compared with a disc
+
+- **You must download the game.** The box holds a code, not the game itself.
+- **Resale is unclear.** GamesRadar's writer argues that anyone hoping to resell the game or keep a lasting physical version is out of luck. We did not find a statement from Rockstar on resale.
+- **No boxed Ultimate Edition.** ShopAppy says the Ultimate Edition has no boxed version.
+
+## If your code does not work
+
+ShopAppy reports, citing Power Up Gaming on 13 November, that some sealed copies had codes that were rejected or already redeemed. It says the scale is not established. Contact the retailer that sold you the box first.
+
+On your legal rights, the Consumer Rights Act 2015 covers digital content:
+
+- **Repair or replacement.** Section 43 says the trader must fix or replace faulty digital content within a reasonable time, at no cost to you.
+- **Price reduction.** Section 44 lets you ask for a reduction, which can be the full price, if repair or replacement is impossible or not done in a reasonable time.
+- **Refund.** Section 45 gives the right to a refund of all money paid, within 14 days of the trader agreeing you are entitled to it, using your original payment method.
+
+For changing your mind, Which? explains that to get a download within the 14-day cancellation period you must agree to waive your cancellation rights, and that you lose the right to cancel once the download starts. It also lists software with a broken seal among the exemptions.
+
+## Before you buy
+
+- **Check the retailer's returns policy** before you open the box.
+- **Keep your receipt** and a photo of the code's packaging if the code is rejected.
+- **Do not redeem the code until you are ready to download**, because opening the seal and downloading may affect your cancellation rights.
+- **Buy from a shop, not a private seller**, if you want the strongest protection, as ShopAppy advises.
+
+## What we do not know
+
+- Whether the law treats a boxed code as goods or as digital content. The sources we checked do not say, so ask the retailer or Citizens Advice.
+- How many boxes shipped with faulty codes.
+- Whether Rockstar will release a disc version later. GamesRadar's writer hopes the code-in-a-box approach is temporary, but gives no evidence for it.
+- Current stock and prices at each UK retailer.
+
+This article is for information only and is not legal advice.
+
+Sources: GamesRadar, "GTA 6 physical copies are a code in a box" (24 June 2026); TechRadar, "GTA 6 physical copies have a download code in the box" (24 June 2026); ShopAppy, "GTA 6 in the UK: boxed code vs download" (updated 28 November 2026); Consumer Rights Act 2015, sections 43 to 45 (legislation.gov.uk); Which?, Consumer Contracts Regulations guide.""",
+    },
 ]
 
 
