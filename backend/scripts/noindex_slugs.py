@@ -45,6 +45,7 @@ except ImportError:
 SLUGS_TO_NOINDEX = [
     "daily-brief-2026-11-22",
     "daily-brief-2026-11-23",
+    "roblox-funding-linked-to-controversial-anorexia-treatment",
 ]
 
 def main():
